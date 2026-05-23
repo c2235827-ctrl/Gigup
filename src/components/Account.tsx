@@ -1,17 +1,21 @@
 import React, { useState } from 'react';
-import { ShieldAlert, Copy, Check, Share2, HelpCircle, LogOut, Bell, History, KeyRound, ChevronRight, CheckCircle, Mail, MessageSquare } from 'lucide-react';
+import { ShieldAlert, Copy, Check, Share2, HelpCircle, LogOut, Bell, History, KeyRound, ChevronRight, CheckCircle, Mail, MessageSquare, Sparkles, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { ApiService, isSandbox } from '../api';
-import { User } from '../types';
+import { User, WalletTransaction } from '../types';
 
 interface AccountProps {
   user: User;
+  transactions: WalletTransaction[];
   onNavigate: (screen: string) => void;
   onLogout: () => void;
   showToast: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
 
-export default function Account({ user, onNavigate, onLogout, showToast }: AccountProps) {
+export default function Account({ user, transactions = [], onNavigate, onLogout, showToast }: AccountProps) {
   const [copiedCode, setCopiedCode] = useState(false);
+  
+  // Cashback history modal overlay
+  const [showCashbackHistoryModal, setShowCashbackHistoryModal] = useState(false);
   
   // Security Change PIN States
   const [showPinModal, setShowPinModal] = useState(false);
@@ -238,6 +242,24 @@ export default function Account({ user, onNavigate, onLogout, showToast }: Accou
           <ChevronRight className="w-4 h-4 text-text-muted shrink-0" />
         </button>
 
+        {/* Row 1.5: Cashback History */}
+        <button
+          id="cashback-history-trigger-btn"
+          onClick={() => setShowCashbackHistoryModal(true)}
+          className="w-full bg-white rounded-2xl p-4 border border-gray-100 flex items-center justify-between text-left shadow-sm active:bg-gray-50 transition cursor-pointer"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-[#F59E0B]/5 flex items-center justify-center text-[#F59E0B] shrink-0 border border-amber-100">
+              <Sparkles className="w-4 h-4 text-[#F59E0B] fill-amber-300/10" />
+            </div>
+            <div>
+              <span className="text-xs font-bold text-primary-dark block leading-none">Cashback History Ledger</span>
+              <span className="text-[10px] text-text-muted mt-1 block">Verify all 10% instant refunds and rewards stats</span>
+            </div>
+          </div>
+          <ChevronRight className="w-4 h-4 text-text-muted shrink-0" />
+        </button>
+
         {/* Row 2: Notifications */}
         <button
           onClick={() => onNavigate('notifications')}
@@ -433,6 +455,122 @@ export default function Account({ user, onNavigate, onLogout, showToast }: Accou
                 </a>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 5. Cashback History Modal Overlay */}
+      {showCashbackHistoryModal && (
+        <div className="absolute inset-0 bg-primary-dark/80 backdrop-blur-sm z-50 flex items-end justify-center">
+          <div className="bg-white rounded-t-[32px] w-full max-w-sm p-6 space-y-4 shadow-2xl pb-10 border-t border-gray-100 text-primary-dark select-none animate-slide-up">
+            
+            <div className="flex justify-between items-center pb-2 border-b border-gray-100">
+              <h5 className="font-extrabold text-sm uppercase text-primary-dark tracking-wide flex items-center gap-1.5">
+                <Sparkles className="w-4.5 h-4.5 text-[#F59E0B] fill-amber-300/20" /> Cashback Rewards Statement
+              </h5>
+              <button
+                onClick={() => setShowCashbackHistoryModal(false)}
+                className="text-xs font-bold text-text-muted hover:text-primary-dark cursor-pointer bg-transparent border-none p-0"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="bg-[#F59E0B]/5 border border-amber-200/50 rounded-2xl p-4 flex justify-between items-center text-xs">
+              <div>
+                <span className="font-bold text-text-muted block text-[9px] uppercase">Cashback Wallet Balance</span>
+                <span className="text-lg font-black font-mono text-[#F59E0B]">
+                  ₦{(user.cashback_balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="text-right">
+                <span className="text-[9px] uppercase text-text-muted block">Withdrawer State</span>
+                <span className={`font-bold px-2 py-0.5 rounded-full text-[9px] uppercase border inline-block ${
+                  user.pending_withdrawal 
+                    ? 'bg-amber-100 text-[#F59E0B] border-amber-200' 
+                    : user.cashback_balance >= 2000 
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-200' 
+                      : 'bg-gray-100 text-gray-500 border-gray-200'
+                }`}>
+                  {user.pending_withdrawal 
+                    ? 'Pending Payout' 
+                    : user.cashback_balance >= 2000 
+                      ? 'Ready to Pay' 
+                      : 'Accumulating'
+                  }
+                </span>
+              </div>
+            </div>
+
+            {/* List transactions where description contains "cashback" (case insensitive) */}
+            <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1">
+              {(() => {
+                const cbTrxs = transactions.filter(tx => 
+                  tx.description.toLowerCase().includes('cashback')
+                );
+
+                if (cbTrxs.length === 0) {
+                  return (
+                    <div className="py-8 text-center flex flex-col items-center justify-center space-y-2">
+                      <span className="text-3xl text-gray-300">🎟️</span>
+                      <p className="text-[10px] text-text-muted leading-relaxed max-w-[200px] font-medium">
+                        No cashback rewards logged yet. Every data bundle purchase gives 10% instant refund!
+                      </p>
+                    </div>
+                  );
+                }
+
+                return cbTrxs.map((tx) => {
+                  const isCredit = tx.type === 'credit';
+                  return (
+                    <div 
+                      key={tx.id} 
+                      className="bg-bg-light rounded-xl p-3 border border-gray-100 flex items-center justify-between text-xs animate-fade-in"
+                    >
+                      <div className="flex items-center gap-2 max-w-[190px]">
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 border ${
+                          isCredit 
+                            ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
+                            : 'bg-red-50 text-red-500 border-red-100'
+                        }`}>
+                          {isCredit ? (
+                            <ArrowDownLeft className="w-3.5 h-3.5" />
+                          ) : (
+                            <ArrowUpRight className="w-3.5 h-3.5" />
+                          )}
+                        </div>
+                        <div className="min-w-0 text-left">
+                          <span className="font-bold text-primary-dark block leading-none truncate mb-1">
+                            {tx.description}
+                          </span>
+                          <span className="text-[8px] text-text-muted block">
+                            {new Date(tx.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span className={`font-black font-mono text-[11px] block ${
+                          isCredit ? 'text-emerald-600' : 'text-red-500'
+                        }`}>
+                          {isCredit ? '+' : '-'}₦{tx.amount.toLocaleString()}
+                        </span>
+                        <span className="text-[7.5px] text-emerald-600 font-bold uppercase tracking-wider block mt-0.5">
+                          Approved
+                        </span>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+
+            <button
+               onClick={() => setShowCashbackHistoryModal(false)}
+               className="w-full bg-primary-dark text-white py-3.5 rounded-full text-xs font-bold shadow-md cursor-pointer transition hover:bg-black uppercase"
+            >
+              GOT IT
+            </button>
           </div>
         </div>
       )}

@@ -4,6 +4,16 @@ export interface User {
   full_name: string;
   referral_code: string;
   wallet_balance: number;
+  cashback_balance?: number;
+  can_withdraw?: boolean;
+  cashback_to_withdrawal?: number;
+  pending_withdrawal?: {
+    amount: number;
+    bank_name: string;
+    account_number: string;
+    account_name: string;
+    created_at?: string;
+  } | null;
   unread_notifications?: number;
   total_referrals?: number;
   created_at?: string;

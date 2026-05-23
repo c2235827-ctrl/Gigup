@@ -321,12 +321,12 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
               </div>
 
               <div>
-                <span className="text-[9px] bg-brand-cashback/15 text-brand-cashback font-bold px-2.5 py-0.5 rounded-full border border-brand-cashback/10 inline-block uppercase animate-bounce">
-                  + ₦{lastPurchaseInfo.cashback} Cashback Added
+                <span className="text-[10px] bg-amber-100 text-[#F59E0B] font-bold px-2.5 py-1 rounded-full border border-amber-200 inline-block uppercase animate-pulse">
+                  🎁 Cashback Earned: +₦{lastPurchaseInfo.cashback}
                 </span>
                 <h4 className="text-xl font-extrabold tracking-tight text-primary-dark mt-2">Data Purchase Sent!</h4>
                 <p className="text-xs text-text-muted mt-1.5 px-3">
-                  {lastPurchaseInfo.plan.size_label} bundle sent to <span className="font-bold text-primary-dark">{lastPurchaseInfo.recipient}</span>. 
+                  {lastPurchaseInfo.plan.size_label} bundle sent to <span className="font-bold text-primary-dark">{lastPurchaseInfo.recipient}</span>.
                 </p>
               </div>
             </div>
@@ -345,9 +345,18 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
                 <span className="text-text-muted">Debit Charge</span>
                 <span className="font-bold text-primary-dark font-mono">₦{lastPurchaseInfo.plan.price.toLocaleString('en-US')}</span>
               </div>
-              <div className="flex justify-between pt-1.5 border-t border-dashed border-gray-200">
-                <span className="text-text-muted font-medium">Instant Cashback (10%)</span>
-                <span className="font-extrabold text-brand-cashback font-mono">+₦{lastPurchaseInfo.cashback.toLocaleString('en-US')}</span>
+              <div className="border-t border-dashed border-gray-200 my-1"></div>
+              <div className="flex justify-between">
+                <span className="text-text-muted font-medium">Earned Cashback (10%)</span>
+                <span className="font-extrabold text-[#F59E0B] font-mono">+₦{lastPurchaseInfo.cashback.toLocaleString('en-US')}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-text-muted">Updated Wallet Balance</span>
+                <span className="font-bold text-primary-dark font-mono">₦{user.wallet_balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-text-muted">Updated Cashback Balance</span>
+                <span className="font-bold text-[#F59E0B] font-mono">₦{(user.cashback_balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
               </div>
             </div>
 

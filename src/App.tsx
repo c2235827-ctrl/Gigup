@@ -254,6 +254,7 @@ export default function App() {
             user={user} 
             transactions={transactions} 
             onNavigate={handleOnscreenNavigation} 
+            onRefreshData={refreshUserData}
             showToast={showToast} 
           />
         ) : null;
@@ -261,6 +262,7 @@ export default function App() {
         return user ? (
           <Account 
             user={user} 
+            transactions={transactions}
             onNavigate={handleOnscreenNavigation} 
             onLogout={handleLogout} 
             showToast={showToast} 
@@ -282,6 +284,7 @@ export default function App() {
             user={user} 
             transactions={transactions} 
             onNavigate={handleOnscreenNavigation} 
+            onRefreshData={refreshUserData}
             showToast={showToast} 
           />
         ) : null;

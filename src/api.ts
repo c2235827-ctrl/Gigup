@@ -50,6 +50,10 @@ const initSandboxData = () => {
         full_name: 'Demo User',
         referral_code: 'GIGUP123',
         wallet_balance: 5000.00,
+        cashback_balance: 350.00,
+        can_withdraw: false,
+        cashback_to_withdrawal: 1650.00,
+        pending_withdrawal: null,
         unread_notifications: 2,
         total_referrals: 3,
         created_at: new Date().toISOString()
@@ -187,6 +191,10 @@ export const ApiService = {
         full_name: payload.full_name,
         referral_code: payload.referral_code || 'REF' + Math.random().toString(36).substr(2, 5).toUpperCase(),
         wallet_balance: 0, // gets 5GB automatically as signup bonus! Just represent it
+        cashback_balance: 0,
+        can_withdraw: false,
+        cashback_to_withdrawal: 2000,
+        pending_withdrawal: null,
         unread_notifications: 1,
         total_referrals: 0,
         created_at: new Date().toISOString()
@@ -318,6 +326,9 @@ export const ApiService = {
     success: boolean;
     status: 'success' | 'failed' | 'pending';
     cashback: number;
+    cashback_earned?: number;
+    cashback_balance?: number;
+    wallet_balance?: number;
     message: string;
     isSandboxEnv?: boolean;
   }> {
@@ -340,10 +351,20 @@ export const ApiService = {
 
       // Calculate Cashback
       const cashback = Math.round(plan.price * 0.10); // 10%
-      const newBalance = user.wallet_balance - plan.price + cashback;
+      const newBalance = user.wallet_balance - plan.price;
+      const finalCashbackBalance = (user.cashback_balance || 0) + cashback;
+      const isPendingWithdrawal = !!user.pending_withdrawal;
+      const canWithdraw = finalCashbackBalance >= 2000 && !isPendingWithdrawal;
+      const cashbackToWithdrawal = Math.max(0, 2000 - finalCashbackBalance);
 
       // Update Sandbox User
-      const updatedUser = { ...user, wallet_balance: newBalance };
+      const updatedUser: User = { 
+        ...user, 
+        wallet_balance: newBalance,
+        cashback_balance: finalCashbackBalance,
+        can_withdraw: canWithdraw,
+        cashback_to_withdrawal: cashbackToWithdrawal
+      };
       localStorage.setItem('gigup_user', JSON.stringify(updatedUser));
 
       // Persist in Sandbox DB
@@ -404,7 +425,10 @@ export const ApiService = {
         success: true,
         status: 'success',
         cashback,
-        message: `${plan.network} ${plan.size_label} sent! ₦${cashback} cashback added to wallet.`,
+        cashback_earned: cashback,
+        cashback_balance: finalCashbackBalance,
+        wallet_balance: newBalance,
+        message: `${plan.network} ${plan.size_label} sent! ₦${cashback} cashback earned.`,
         isSandboxEnv: true
       };
     }
@@ -423,6 +447,9 @@ export const ApiService = {
         success: true,
         status: data.status || 'success',
         cashback: data.cashback || 0,
+        cashback_earned: data.cashback_earned !== undefined ? data.cashback_earned : (data.cashback || 0),
+        cashback_balance: data.cashback_balance,
+        wallet_balance: data.wallet_balance,
         message: data.message || 'Purchased successfully'
       };
     } catch (e: any) {
@@ -486,6 +513,21 @@ export const ApiService = {
 
     if (isSandbox() || token.startsWith('sandbox_token_')) {
       const storedUser = JSON.parse(userString) as User;
+      
+      // Hydrate cashback attributes with appropriate defaults if they are missing
+      if (storedUser.cashback_balance === undefined) {
+        storedUser.cashback_balance = 350.00;
+      }
+      if (storedUser.pending_withdrawal === undefined) {
+        storedUser.pending_withdrawal = null;
+      }
+      if (storedUser.can_withdraw === undefined) {
+        storedUser.can_withdraw = storedUser.cashback_balance >= 2000 && !storedUser.pending_withdrawal;
+      }
+      if (storedUser.cashback_to_withdrawal === undefined) {
+        storedUser.cashback_to_withdrawal = Math.max(0, 2000 - storedUser.cashback_balance);
+      }
+
       // Get count from notifications
       const notifications = getLocalStorageJson<Notification[]>('gigup_sandbox_notifications', []);
       const unreadCount = notifications.filter(n => !n.is_read).length;
@@ -620,6 +662,109 @@ export const ApiService = {
     } catch (err) {
       console.warn('Live API profile check failed during callback. Reloading state.', err);
       return { success: true, amount };
+    }
+  },
+
+  // 10. Request Withdrawal (Auth required)
+  async requestWithdrawal(payload: {
+    amount: number;
+    bank_name: string;
+    account_number: string;
+    account_name: string;
+  }): Promise<{ success: boolean; message: string; isSandboxEnv?: boolean }> {
+    const token = localStorage.getItem('gigup_token');
+    const userString = localStorage.getItem('gigup_user');
+    if (!token || !userString) {
+      throw new Error('Authentication required');
+    }
+
+    if (isSandbox() || token.startsWith('sandbox_token_')) {
+      const user = JSON.parse(userString) as User;
+      const cashbackBalance = user.cashback_balance || 0;
+
+      if (payload.amount < 2000) {
+        throw new Error('Minimum cashback withdrawal is ₦2,000');
+      }
+      if (cashbackBalance < payload.amount) {
+        throw new Error(`Insufficient cashback balance. You have ₦${cashbackBalance.toFixed(2)}`);
+      }
+      if (user.pending_withdrawal) {
+        throw new Error('You already have a pending withdrawal request.');
+      }
+
+      // Withdraw full cashback balance (withdraw-all rule)
+      const withdrawnAmount = cashbackBalance;
+
+      // Update Sandbox User
+      const updatedUser: User = {
+        ...user,
+        cashback_balance: 0,
+        can_withdraw: false,
+        cashback_to_withdrawal: 2000,
+        pending_withdrawal: {
+          amount: withdrawnAmount,
+          bank_name: payload.bank_name,
+          account_number: payload.account_number,
+          account_name: payload.account_name,
+          created_at: new Date().toISOString()
+        }
+      };
+
+      localStorage.setItem('gigup_user', JSON.stringify(updatedUser));
+
+      // Update in Sandbox DB
+      const users = getLocalStorageJson<Record<string, { phone: string; pin: string; user: User }>>('gigup_sandbox_users', {});
+      if (users[user.phone]) {
+        users[user.phone].user = updatedUser;
+        setLocalStorageJson('gigup_sandbox_users', users);
+      }
+
+      // Add a debit entry to wallet transactions to reflect the payout (or cashback debit)
+      const trxs = getLocalStorageJson<WalletTransaction[]>('gigup_sandbox_transactions', []);
+      trxs.unshift({
+        id: 'trx-withdraw-' + Date.now(),
+        type: 'debit',
+        amount: withdrawnAmount,
+        description: `Withdrawn cashback of ₦${withdrawnAmount.toLocaleString()} to ${payload.bank_name} (${payload.account_number})`,
+        created_at: new Date().toISOString()
+      });
+      setLocalStorageJson('gigup_sandbox_transactions', trxs);
+
+      // Create custom notification
+      const notifications = getLocalStorageJson<Notification[]>('gigup_sandbox_notifications', []);
+      notifications.unshift({
+        id: 'n-withdraw-' + Date.now(),
+        title: 'Withdrawal Pending ⏳',
+        message: `Your request of ₦${withdrawnAmount.toLocaleString()} to ${payload.bank_name} (${payload.account_number}) is being processed.`,
+        is_read: false,
+        created_at: new Date().toISOString()
+      });
+      setLocalStorageJson('gigup_sandbox_notifications', notifications);
+
+      return {
+        success: true,
+        message: `Withdrawal request submitted! ₦${withdrawnAmount.toLocaleString()} will be sent to your ${payload.bank_name} account within 24 hours.`,
+        isSandboxEnv: true
+      };
+    }
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/request-withdrawal`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error || data.success === false) {
+        throw new Error(data.error || data.message || 'Failed to request withdrawal');
+      }
+      return {
+        success: true,
+        message: data.message || 'Withdrawal request submitted!'
+      };
+    } catch (e: any) {
+      console.warn('Live API request-withdrawal failed.', e);
+      throw e;
     }
   }
 };

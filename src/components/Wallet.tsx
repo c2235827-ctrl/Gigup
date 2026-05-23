@@ -7,13 +7,24 @@ interface WalletProps {
   user: User;
   transactions: WalletTransaction[];
   onNavigate: (screen: string) => void;
+  onRefreshData: () => Promise<void>;
   showToast: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
 
-export default function Wallet({ user, transactions, onNavigate, showToast }: WalletProps) {
+export default function Wallet({ user, transactions, onNavigate, onRefreshData, showToast }: WalletProps) {
   const [activeSubTab, setActiveSubTab] = useState<'topup' | 'history'>('topup');
   const [amount, setAmount] = useState<string>('2000');
   const [loadingTopup, setLoadingTopup] = useState(false);
+  
+  // Transaction Filter State
+  const [filterType, setFilterType] = useState<'all' | 'cashback'>('all');
+  
+  // Withdrawal States
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [bankName, setBankName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [accountName, setAccountName] = useState('');
+  const [withdrawing, setWithdrawing] = useState(false);
 
   // Quick select chip buttons
   const quickChips = [2000, 3000, 5000, 10000];
@@ -109,7 +120,8 @@ export default function Wallet({ user, transactions, onNavigate, showToast }: Wa
       {/* Main Body Containers depend on active tabs */}
       <div className="p-5 flex-grow">
         {activeSubTab === 'topup' ? (
-          <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm space-y-5">
+          <div className="space-y-4">
+            <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm space-y-5">
             <div className="space-y-1.5 px-1">
               <h5 className="text-xs font-bold text-primary-dark uppercase">Fund Ledger Balance</h5>
               <p className="text-[11px] text-text-muted leading-tight">
@@ -196,73 +208,330 @@ export default function Wallet({ user, transactions, onNavigate, showToast }: Wa
               )}
             </button>
           </div>
-        ) : (
-          <div className="space-y-3">
+
+          {/* Visually-isolated Cashback Wallet section */}
+          <div className="bg-white rounded-3xl p-5 border border-amber-200 shadow-sm bg-gradient-to-br from-white to-amber-50/10 space-y-4">
             <div className="flex justify-between items-center px-1">
-              <h5 className="text-xs font-bold text-text-dark/40 uppercase tracking-widest">Transaction History</h5>
-              <span className="text-[10px] text-text-muted font-bold">
-                {transactions.length} items logged
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-[#F59E0B] fill-amber-100" />
+                <h5 className="text-xs font-bold text-primary-dark uppercase">Cashback Balance</h5>
+              </div>
+              <span className="text-[10px] bg-amber-50 text-[#F59E0B] font-extrabold px-2.5 py-0.5 rounded-full border border-amber-100">
+                10% Payouts
               </span>
             </div>
 
-            {transactions.length === 0 ? (
-              <div className="bg-white rounded-3xl p-8 text-center border border-gray-100 flex flex-col items-center justify-center min-h-[180px] shadow-sm">
-                <span className="text-3xl mb-2">📥</span>
-                <h6 className="text-xs font-bold text-primary-dark uppercase">Clear Ledger Statement</h6>
-                <p className="text-[10px] text-text-muted max-w-[200px] mt-1.5 leading-relaxed">
-                  No billing changes received yet. Complete your first deposit to get your 10% cashback voucher reward!
-                </p>
+            <div className="bg-[#F59E0B]/5 border border-amber-200/50 rounded-2xl p-4 flex justify-between items-center">
+              <div>
+                <span className="text-[10px] text-text-muted uppercase font-semibold block leading-none mb-1">Withdrawable Balance</span>
+                <span className="text-xl font-extrabold text-[#F59E0B] font-mono leading-none">
+                  ₦{(user.cashback_balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </span>
               </div>
-            ) : (
-              <div className="space-y-2.5">
-                {transactions.map((tx) => {
-                  const isCredit = tx.type === 'credit';
-                  return (
-                    <div 
-                      key={tx.id} 
-                      className="bg-white rounded-2xl p-3.5 border border-gray-100 shadow-sm flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 border ${
-                          isCredit 
-                            ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
-                            : 'bg-red-50 text-red-500 border-red-100'
-                        }`}>
-                          {isCredit ? (
-                            <ArrowDownLeft className="w-4.5 h-4.5" />
-                          ) : (
-                            <ArrowUpRight className="w-4.5 h-4.5" />
-                          )}
-                        </div>
-                        <div>
-                          <span className="text-xs font-bold text-primary-dark block leading-tight">
-                            {tx.description}
-                          </span>
-                          <span className="text-[9px] text-text-muted block mt-0.5">
-                            {formatTxDate(tx.created_at)}
-                          </span>
-                        </div>
-                      </div>
+              {user.pending_withdrawal ? (
+                <span className="text-[9px] bg-amber-100 text-[#F59E0B] font-extrabold px-2.5 py-1 rounded-full border border-amber-200 uppercase tracking-wide">
+                  ⏳ Pending: ₦{user.pending_withdrawal.amount.toLocaleString()}
+                </span>
+              ) : (
+                <span className="text-[9.5px] text-text-muted font-bold">
+                  Target: ₦2,000.00
+                </span>
+              )}
+            </div>
 
-                      <div className="text-right shrink-0 pl-1">
-                        <span className={`text-xs font-extrabold font-mono block ${
-                          isCredit ? 'text-emerald-600' : 'text-red-500'
-                        }`}>
-                          {isCredit ? '+' : '-'}₦{tx.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                        </span>
-                        <span className="text-[8px] uppercase tracking-wider bg-bg-light text-primary-dark px-1.5 py-0.5 rounded-full border border-gray-100 mt-1 inline-block">
-                          Settled
-                        </span>
-                      </div>
+            {(() => {
+              const cb = user.cashback_balance || 0;
+              const hasPending = !!user.pending_withdrawal;
+              const canWithdraw = cb >= 2000;
+
+              if (hasPending) {
+                return (
+                  <div className="space-y-2">
+                    <button
+                      disabled
+                      className="w-full bg-gray-100 text-gray-400 rounded-full py-4 text-xs font-bold uppercase cursor-not-allowed border border-gray-150 flex items-center justify-center gap-2"
+                    >
+                      ⏳ Withdrawal in Progress
+                    </button>
+                    <p className="text-[10px] text-[#F59E0B] font-medium text-center leading-snug">
+                      Your payout of ₦{user.pending_withdrawal?.amount.toLocaleString()} is being processed. Only one pending request is permitted at a time.
+                    </p>
+                  </div>
+                );
+              }
+
+              if (canWithdraw) {
+                return (
+                  <div className="space-y-2">
+                    <button
+                      id="withdraw-cashback-btn"
+                      onClick={() => {
+                        setAccountNumber('');
+                        setAccountName('');
+                        setBankName('');
+                        setShowWithdrawModal(true);
+                      }}
+                      className="w-full bg-[#F59E0B] hover:bg-[#D97706] text-white rounded-full py-4 text-xs font-bold uppercase shadow-md shadow-amber-500/10 transition cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <ArrowUpRight className="w-4.5 h-4.5" />
+                      Withdraw Cashback to Bank
+                    </button>
+                    <p className="text-[10.5px] text-emerald-600 font-semibold text-center leading-snug animate-pulse">
+                      🎉 Congratulations! You have reached the ₦2,000 threshold. Click above to withdraw.
+                    </p>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="space-y-2">
+                  <button
+                    disabled
+                    className="w-full bg-gray-100 text-gray-400 rounded-full py-4 text-xs font-bold uppercase cursor-not-allowed border border-gray-150 flex items-center justify-center gap-1.5"
+                  >
+                    Withdraw Cashback to Bank
+                  </button>
+                  <p className="text-[10px] text-text-muted text-center leading-snug">
+                    ⚠️ You need ₦{Math.max(0, 2000 - cb).toLocaleString()} more to reach the minimum ₦2,000 withdrawal milestone.
+                  </p>
+                </div>
+              );
+            })()}
+          </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {(() => {
+              const filteredTransactions = transactions.filter(tx => {
+                if (filterType === 'cashback') {
+                  return tx.description.toLowerCase().includes('cashback');
+                }
+                return true;
+              });
+
+              return (
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center px-1">
+                    <h5 className="text-xs font-bold text-text-dark/40 uppercase tracking-widest">Transaction History</h5>
+                    <div className="flex gap-1 bg-white border border-gray-150 rounded-full p-0.5 shadow-xs">
+                      <button
+                        onClick={() => setFilterType('all')}
+                        className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase transition ${
+                          filterType === 'all' 
+                            ? 'bg-primary-dark text-white shadow-xs' 
+                            : 'text-text-muted hover:text-primary-dark'
+                        }`}
+                      >
+                        All
+                      </button>
+                      <button
+                        onClick={() => setFilterType('cashback')}
+                        className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase transition ${
+                          filterType === 'cashback' 
+                            ? 'bg-amber-500 text-white shadow-xs' 
+                            : 'text-text-muted hover:text-primary-dark'
+                        }`}
+                      >
+                        Cashback
+                      </button>
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  </div>
+
+                  {filteredTransactions.length === 0 ? (
+                    <div className="bg-white rounded-3xl p-8 text-center border border-gray-100 flex flex-col items-center justify-center min-h-[180px] shadow-sm animate-fade-in">
+                      <span className="text-3xl mb-2">📥</span>
+                      <h6 className="text-xs font-bold text-primary-dark uppercase">Clear Ledger Statement</h6>
+                      <p className="text-[10px] text-text-muted max-w-[200px] mt-1.5 leading-relaxed">
+                        {filterType === 'cashback' 
+                          ? "No cashback rewards earned yet. Purchase dynamic data bundles to receive 10% instant refunds!"
+                          : "No billing changes received yet. Complete your first deposit to earn a 10% cashback reward!"
+                        }
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {filteredTransactions.map((tx) => {
+                        const isCredit = tx.type === 'credit';
+                        return (
+                          <div 
+                            key={tx.id} 
+                            className="bg-white rounded-2xl p-3.5 border border-gray-100 shadow-sm flex-row flex items-center justify-between animate-fade-in"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 border ${
+                                isCredit 
+                                  ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
+                                  : 'bg-red-50 text-red-500 border-red-100'
+                              }`}>
+                                {isCredit ? (
+                                  <ArrowDownLeft className="w-4.5 h-4.5" />
+                                ) : (
+                                  <ArrowUpRight className="w-4.5 h-4.5" />
+                                )}
+                              </div>
+                              <div>
+                                <span className="text-xs font-bold text-primary-dark block leading-tight">
+                                  {tx.description}
+                                </span>
+                                <span className="text-[9px] text-text-muted block mt-0.5">
+                                  {formatTxDate(tx.created_at)}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="text-right shrink-0 pl-1">
+                              <span className={`text-xs font-extrabold font-mono block ${
+                                isCredit ? 'text-emerald-600' : 'text-red-500'
+                              }`}>
+                                {isCredit ? '+' : '-'}₦{tx.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                              </span>
+                              <span className="text-[8px] uppercase tracking-wider bg-bg-light text-primary-dark px-1.5 py-0.5 rounded-full border border-gray-100 mt-1 inline-block">
+                                Settled
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>
 
+    {/* 4. Withdrawal Modal Overlay */}
+    {showWithdrawModal && (
+      <div className="fixed inset-0 bg-primary-dark/80 backdrop-blur-xs z-50 flex items-end justify-center p-0">
+        <div className="bg-white rounded-t-[32px] w-full max-w-md p-6 space-y-5 animate-slide-up shadow-2xl pb-10 border-t border-gray-100 text-primary-dark select-none modal-card-element">
+          
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-[#F59E0B] fill-amber-100" />
+              <h4 className="text-base font-extrabold text-primary-dark uppercase">Transfer Cashback</h4>
+            </div>
+            <button
+              onClick={() => setShowWithdrawModal(false)}
+              className="text-text-muted hover:text-primary-dark font-semibold text-sm bg-gray-100 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="bg-amber-50 border border-amber-100 text-amber-900 rounded-2xl p-4 text-xs opacity-95">
+            <span className="font-extrabold block text-[#D97706]">All-or-Nothing Payout</span>
+            <p className="text-[10px] leading-snug text-amber-800 mt-1">
+              You are about to withdraw your entire cashback balance of <span className="font-mono font-bold">₦{(user.cashback_balance || 0).toLocaleString()}</span> to your bank.
+            </p>
+          </div>
+
+          {/* Form Fields */}
+          <div className="space-y-4 text-left">
+            
+            {/* Bank Picker Dropdown */}
+            <div className="space-y-1.5">
+              <label className="text-[10.5px] font-bold text-text-muted uppercase tracking-wider block px-1">
+                Select Destination Bank
+              </label>
+              <select
+                id="withdraw-bank-select"
+                value={bankName}
+                onChange={(e) => setBankName(e.target.value)}
+                className="w-full bg-bg-light border border-gray-200 text-primary-dark font-bold rounded-2xl px-4 py-3 text-sm focus:bg-white focus:border-primary-blue focus:outline-none transition-all cursor-pointer"
+              >
+                <option value="">-- Choose destination bank --</option>
+                <option value="Access Bank">Access Bank</option>
+                <option value="GTBank">Guaranty Trust Bank (GTBank)</option>
+                <option value="Zenith Bank">Zenith Bank</option>
+                <option value="United Bank for Africa (UBA)">United Bank for Africa (UBA)</option>
+                <option value="First Bank">First Bank of Nigeria</option>
+                <option value="Kuda Bank">Kuda Microfinance Bank</option>
+              </select>
+            </div>
+
+            {/* Account Number Input */}
+            <div className="space-y-1.5">
+              <label className="text-[10.5px] font-bold text-text-muted uppercase tracking-wider block px-1">
+                Bank Account Number (10 digits)
+              </label>
+              <input
+                id="withdraw-account-input"
+                type="text"
+                inputMode="numeric"
+                placeholder="0123456789"
+                maxLength={10}
+                value={accountNumber}
+                onChange={(e) => {
+                  const rawVal = e.target.value.replace(/\D/g, '').substring(0, 10);
+                  setAccountNumber(rawVal);
+                  if (rawVal.length === 10) {
+                    setAccountName(user.full_name);
+                  } else {
+                    setAccountName('');
+                  }
+                }}
+                className="w-full bg-bg-light border border-gray-200 text-primary-dark font-mono font-bold rounded-2xl px-4 py-3 text-base placeholder-gray-400 focus:bg-white focus:border-primary-blue focus:outline-none transition-all"
+              />
+            </div>
+
+            {/* Green status label when 10 digits completed */}
+            {accountNumber.length === 10 && accountName && (
+              <div className="bg-emerald-50 border border-emerald-150 rounded-2xl p-3 flex items-center gap-2 text-emerald-800 text-xs animate-pulse">
+                <CheckCircle className="w-4.5 h-4.5 text-brand-success shrink-0" />
+                <span className="font-semibold text-[11px] leading-tight">
+                  Account resolved: <span className="font-extrabold uppercase text-primary-dark">{accountName}</span>
+                </span>
+              </div>
+            )}
+          </div>
+
+          <button
+            id="confirm-withdrawal-btn"
+            onClick={async () => {
+              if (!bankName) {
+                showToast('Please select your destination bank', 'error');
+                return;
+              }
+              if (accountNumber.length !== 10) {
+                showToast('Account number must be exactly 10 digits', 'error');
+                return;
+              }
+              
+              setWithdrawing(true);
+              try {
+                const res = await ApiService.requestWithdrawal({
+                  amount: user.cashback_balance || 0,
+                  bank_name: bankName,
+                  account_number: accountNumber,
+                  account_name: accountName || user.full_name
+                });
+                if (res.success) {
+                  showToast(res.message, 'success');
+                  setShowWithdrawModal(false);
+                  await onRefreshData(); // refresh parent balances in App.tsx
+                }
+              } catch (err: any) {
+                showToast(err.message || 'Withdrawal transaction failed', 'error');
+              } finally {
+                setWithdrawing(false);
+              }
+            }}
+            disabled={withdrawing || !bankName || accountNumber.length !== 10}
+            className="w-full bg-[#F59E0B] hover:bg-[#D97706] disabled:bg-gray-100 disabled:text-gray-400 text-white rounded-full py-4 text-xs font-bold tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer mt-4"
+          >
+            {withdrawing ? (
+              <>
+                <div className="spinner !w-5 !h-5 border-white/20 !border-left-emerald-400" />
+                <span>Processing secure transfer...</span>
+              </>
+            ) : (
+              <span>CONFIRM INSTANT PAYOUT</span>
+            )}
+          </button>
+        </div>
+      </div>
+    )}
     </div>
   );
 }

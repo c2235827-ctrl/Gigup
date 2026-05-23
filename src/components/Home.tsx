@@ -93,21 +93,75 @@ export default function Home({ user, recentOrders, onNavigate, onRefreshData, sh
 
       {/* 2. Elevated Wallet Balance Card */}
       <div className="px-5 shrink-0 -mt-7 relative z-20">
-        <div className="bg-white rounded-3xl p-5 shadow-lg border border-gray-100 flex flex-col">
-          <div className="flex justify-between items-center mb-2">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">Wallet Balance</span>
-              <span className="text-[9px] bg-brand-cashback/15 text-brand-cashback font-bold px-2 py-0.5 rounded-full border border-brand-cashback/10 flex items-center gap-0.5">
-                <Sparkles className="w-2.5 h-2.5" /> 10% Cashback Active
-              </span>
-            </div>
-          </div>
+        <div id="elevated-home-balance-card" className="bg-white rounded-3xl p-5 shadow-lg border border-gray-100 flex flex-col space-y-3.5">
           
-          <h3 className="text-2xl font-extrabold text-primary-dark font-mono tracking-tight balance-text">
-            ₦{user.wallet_balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-          </h3>
+          {/* Wallet Balance Row */}
+          <div className="flex justify-between items-center">
+            <div className="flex flex-col">
+              <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">Wallet Balance</span>
+              <span className="text-[9px] font-medium text-primary-blue mt-0.5">Available for purchases</span>
+            </div>
+            <span className="text-xl font-extrabold text-primary-dark font-mono tracking-tight leading-none">
+              ₦{user.wallet_balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            </span>
+          </div>
 
-          <div className="grid grid-cols-2 gap-3 mt-4">
+          {/* Separator Line */}
+          <div className="border-t border-gray-100"></div>
+
+          {/* Cashback Earned Row */}
+          <div className="flex justify-between items-start">
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-[#F59E0B] uppercase tracking-wider flex items-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5 text-[#F59E0B] fill-[#F59E0B]/10 animate-pulse" /> Cashback Earned
+                </span>
+              </div>
+              <span className="text-[9px] text-text-muted mt-0.5">Withdrawable directly to bank</span>
+            </div>
+            <span className="text-xl font-extrabold text-[#F59E0B] font-mono tracking-tight leading-none">
+              ₦{(user.cashback_balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            </span>
+          </div>
+
+          {/* Cashback progress bar */}
+          <div className="space-y-1.5">
+            {(() => {
+              const cb = user.cashback_balance || 0;
+              const target = 2000;
+              const progressPercent = Math.min(100, (cb / target) * 100);
+              const isReady = cb >= target;
+              const moreNeeded = Math.max(0, target - cb);
+
+              return (
+                <>
+                  <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full transition-all duration-500 rounded-full ${isReady ? 'bg-emerald-500' : 'bg-[#F59E0B]'}`}
+                      style={{ width: `${progressPercent}%` }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between items-center text-[10px]">
+                    {isReady ? (
+                      <span className="text-emerald-600 font-extrabold flex items-center gap-1 animate-pulse">
+                        Ready to withdraw! 🎉
+                      </span>
+                    ) : (
+                      <span className="text-text-muted font-medium">
+                        ₦{moreNeeded.toLocaleString('en-US')} more to withdraw
+                      </span>
+                    )}
+                    <span className="font-bold text-gray-500 font-mono">
+                      ₦{cb.toLocaleString('en-US')} / ₦2,000
+                    </span>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+
+          {/* Actions button grid */}
+          <div className="grid grid-cols-2 gap-3 pt-1">
             {/* Wallet topup button */}
             <button
               id="quick-topup-btn"
@@ -198,7 +252,7 @@ export default function Home({ user, recentOrders, onNavigate, onRefreshData, sh
             </span>
             <h4 className="text-sm font-extrabold">Instant Cashback Promo!</h4>
             <p className="text-[10px] text-white/80 leading-snug">
-              Fund Wallet → Buy Data → Earn cashback instantly added back to wallet balance.
+              Fund Wallet → Buy Data → Earn cashback instantly accumulated separate and withdrawable to bank.
             </p>
           </div>
 
