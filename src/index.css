@@ -1,0 +1,111 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Brand Colors definition for Tailwind */
+  --color-primary-dark: #0D1F3D;
+  --color-primary-blue: #3B7EF8;
+  --color-bg-light: #F0F4FF;
+  --color-card-bg: #FFFFFF;
+  --color-text-dark: #0A0A0F;
+  --color-text-muted: #8A96A3;
+  --color-brand-success: #22C55E;
+  --color-brand-danger: #EF4444;
+  --color-brand-cashback: #F59E0B;
+}
+
+/* Custom CSS Scrollbars and app look */
+html, body {
+  background-color: #0b1329;
+  font-family: var(--font-sans);
+  color: var(--color-text-dark);
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  height: 100%;
+}
+
+/* Elegant mobile frame layout on desktop, fullscreen on mobile */
+.app-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #0d1527;
+  padding: 12px;
+}
+
+@media (max-width: 480px) {
+  .app-container {
+    padding: 0;
+  }
+}
+
+.phone-frame {
+  width: 100%;
+  max-width: 440px;
+  height: 92vh;
+  min-height: 640px;
+  background-color: #F0F4FF;
+  border-radius: 40px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  border: 8px solid #1a2333;
+  display: flex;
+  flex-direction: column;
+}
+
+/* No frames on actual mobile viewport */
+@media (max-width: 480px) {
+  .phone-frame {
+    height: 100vh;
+    border-radius: 0;
+    max-width: 100%;
+    border: none;
+  }
+}
+
+/* Spinner and micro animations */
+.spinner {
+  border: 3px solid rgba(59, 126, 248, 0.1);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border-left-color: #3B7EF8;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Custom fade effects */
+.screen-transition-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.screen-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 250ms ease, transform 250ms ease;
+}
+
+/* Disable focus outlines but keep accessible styles */
+*:focus-visible {
+  outline: 2px solid #3B7EF8;
+  outline-offset: 2px;
+}
+
+/* Quick utility for status badges */
+.status-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  text-transform: capitalize;
+}

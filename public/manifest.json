@@ -1,0 +1,14 @@
+{
+  "name": "GigUp",
+  "short_name": "GigUp",
+  "description": "Buy cheap data bundles. Get 5GB free on signup.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0D1F3D",
+  "theme_color": "#0D1F3D",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-192.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
