@@ -12,6 +12,32 @@ interface BuyDataProps {
   showToast: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
 
+function detectNetwork(phoneNumber: string): 'MTN' | 'GLO' | 'AIRTEL' | null {
+  if (!phoneNumber) return null;
+  let digits = phoneNumber.replace(/\D/g, '');
+  if (digits.startsWith('234')) {
+    digits = '0' + digits.slice(3);
+  }
+  if (digits.length < 4) return null;
+  const prefix = digits.slice(0, 4);
+
+  const mtnPrefixes = [
+    '0803', '0806', '0810', '0813', '0814', '0816', '0703', '0706', '0903', '0906', '0913', '0916', '0702', '0704'
+  ];
+  const gloPrefixes = [
+    '0805', '0807', '0811', '0815', '0705', '0905', '0915'
+  ];
+  const airtelPrefixes = [
+    '0802', '0808', '0812', '0701', '0708', '0902', '0907', '0901', '0904', '0912'
+  ];
+
+  if (mtnPrefixes.includes(prefix)) return 'MTN';
+  if (gloPrefixes.includes(prefix)) return 'GLO';
+  if (airtelPrefixes.includes(prefix)) return 'AIRTEL';
+
+  return null;
+}
+
 export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRefreshData, showToast }: BuyDataProps) {
   const [activeNetwork, setActiveNetwork] = useState<'MTN' | 'GLO' | 'AIRTEL'>(initialNetwork);
   const [recipient, setRecipient] = useState('');
@@ -24,6 +50,14 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
   // Success Modal State
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [lastPurchaseInfo, setLastPurchaseInfo] = useState<{ plan: DataPlan; recipient: string; cashback: number } | null>(null);
+
+  // Auto-detect mobile network from recipient number
+  useEffect(() => {
+    const detected = detectNetwork(recipient);
+    if (detected && detected !== activeNetwork) {
+      setActiveNetwork(detected);
+    }
+  }, [recipient, activeNetwork]);
 
   // Auto-fill recipient number when 'Send to my number' is toggled
   useEffect(() => {
@@ -175,7 +209,7 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
             </div>
           </div>
 
-          <div className="relative">
+          <div className="relative flex items-center">
             <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-text-muted">
               <Smartphone className="w-5 h-5" />
             </span>
@@ -187,8 +221,24 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
               onChange={handleRecipientChange}
               disabled={sendToSelf}
               required
-              className="w-full bg-bg-light border border-gray-200 text-primary-dark font-bold rounded-2xl pl-11 pr-4 py-3 text-base placeholder-gray-400 focus:bg-white focus:border-primary-blue focus:outline-none transition-all disabled:bg-gray-50 disabled:text-gray-400"
+              className="w-full bg-bg-light border border-gray-200 text-primary-dark font-bold rounded-2xl pl-11 pr-28 py-3 text-base placeholder-gray-400 focus:bg-white focus:border-primary-blue focus:outline-none transition-all disabled:bg-gray-50 disabled:text-gray-400"
             />
+            {recipient.length >= 4 && (
+              <div className="absolute right-3 flex items-center pointer-events-none">
+                {detectNetwork(recipient) ? (
+                  <span className={`text-[9px] font-extrabold px-2 py-1 rounded-full text-white uppercase tracking-wider shadow-inner ${
+                    detectNetwork(recipient) === 'MTN' ? 'bg-yellow-500 text-primary-dark' :
+                    detectNetwork(recipient) === 'GLO' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+                  }`}>
+                    ⚡ {detectNetwork(recipient)}
+                  </span>
+                ) : (
+                  <span className="text-[9px] font-bold px-2 py-1 rounded-full bg-gray-100 text-gray-400 uppercase tracking-wider">
+                    Unknown
+                  </span>
+                )}
+              </div>
+            )}
           </div>
           <p className="text-[10px] text-text-muted px-1">
             Format: Standard 11-digit mobile line index (e.g. 080 for MTN/GLO, 090/070)

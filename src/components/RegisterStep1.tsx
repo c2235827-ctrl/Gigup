@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Phone, CheckCircle, ArrowLeft, KeyRound } from 'lucide-react';
+import { Phone, CheckCircle, ArrowLeft, KeyRound, Scale, Shield } from 'lucide-react';
 import { ApiService } from '../api';
+import { TERMS_OF_SERVICE, PRIVACY_POLICY } from '../data/legalData';
 
 interface RegisterStep1Props {
-  onNextStep: (phone: string) => void;
+  onNextStep: (phone: string, code: string) => void;
   onNavigate: (screen: string) => void;
   showToast: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
@@ -15,6 +16,9 @@ export default function RegisterStep1({ onNextStep, onNavigate, showToast }: Reg
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const [showLegalModal, setShowLegalModal] = useState(false);
+  const [legalTab, setLegalTab] = useState<'terms' | 'privacy'>('terms');
 
   // Auto-format standard Nigerian phone: numbers only, max 11 digits
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -94,7 +98,7 @@ export default function RegisterStep1({ onNextStep, onNavigate, showToast }: Reg
     // Move to next step (Step 2 - full profile name + pin)
     // We already do the registration request in Step 2 verification, so we just pass verified phone and OTP code to Step 2
     showToast('OTP verified successfully! Let\'s setup your card profile.', 'success');
-    onNextStep(phone);
+    onNextStep(phone, otpCode);
   };
 
   return (
@@ -222,6 +226,33 @@ export default function RegisterStep1({ onNextStep, onNavigate, showToast }: Reg
             </button>
           </form>
         )}
+
+        <div className="mt-6 text-center">
+          <p className="text-[11px] text-text-muted leading-relaxed">
+            By creating an account, you agree to our{' '}
+            <button
+              type="button"
+              onClick={() => {
+                setLegalTab('terms');
+                setShowLegalModal(true);
+              }}
+              className="text-primary-blue hover:underline bg-transparent border-none p-0 cursor-pointer font-bold inline"
+            >
+              Terms of Service
+            </button>{' '}
+            and{' '}
+            <button
+              type="button"
+              onClick={() => {
+                setLegalTab('privacy');
+                setShowLegalModal(true);
+              }}
+              className="text-primary-blue hover:underline bg-transparent border-none p-0 cursor-pointer font-bold inline"
+            >
+              Privacy Policy
+            </button>
+          </p>
+        </div>
       </div>
 
       {/* Footer marker */}
@@ -231,6 +262,120 @@ export default function RegisterStep1({ onNextStep, onNavigate, showToast }: Reg
           <span>MTN • GLO • Airtel supported networks</span>
         </div>
       </div>
+
+      {/* Legal documents desk modal */}
+      {showLegalModal && (
+        <div className="fixed inset-0 bg-primary-dark/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white text-primary-dark rounded-3xl shadow-2xl max-w-md w-full h-[540px] max-h-[80vh] flex flex-col overflow-hidden animate-fade-in">
+            {/* Header */}
+            <div className="p-5 pb-3 border-b border-gray-100 shrink-0">
+              <div className="flex justify-between items-center mb-4 text-left">
+                <h5 className="font-extrabold text-xs uppercase text-primary-dark tracking-wide flex items-center gap-1.5">
+                  {legalTab === 'terms' ? (
+                    <Scale className="w-4 h-4 text-primary-blue" />
+                  ) : (
+                    <Shield className="w-4 h-4 text-[#10B981]" />
+                  )}{' '}
+                  {legalTab === 'terms' ? 'Terms of Service' : 'Privacy Policy'}
+                </h5>
+                <button
+                  type="button"
+                  onClick={() => setShowLegalModal(false)}
+                  className="bg-gray-100 hover:bg-gray-200 text-primary-dark w-7 h-7 rounded-full flex items-center justify-center cursor-pointer text-xs font-bold transition font-mono border-none"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Beautiful Pill Switcher */}
+              <div className="flex gap-1 bg-gray-50 border border-gray-150 rounded-2xl p-1 shadow-xs">
+                <button
+                  type="button"
+                  onClick={() => setLegalTab('terms')}
+                  className={`flex-1 py-1.5 px-2 text-center rounded-xl text-[10px] uppercase font-extrabold tracking-wide transition cursor-pointer border-none ${
+                    legalTab === 'terms'
+                      ? 'bg-primary-dark text-white'
+                      : 'text-text-muted hover:text-primary-dark hover:bg-white/50'
+                  }`}
+                >
+                  Terms of Service
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLegalTab('privacy')}
+                  className={`flex-1 py-1.5 px-2 text-center rounded-xl text-[10px] uppercase font-extrabold tracking-wide transition cursor-pointer border-none ${
+                    legalTab === 'privacy'
+                      ? 'bg-primary-dark text-white'
+                      : 'text-text-muted hover:text-primary-dark hover:bg-white/50'
+                  }`}
+                >
+                  Privacy Policy
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable document body */}
+            <div className="flex-1 overflow-y-auto p-5 pt-3 scrollbar-none text-left">
+              {legalTab === 'terms' ? (
+                <div className="space-y-4 animate-fade-in">
+                  <div className="flex justify-between items-center bg-gray-50 border border-gray-100 rounded-2xl p-3">
+                    <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider">Legal Desk</span>
+                    <span className="text-[9px] font-extrabold text-primary-blue uppercase tracking-wider bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+                      Last Updated: {TERMS_OF_SERVICE.lastUpdated}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-text-muted leading-relaxed font-semibold italic">
+                    Please read these Terms of Service carefully before purchasing or utilizing our reseller data services.
+                  </p>
+                  <div className="space-y-4 pt-1 divide-y divide-gray-100">
+                    {TERMS_OF_SERVICE.sections.map((sect) => (
+                      <div key={sect.title} className="pt-3 first:pt-0">
+                        <h6 className="text-[11px] font-extrabold text-primary-dark uppercase tracking-wide mb-1.5 mt-1.5 block">
+                          {sect.title}
+                        </h6>
+                        <p className="text-[10px] text-text-muted leading-relaxed whitespace-pre-line">
+                          {sect.content}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4 animate-fade-in">
+                  <div className="flex justify-between items-center bg-gray-50 border border-gray-100 rounded-2xl p-3">
+                    <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider">Policy Desk</span>
+                    <span className="text-[9px] font-extrabold text-[#10B981] uppercase tracking-wider bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                      Last Updated: {PRIVACY_POLICY.lastUpdated}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-text-muted leading-relaxed font-semibold italic">
+                    Your privacy is fully protected in compliance with the Nigeria Data Protection Act (NDPR/NDPA).
+                  </p>
+                  <div className="space-y-4 pt-1 divide-y divide-gray-100">
+                    {PRIVACY_POLICY.sections.map((sect) => (
+                      <div key={sect.title} className="pt-3 first:pt-0">
+                        <h6 className="text-[11px] font-extrabold text-primary-dark uppercase tracking-wide mb-1.5 mt-1.5 block">
+                          {sect.title}
+                        </h6>
+                        <p className="text-[10px] text-text-muted leading-relaxed whitespace-pre-line">
+                          {sect.content}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-3 bg-gray-50 border-t border-gray-100 text-center shrink-0">
+              <span className="text-[9px] text-text-muted block tracking-wider uppercase font-bold">
+                🔒 Certificated gigup.com.ng legal center
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

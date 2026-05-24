@@ -80,7 +80,7 @@ export default function TopupCallback({ txRef, amount, onProcessed, showToast }:
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-2xl font-extrabold tracking-tight">Confirming payment...</h3>
+              <h3 className="text-2xl font-extrabold tracking-tight">Confirming your payment...</h3>
               <p className="text-xs text-text-muted px-4 leading-normal">
                 Verifying transaction reference <span className="font-mono text-white text-[11px] block select-text mt-1 bg-white/5 p-1 rounded border border-white/5">{txRef}</span> 
                 with the centralized Flutterwave payment node. Wait a few moments...

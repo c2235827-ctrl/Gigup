@@ -5,12 +5,13 @@ import { User } from '../types';
 
 interface RegisterStep2Props {
   phone: string;
+  code: string;
   onRegisterSuccess: (user: User) => void;
   onPrevStep: () => void;
   showToast: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
 
-export default function RegisterStep2({ phone, onRegisterSuccess, onPrevStep, showToast }: RegisterStep2Props) {
+export default function RegisterStep2({ phone, code, onRegisterSuccess, onPrevStep, showToast }: RegisterStep2Props) {
   const [fullName, setFullName] = useState('');
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
@@ -55,7 +56,7 @@ export default function RegisterStep2({ phone, onRegisterSuccess, onPrevStep, sh
     try {
       const res = await ApiService.verifyOtpAndCreate({
         phone,
-        code: '123456', // default sandbox code bypassed / verified
+        code,
         full_name: fullName.trim(),
         pin,
         referral_code: referralCode ? referralCode.toUpperCase().trim() : undefined

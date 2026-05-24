@@ -35,6 +35,7 @@ export default function App() {
 
   // Verified registration variables passed between Step 1 and Step 2
   const [registrationPhone, setRegistrationPhone] = useState<string>('');
+  const [registrationCode, setRegistrationCode] = useState<string>('');
 
   // Toast dynamic notifications
   const [toast, setToast] = useState<ToastState | null>(null);
@@ -56,8 +57,17 @@ export default function App() {
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.startsWith('gigup_') && key !== 'gigup_token' && key !== 'gigup_user') {
-        keysToRemove.push(key);
+      if (key) {
+        const lowerKey = key.toLowerCase();
+        if (
+          (key.startsWith('gigup_') && key !== 'gigup_token' && key !== 'gigup_user') ||
+          lowerKey.includes('sandbox') ||
+          lowerKey.includes('demo') ||
+          lowerKey.includes('mock') ||
+          lowerKey.includes('mode')
+        ) {
+          keysToRemove.push(key);
+        }
       }
     }
     keysToRemove.forEach(k => localStorage.removeItem(k));
@@ -232,8 +242,9 @@ export default function App() {
       case 'register_1':
         return (
           <RegisterStep1 
-            onNextStep={(phone) => {
+            onNextStep={(phone, code) => {
               setRegistrationPhone(phone);
+              setRegistrationCode(code);
               setCurrentScreen('register_2');
             }} 
             onNavigate={handleOnscreenNavigation} 
@@ -244,6 +255,7 @@ export default function App() {
         return (
           <RegisterStep2 
             phone={registrationPhone} 
+            code={registrationCode}
             onRegisterSuccess={handleRegistrationSuccess} 
             onPrevStep={() => setCurrentScreen('register_1')} 
             showToast={showToast} 
