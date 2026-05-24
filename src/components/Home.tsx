@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Bell, RefreshCw, Plus, History, Signal, Gift, Sparkles, ChevronRight, ArrowUpRight, Smartphone, Compass } from 'lucide-react';
 import { User, DataOrder } from '../types';
+import PullToRefresh from './PullToRefresh';
 
 interface HomeProps {
   user: User;
@@ -43,7 +44,7 @@ export default function Home({ user, recentOrders, onNavigate, onRefreshData, sh
   };
 
   return (
-    <div className="flex flex-col h-full bg-bg-light overflow-y-auto relative select-none">
+    <PullToRefresh onRefresh={handlePullToRefresh} className="bg-bg-light">
       
       {/* 1. Header (Deep Navy) */}
       <div className="bg-primary-dark pt-5 pb-10 px-5 text-white shrink-0 relative overflow-hidden">
@@ -102,7 +103,7 @@ export default function Home({ user, recentOrders, onNavigate, onRefreshData, sh
               <span className="text-[9px] font-medium text-primary-blue mt-0.5">Available for purchases</span>
             </div>
             <span className="text-xl font-extrabold text-primary-dark font-mono tracking-tight leading-none">
-              ₦{user.wallet_balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              ₦{(user.wallet_balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </span>
           </div>
 
@@ -318,7 +319,7 @@ export default function Home({ user, recentOrders, onNavigate, onRefreshData, sh
 
                   <div className="text-right">
                     <span className="text-xs font-extrabold text-primary-dark font-mono block mb-1">
-                      ₦{order.price.toLocaleString('en-US')}
+                      ₦{(order.price || 0).toLocaleString('en-US')}
                     </span>
                     <span className={`status-badge text-[8px] px-2 py-0.5 uppercase font-extrabold tracking-wider ${
                       order.status === 'success' 
@@ -335,6 +336,6 @@ export default function Home({ user, recentOrders, onNavigate, onRefreshData, sh
         )}
       </div>
 
-    </div>
+    </PullToRefresh>
   );
 }

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Wallet as WalletIcon, PlusCircle, History, ArrowDownLeft, ArrowUpRight, CheckCircle, Smartphone, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { ApiService } from '../api';
 import { User, WalletTransaction } from '../types';
+import PullToRefresh from './PullToRefresh';
 
 interface WalletProps {
   user: User;
@@ -17,7 +18,7 @@ export default function Wallet({ user, transactions, onNavigate, onRefreshData, 
   const [loadingTopup, setLoadingTopup] = useState(false);
   
   // Transaction Filter State
-  const [filterType, setFilterType] = useState<'all' | 'cashback'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'cashback' | 'topups' | 'purchases' | 'withdrawals'>('all');
   
   // Withdrawal States
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
@@ -69,7 +70,7 @@ export default function Wallet({ user, transactions, onNavigate, onRefreshData, 
   };
 
   return (
-    <div className="flex flex-col h-full bg-bg-light overflow-y-auto select-none pb-24">
+    <PullToRefresh onRefresh={onRefreshData} className="bg-bg-light pb-24">
       {/* Navy Header Panel */}
       <div className="bg-primary-dark pt-5 pb-7 px-5 text-white shrink-0 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-primary-blue/10 rounded-full blur-xl pointer-events-none"></div>
@@ -85,7 +86,7 @@ export default function Wallet({ user, transactions, onNavigate, onRefreshData, 
         <div className="text-center py-2 space-y-1">
           <span className="text-xs text-white/50 inline-block">Active Wallet Balance</span>
           <h3 className="text-3xl font-extrabold tracking-tight text-white font-mono leading-none">
-            ₦{user.wallet_balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            ₦{(user.wallet_balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </h3>
           <p className="text-[10px] text-brand-success font-medium pt-1">
             ✓ Connected securely to Flutterwave Node IP
@@ -230,7 +231,7 @@ export default function Wallet({ user, transactions, onNavigate, onRefreshData, 
               </div>
               {user.pending_withdrawal ? (
                 <span className="text-[9px] bg-amber-100 text-[#F59E0B] font-extrabold px-2.5 py-1 rounded-full border border-amber-200 uppercase tracking-wide">
-                  ⏳ Pending: ₦{user.pending_withdrawal.amount.toLocaleString()}
+                  ⏳ Pending: ₦{((typeof user.pending_withdrawal === 'object' && user.pending_withdrawal && 'amount' in user.pending_withdrawal) ? user.pending_withdrawal.amount : (user.cashback_balance || 2000)).toLocaleString()}
                 </span>
               ) : (
                 <span className="text-[9.5px] text-text-muted font-bold">
@@ -254,7 +255,7 @@ export default function Wallet({ user, transactions, onNavigate, onRefreshData, 
                       ⏳ Withdrawal in Progress
                     </button>
                     <p className="text-[10px] text-[#F59E0B] font-medium text-center leading-snug">
-                      Your payout of ₦{user.pending_withdrawal?.amount.toLocaleString()} is being processed. Only one pending request is permitted at a time.
+                      Your payout of ₦{((typeof user.pending_withdrawal === 'object' && user.pending_withdrawal && 'amount' in user.pending_withdrawal) ? user.pending_withdrawal.amount : (user.cashback_balance || 2000)).toLocaleString()} is being processed. Only one pending request is permitted at a time.
                     </p>
                   </div>
                 );
@@ -303,37 +304,47 @@ export default function Wallet({ user, transactions, onNavigate, onRefreshData, 
           <div className="space-y-3">
             {(() => {
               const filteredTransactions = transactions.filter(tx => {
+                const desc = tx.description.toLowerCase();
                 if (filterType === 'cashback') {
-                  return tx.description.toLowerCase().includes('cashback');
+                  return desc.includes('cashback');
+                }
+                if (filterType === 'topups') {
+                  return tx.type === 'credit' && !desc.includes('cashback');
+                }
+                if (filterType === 'purchases') {
+                  return tx.type === 'debit' && (desc.includes('data') || desc.includes('purchase') || desc.includes('bundle') || desc.includes('vtu') || desc.includes('mtn') || desc.includes('glo') || desc.includes('airtel'));
+                }
+                if (filterType === 'withdrawals') {
+                  return desc.includes('withdraw') || desc.includes('payout');
                 }
                 return true;
               });
 
               return (
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center px-1">
-                    <h5 className="text-xs font-bold text-text-dark/40 uppercase tracking-widest">Transaction History</h5>
-                    <div className="flex gap-1 bg-white border border-gray-150 rounded-full p-0.5 shadow-xs">
-                      <button
-                        onClick={() => setFilterType('all')}
-                        className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase transition ${
-                          filterType === 'all' 
-                            ? 'bg-primary-dark text-white shadow-xs' 
-                            : 'text-text-muted hover:text-primary-dark'
-                        }`}
-                      >
-                        All
-                      </button>
-                      <button
-                        onClick={() => setFilterType('cashback')}
-                        className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase transition ${
-                          filterType === 'cashback' 
-                            ? 'bg-amber-500 text-white shadow-xs' 
-                            : 'text-text-muted hover:text-primary-dark'
-                        }`}
-                      >
-                        Cashback
-                      </button>
+                  <div className="flex-col gap-2 px-1 text-left">
+                    <h5 className="text-xs font-bold text-text-dark/40 uppercase tracking-widest text-left">Transaction History Ledger</h5>
+                    
+                    <div className="flex gap-1.5 overflow-x-auto scrollbar-none w-full py-1.5 mt-1.5">
+                      {[
+                        { key: 'all', label: 'All', color: 'bg-primary-dark text-white' },
+                        { key: 'topups', label: 'Top-ups', color: 'bg-green-600 text-white' },
+                        { key: 'purchases', label: 'Purchases', color: 'bg-blue-600 text-white' },
+                        { key: 'withdrawals', label: 'Withdrawals', color: 'bg-red-600 text-white' },
+                        { key: 'cashback', label: 'Cashbacks', color: 'bg-amber-500 text-white' },
+                      ].map((item) => (
+                        <button
+                          key={item.key}
+                          onClick={() => setFilterType(item.key as any)}
+                          className={`px-3 py-1.5 rounded-full text-[9px] font-bold uppercase whitespace-nowrap transition cursor-pointer ${
+                            filterType === item.key
+                              ? `${item.color} shadow-xs`
+                              : 'bg-white text-text-muted border border-gray-200 hover:text-primary-dark hover:border-gray-200'
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
                     </div>
                   </div>
 
@@ -342,10 +353,11 @@ export default function Wallet({ user, transactions, onNavigate, onRefreshData, 
                       <span className="text-3xl mb-2">📥</span>
                       <h6 className="text-xs font-bold text-primary-dark uppercase">Clear Ledger Statement</h6>
                       <p className="text-[10px] text-text-muted max-w-[200px] mt-1.5 leading-relaxed">
-                        {filterType === 'cashback' 
-                          ? "No cashback rewards earned yet. Purchase dynamic data bundles to receive 10% instant refunds!"
-                          : "No billing changes received yet. Complete your first deposit to earn a 10% cashback reward!"
-                        }
+                        {filterType === 'cashback' && "No cashback rewards earned yet. Purchase dynamic data bundles to receive 10% instant refunds!"}
+                        {filterType === 'topups' && "No top-up deposits found. Fund your wallet to complete data orders!"}
+                        {filterType === 'purchases' && "No bundle purchases found. Purchase MTN/GLO/Airtel plans to see them here!"}
+                        {filterType === 'withdrawals' && "No withdrawal payout records found."}
+                        {filterType === 'all' && "No billing changes received yet. Complete your first deposit to earn a 10% cashback reward!"}
                       </p>
                     </div>
                   ) : (
@@ -383,7 +395,7 @@ export default function Wallet({ user, transactions, onNavigate, onRefreshData, 
                               <span className={`text-xs font-extrabold font-mono block ${
                                 isCredit ? 'text-emerald-600' : 'text-red-500'
                               }`}>
-                                {isCredit ? '+' : '-'}₦{tx.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                {isCredit ? '+' : '-'}₦{(tx.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                               </span>
                               <span className="text-[8px] uppercase tracking-wider bg-bg-light text-primary-dark px-1.5 py-0.5 rounded-full border border-gray-100 mt-1 inline-block">
                                 Settled
@@ -532,6 +544,6 @@ export default function Wallet({ user, transactions, onNavigate, onRefreshData, 
         </div>
       </div>
     )}
-    </div>
+    </PullToRefresh>
   );
 }

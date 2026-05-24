@@ -17,6 +17,7 @@ export interface User {
   unread_notifications?: number;
   total_referrals?: number;
   created_at?: string;
+  ntfy_topic?: string;
 }
 
 export interface DataPlan {

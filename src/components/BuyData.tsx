@@ -97,7 +97,7 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
         setLastPurchaseInfo({
           plan: selectedPlan,
           recipient,
-          cashback: res.cashback
+          cashback: res.cashback_earned
         });
         
         // Reload global layout profile data (wallet, orders, notifications)
@@ -155,7 +155,7 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
       </div>
 
       {/* Recipient Details & Plan Selector */}
-      <div className="p-5 flex-grow overflow-y-auto space-y-5 pb-36">
+      <div className="p-5 flex-grow overflow-y-auto space-y-5 pb-[140px]">
         
         {/* Recipient Card */}
         <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-4">
@@ -244,7 +244,7 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
 
                     <div className="text-right">
                       <span className="text-sm font-extrabold text-primary-blue font-mono">
-                        ₦{plan.price.toLocaleString('en-US')}
+                        ₦{(plan.price || 0).toLocaleString('en-US')}
                       </span>
                       <span className="text-[9px] text-text-muted block">Duration: {plan.validity}</span>
                     </div>
@@ -257,25 +257,23 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
       </div>
 
       {/* Sticky Bottom Summary Checkouts */}
-      <div className="absolute bottom-16 inset-x-0 bg-white border-t border-gray-150 px-5 py-4 shadow-2xl flex flex-col gap-3 shrink-0 z-30">
-        <div className="flex justify-between items-center text-xs">
-          <div className="flex items-center gap-1.5 text-text-muted">
-            <Wallet className="w-4 h-4 text-primary-blue" />
-            <span>My Wallet Balance: <span className="font-bold text-primary-dark font-mono">₦{user.wallet_balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></span>
+      <div className="absolute bottom-0 inset-x-0 bg-white border-t border-gray-150 px-5 py-4 shadow-2xl flex items-center justify-between gap-3 z-30">
+        {/* Left: wallet icon + Balance: ₦X,XXX.XX */}
+        <div className="flex items-center gap-1.5 min-w-0">
+          <Wallet className="w-5 h-5 text-primary-blue shrink-0" />
+          <div className="flex flex-col">
+            <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">Balance</span>
+            <span className="font-extrabold text-primary-dark font-mono text-sm leading-tight text-left">₦{(user.wallet_balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
           </div>
-          {selectedPlan && (
-            <span className="text-text-muted font-medium">
-              Vat inclusion: <span className="font-bold text-emerald-600">Free ₦0.00</span>
-            </span>
-          )}
         </div>
 
+        {/* Right: button */}
         {selectedPlan ? (
           <button
             id="order-buy-now-btn"
             onClick={handleBuyData}
             disabled={submitting || recipient.length !== 11}
-            className={`w-full py-4 text-sm font-semibold rounded-full shadow-lg active:scale-98 transition flex items-center justify-center gap-2 cursor-pointer ${
+            className={`px-5 py-3 text-xs font-bold rounded-full shadow-lg active:scale-98 transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap min-w-0 ${
               hasBalance 
                 ? 'bg-primary-blue text-white shadow-primary-blue/10 disabled:bg-primary-blue/60' 
                 : 'bg-brand-cashback text-primary-dark font-extrabold shadow-brand-cashback/10'
@@ -283,27 +281,27 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
           >
             {submitting ? (
               <>
-                <div className="spinner !w-5 !h-5 border-white/20 !border-left-white" />
-                <span>Injecting secure VTU packets...</span>
+                <div className="progress-spinner !w-3.5 !h-3.5 border-white/20 !border-left-white animate-spin rounded-full border-2" />
+                <span>Buying...</span>
               </>
             ) : hasBalance ? (
               <>
-                <ShoppingBag className="w-4 h-4" />
-                <span>Buy Now — ₦{selectedPlan.price.toLocaleString('en-US')}</span>
+                <ShoppingBag className="w-3.5 h-3.5" />
+                <span className="truncate">Buy Now — ₦{(selectedPlan?.price || 0).toLocaleString('en-US')}</span>
               </>
             ) : (
               <>
-                <Wallet className="w-4 h-4" />
-                <span>Load Wallet (Needed: ₦{(selectedPlan.price - user.wallet_balance).toLocaleString('en-US')})</span>
+                <Wallet className="w-3.5 h-3.5" />
+                <span className="truncate">Load Wallet</span>
               </>
             )}
           </button>
         ) : (
           <button
             disabled
-            className="w-full bg-gray-100 text-gray-400 py-4 text-xs font-semibold rounded-full cursor-not-allowed select-none text-center"
+            className="px-5 py-3 bg-gray-100 text-gray-400 text-xs font-semibold rounded-full cursor-not-allowed select-none text-center whitespace-nowrap"
           >
-            Please choose a data plan bundle to checkout
+            Select a Plan
           </button>
         )}
       </div>
@@ -335,24 +333,24 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
             <div className="bg-bg-light rounded-2xl p-4 border border-gray-100 text-left text-xs space-y-2.5">
               <div className="flex justify-between">
                 <span className="text-text-muted">Mobile Network</span>
-                <span className="font-bold text-primary-dark">{lastPurchaseInfo.plan.network} VTU Network</span>
+                <span className="font-bold text-primary-dark">{lastPurchaseInfo?.plan?.network || ''} VTU Network</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-text-muted">Plan Bundle</span>
-                <span className="font-bold text-primary-dark">{lastPurchaseInfo.plan.plan_name}</span>
+                <span className="font-bold text-primary-dark">{lastPurchaseInfo?.plan?.plan_name || ''}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-text-muted">Debit Charge</span>
-                <span className="font-bold text-primary-dark font-mono">₦{lastPurchaseInfo.plan.price.toLocaleString('en-US')}</span>
+                <span className="font-bold text-primary-dark font-mono">₦{(lastPurchaseInfo?.plan?.price || 0).toLocaleString('en-US')}</span>
               </div>
               <div className="border-t border-dashed border-gray-200 my-1"></div>
               <div className="flex justify-between">
                 <span className="text-text-muted font-medium">Earned Cashback (10%)</span>
-                <span className="font-extrabold text-[#F59E0B] font-mono">+₦{lastPurchaseInfo.cashback.toLocaleString('en-US')}</span>
+                <span className="font-extrabold text-[#F59E0B] font-mono">+₦{(lastPurchaseInfo.cashback || 0).toLocaleString('en-US')}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-text-muted">Updated Wallet Balance</span>
-                <span className="font-bold text-primary-dark font-mono">₦{user.wallet_balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                <span className="font-bold text-primary-dark font-mono">₦{(user.wallet_balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-text-muted">Updated Cashback Balance</span>

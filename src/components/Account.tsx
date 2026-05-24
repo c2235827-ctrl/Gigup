@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { ShieldAlert, Copy, Check, Share2, HelpCircle, LogOut, Bell, History, KeyRound, ChevronRight, CheckCircle, Mail, MessageSquare, Sparkles, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
-import { ApiService, isSandbox } from '../api';
+import { ShieldAlert, Copy, Check, Share2, HelpCircle, LogOut, Trash2, Bell, History, KeyRound, ChevronRight, CheckCircle, Mail, MessageSquare, Sparkles, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { ApiService } from '../api';
 import { User, WalletTransaction } from '../types';
+import PullToRefresh from './PullToRefresh';
 
 interface AccountProps {
   user: User;
@@ -9,9 +10,10 @@ interface AccountProps {
   onNavigate: (screen: string) => void;
   onLogout: () => void;
   showToast: (msg: string, type: 'success' | 'error' | 'info') => void;
+  onRefreshData?: () => Promise<void>;
 }
 
-export default function Account({ user, transactions = [], onNavigate, onLogout, showToast }: AccountProps) {
+export default function Account({ user, transactions = [], onNavigate, onLogout, showToast, onRefreshData }: AccountProps) {
   const [copiedCode, setCopiedCode] = useState(false);
   
   // Cashback history modal overlay
@@ -26,6 +28,11 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
 
   // Help support overlay
   const [showSupportModal, setShowSupportModal] = useState(false);
+
+  // Delete Account States
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePin, setDeletePin] = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   const getInitials = (name: string) => {
     return name
@@ -151,8 +158,42 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
     }, 800);
   };
 
+  const handleDeleteAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (deletePin.length !== 4) {
+      showToast('Please enter your 4-digit PIN', 'error');
+      return;
+    }
+
+    setDeletingAccount(true);
+    try {
+      const res = await ApiService.deleteAccount(deletePin);
+      if (res.success) {
+        showToast('Account deleted. Goodbye 👋', 'success');
+        setShowDeleteModal(false);
+        setDeletePin('');
+        
+        setTimeout(() => {
+          onLogout();
+        }, 2000);
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Verification PIN error. Account not deleted.', 'error');
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col h-full bg-bg-light overflow-y-auto select-none pb-24">
+    <PullToRefresh
+      onRefresh={async () => {
+        if (onRefreshData) {
+          await onRefreshData();
+          showToast('Account balances synced successfully ⚡', 'success');
+        }
+      }}
+      className="bg-bg-light pb-24"
+    >
       
       {/* Profile Header section */}
       <div className="bg-primary-dark pt-6 pb-6 px-5 text-center text-white shrink-0 relative overflow-hidden">
@@ -328,6 +369,23 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
           <ChevronRight className="w-4 h-4 text-brand-danger/40 shrink-0" />
         </button>
 
+        {/* Row 6: Delete Account */}
+        <button
+          onClick={() => setShowDeleteModal(true)}
+          className="w-full bg-red-50 text-red-600 rounded-2xl p-4 border border-red-100/40 flex items-center justify-between text-left shadow-sm hover:bg-red-100/[0.12] transition cursor-pointer"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-red-100/85 flex items-center justify-center text-red-600 shrink-0">
+              <Trash2 className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-xs font-bold text-red-600 block leading-none">Delete Account</span>
+              <span className="text-[10px] text-red-500/80 mt-1 block">Permanently erase auth records and cash registers</span>
+            </div>
+          </div>
+          <ChevronRight className="w-4 h-4 text-red-400 shrink-0" />
+        </button>
+
       </div>
 
       {/* Change PIN Modal Dialog */}
@@ -459,6 +517,77 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
         </div>
       )}
 
+      {/* Delete Account Modal Dialog */}
+      {showDeleteModal && (
+        <div className="absolute inset-0 bg-primary-dark/85 backdrop-blur-sm z-50 flex items-center justify-center p-5 select-none animate-fade-in">
+          <div className="bg-white text-primary-dark rounded-3xl p-6 shadow-2xl max-w-sm w-full space-y-5">
+            <div className="flex justify-between items-center pb-2 border-b border-gray-100">
+              <h5 className="font-extrabold text-sm uppercase text-red-600 tracking-wide flex items-center gap-1.5">
+                <Trash2 className="w-4 h-4 text-red-600" /> Delete Account
+              </h5>
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeletePin('');
+                }}
+                className="text-white hover:text-white/80 bg-red-600 w-6 h-6 rounded-full flex items-center justify-center cursor-pointer text-xs font-bold font-mono"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-xs text-text-muted text-left leading-relaxed">
+                This action is permanent and cannot be undone. All your data, wallet balance, and cashback will be lost.
+              </p>
+
+              {user?.cashback_balance && user.cashback_balance > 0 ? (
+                <div className="bg-amber-50 text-amber-800 border border-amber-200 rounded-xl p-3 text-[11px] font-bold flex items-center gap-2">
+                  <span>⚠️ You have ₦{user.cashback_balance.toLocaleString('en-US', { minimumFractionDigits: 2 })} cashback that will be lost.</span>
+                </div>
+              ) : null}
+            </div>
+
+            <form onSubmit={handleDeleteAccount} className="space-y-4">
+              <div className="text-left">
+                <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider block mb-1">
+                  Enter your PIN to confirm
+                </label>
+                <input
+                  type="password"
+                  maxLength={4}
+                  required
+                  placeholder="••••"
+                  value={deletePin}
+                  onChange={(e) => setDeletePin(e.target.value.replace(/\D/g, ''))}
+                  className="w-full bg-bg-light border border-gray-200 text-center text-base py-2.5 rounded-xl text-primary-dark font-extrabold tracking-widest focus:outline-none focus:border-red-500"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setDeletePin('');
+                  }}
+                  className="flex-1 border border-gray-200 hover:border-gray-300 text-primary-dark py-3 rounded-full text-xs font-bold transition cursor-pointer text-center bg-transparent"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={deletingAccount || deletePin.length !== 4}
+                  className="flex-1 bg-red-600 border border-red-600 hover:bg-red-700 text-white py-3 rounded-full text-xs font-bold shadow-md transition disabled:bg-red-300 disabled:border-red-300 cursor-pointer text-center"
+                >
+                  {deletingAccount ? 'Erasing...' : 'Delete Account'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* 5. Cashback History Modal Overlay */}
       {showCashbackHistoryModal && (
         <div className="absolute inset-0 bg-primary-dark/80 backdrop-blur-sm z-50 flex items-end justify-center">
@@ -553,7 +682,7 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
                         <span className={`font-black font-mono text-[11px] block ${
                           isCredit ? 'text-emerald-600' : 'text-red-500'
                         }`}>
-                          {isCredit ? '+' : '-'}₦{tx.amount.toLocaleString()}
+                          {isCredit ? '+' : '-'}₦{(tx.amount || 0).toLocaleString()}
                         </span>
                         <span className="text-[7.5px] text-emerald-600 font-bold uppercase tracking-wider block mt-0.5">
                           Approved
@@ -575,6 +704,6 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
         </div>
       )}
 
-    </div>
+    </PullToRefresh>
   );
 }

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Zap, Eye, EyeOff, Lock, Phone, HelpCircle } from 'lucide-react';
-import { ApiService, isSandbox, setAppMode } from '../api';
+import { ApiService } from '../api';
 import { User } from '../types';
 
 interface LoginProps {
@@ -15,7 +15,6 @@ export default function Login({ onLoginSuccess, onNavigate, showToast }: LoginPr
   const [pin, setPin] = useState('');
   const [showPin, setShowPin] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [sandboxActive, setSandboxActive] = useState(isSandbox());
 
   // Phone number state auto-formatter: numeric only, max 11 digits
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -33,11 +32,7 @@ export default function Login({ onLoginSuccess, onNavigate, showToast }: LoginPr
     }
   };
 
-  const handleModeToggle = (mode: 'live' | 'sandbox') => {
-    setAppMode(mode);
-    setSandboxActive(mode === 'sandbox');
-    showToast(`Switched to ${mode === 'sandbox' ? 'Sandbox Simulation' : 'Live Production API'}`, 'info');
-  };
+
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,26 +78,6 @@ export default function Login({ onLoginSuccess, onNavigate, showToast }: LoginPr
         <div className="flex items-center gap-1.5">
           <Zap className="w-5 h-5 text-primary-blue fill-primary-blue" />
           <span className="font-extrabold text-lg tracking-wide">GigUp</span>
-        </div>
-        <div className="flex bg-white/10 rounded-full p-0.5 border border-white/5 text-xs">
-          <button
-            type="button"
-            className={`px-3 py-1 rounded-full transition-all cursor-pointer font-medium ${
-              !sandboxActive ? 'bg-primary-blue text-white' : 'text-text-muted hover:text-white'
-            }`}
-            onClick={() => handleModeToggle('live')}
-          >
-            Live
-          </button>
-          <button
-            type="button"
-            className={`px-3 py-1 rounded-full transition-all cursor-pointer font-medium ${
-              sandboxActive ? 'bg-brand-cashback text-primary-dark font-semibold' : 'text-text-muted hover:text-white'
-            }`}
-            onClick={() => handleModeToggle('sandbox')}
-          >
-            Sandbox
-          </button>
         </div>
       </div>
 
@@ -167,17 +142,7 @@ export default function Login({ onLoginSuccess, onNavigate, showToast }: LoginPr
             </div>
           </div>
 
-          {sandboxActive && phone === '' && (
-            <div 
-              onClick={() => { setPhone('08012345678'); setPin('1234'); }}
-              className="bg-brand-cashback/10 border border-brand-cashback/20 rounded-xl p-2.5 text-xs text-brand-cashback flex items-start gap-2 cursor-pointer hover:bg-brand-cashback/15 transition-all"
-            >
-              <HelpCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-bold underline">Quick Fill Sandbox:</span> Taps here to auto fill user <span className="font-mono">08012345678</span> (PIN: <span className="font-mono">1234</span>).
-              </div>
-            </div>
-          )}
+
 
           <button
             id="login-submit-btn"

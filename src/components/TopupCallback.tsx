@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { CheckCircle2, Clock, RefreshCw, ChevronRight, Sparkles, Building, AlertCircle } from 'lucide-react';
+import { CheckCircle2, RefreshCw, ChevronRight, Building, AlertCircle } from 'lucide-react';
 import { ApiService } from '../api';
 
 interface TopupCallbackProps {
@@ -13,9 +13,7 @@ interface TopupCallbackProps {
 export default function TopupCallback({ txRef, amount, onProcessed, showToast }: TopupCallbackProps) {
   const [statusState, setStatusState] = useState<'verifying' | 'success' | 'delay'>('verifying');
   const [loadingPercent, setLoadingPercent] = useState(0);
-
-  // Parse amount numeric
-  const numericAmount = parseFloat(amount) || 2000;
+  const [updatedBalance, setUpdatedBalance] = useState<number | null>(null);
 
   useEffect(() => {
     // 1. Simulate progress indicator
@@ -34,13 +32,21 @@ export default function TopupCallback({ txRef, amount, onProcessed, showToast }:
       try {
         const res = await ApiService.confirmCallback(txRef, amount);
         if (res.success) {
+          try {
+            const profileRes = await ApiService.getProfile();
+            if (profileRes.success) {
+              setUpdatedBalance(profileRes.user.wallet_balance);
+            }
+          } catch (profileErr) {
+            console.warn('Post-funding profile synchronization failed', profileErr);
+          }
           setStatusState('success');
-          showToast(`Wallet credited with ₦${numericAmount.toLocaleString()} successfully! ⚡`, 'success');
+          showToast(`Wallet credited successfully! ⚡`, 'success');
         } else {
           setStatusState('delay');
         }
       } catch (err) {
-        console.warn('Callback parsing failed, transitioning to fallback confirm status', err);
+        console.warn('Callback validation failed, transitioning to fallback status', err);
         setStatusState('delay');
       }
     }, 3000);
@@ -113,25 +119,33 @@ export default function TopupCallback({ txRef, amount, onProcessed, showToast }:
               <span className="text-[9px] bg-emerald-500/10 border border-emerald-500/20 text-brand-success font-black px-2.5 py-0.5 rounded-full uppercase tracking-widest inline-block animate-bounce">
                 + Ledger Credited
               </span>
-              <h3 className="text-2xl font-black text-white">Wallet funded successfully!</h3>
+              <h3 className="text-2xl font-black text-white px-2">Payment confirmed! Your wallet has been updated. ✅</h3>
               <p className="text-xs text-text-muted max-w-[270px] mx-auto leading-relaxed">
-                Your wallet balance has been topped up with <span className="font-bold text-white font-mono">₦{numericAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span> instantly via Flutterwave payment gateway hook.
+                Payment confirmed — wallet updated.
               </p>
             </div>
 
             {/* Receipt metrics */}
             <div className="bg-white/5 border border-white/10 rounded-3xl p-4 text-left text-xs space-y-2 font-light">
-              <div className="flex justify-between">
+              <div className="flex justify-between pb-1 border-b border-white/5">
                 <span className="text-text-muted">Settlement Ref</span>
                 <span className="font-bold font-mono text-[10px] truncate max-w-[140px]" title={txRef}>{txRef}</span>
               </div>
-              <div className="flex justify-between">
+              
+              {updatedBalance !== null && (
+                <div className="flex justify-between py-1">
+                  <span className="text-text-muted">New Balance</span>
+                  <span className="font-black text-white font-mono text-xs">₦{updatedBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                </div>
+              )}
+
+              <div className="flex justify-between py-1">
                 <span className="text-text-muted">Gateway Cost</span>
                 <span className="font-bold text-brand-success">Free ₦0.00</span>
               </div>
               <div className="flex justify-between border-t border-white/10 pt-2 mt-2">
-                <span className="text-text-muted font-bold uppercase text-[10px] text-primary-blue">Total Deposited</span>
-                <span className="font-extrabold text-brand-cashback font-mono text-sm">₦{numericAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                <span className="text-text-muted font-bold uppercase text-[10px] text-primary-blue">Deposit Status</span>
+                <span className="font-extrabold text-brand-success font-mono text-xs uppercase">Settled</span>
               </div>
             </div>
           </div>

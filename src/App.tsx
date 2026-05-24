@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Home as HomeIcon, Signal, Wallet as WalletIcon, User as UserIcon, AlertCircle } from 'lucide-react';
-import { ApiService } from './api';
+import { ApiService, subscribeToUserNotifications } from './api';
 import { User, WalletTransaction, DataOrder, Notification } from './types';
 
 // Screen File imports
@@ -52,15 +52,25 @@ export default function App() {
       });
     }
 
+    // Clean up Sandbox/Demo keys from localStorage
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('gigup_') && key !== 'gigup_token' && key !== 'gigup_user') {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+
     // Capture Flutterwave payment processor callback parameter matches
     const params = new URLSearchParams(window.location.search);
     const txRef = params.get('tx_ref');
-    const amount = params.get('amount') || '2000';
+    const amount = params.get('amount') || '';
     const currentPath = window.location.pathname;
 
     if (txRef || currentPath.includes('/topup/callback')) {
       setCallbackParams({
-        txRef: txRef || 'gigup-topup-sandbox-manual',
+        txRef: txRef || 'gigup-topup-manual',
         amount
       });
       setCurrentScreen('callback');
@@ -81,6 +91,13 @@ export default function App() {
       }
     }
   }, []);
+
+  // Monitor user configuration and automatically subscribe to Push Notifications via backend ntfy
+  useEffect(() => {
+    if (user && user.ntfy_topic) {
+      subscribeToUserNotifications(user.ntfy_topic);
+    }
+  }, [user?.id, user?.ntfy_topic]);
 
   // 2. Fetch and synchronize user statement ledgers from backend
   const refreshUserData = async () => {
@@ -137,6 +154,12 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    if ((window as any)._gigupNtfy) {
+      try {
+        (window as any)._gigupNtfy.close();
+      } catch {}
+      delete (window as any)._gigupNtfy;
+    }
     localStorage.removeItem('gigup_token');
     localStorage.removeItem('gigup_user');
     setUser(null);
@@ -266,6 +289,7 @@ export default function App() {
             onNavigate={handleOnscreenNavigation} 
             onLogout={handleLogout} 
             showToast={showToast} 
+            onRefreshData={refreshUserData}
           />
         ) : null;
 

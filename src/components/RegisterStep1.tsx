@@ -59,10 +59,6 @@ export default function RegisterStep1({ onNextStep, onNavigate, showToast }: Reg
       setIsOtpSent(true);
       setCountdown(60);
       showToast(res.message, 'success');
-      if (res.isSandboxEnv) {
-        // Automatically autofill the OTP code to make sandbox testing frictionless for the user
-        setOtpCode('123456');
-      }
     } catch (err: any) {
       let msg = err.message || 'Error occurred';
       if (msg.includes('already registered')) {
@@ -81,9 +77,6 @@ export default function RegisterStep1({ onNextStep, onNavigate, showToast }: Reg
       const res = await ApiService.sendOtp(phone);
       setCountdown(60);
       showToast(res.message, 'success');
-      if (res.isSandboxEnv) {
-        setOtpCode('123456');
-      }
     } catch (err: any) {
       showToast(err.message || 'Failed to resend OTP', 'error');
     } finally {
