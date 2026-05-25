@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Signal, Smartphone, Wallet, RefreshCw, ShoppingBag, CheckCircle, Gift, Sparkles } from 'lucide-react';
 import { ApiService } from '../api';
 import { User, DataPlan } from '../types';
+import { playSuccessSound, playFailureSound } from '../utils/audio';
 
 interface BuyDataProps {
   user: User;
@@ -139,9 +140,11 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
         
         // Show success splash modal
         setShowSuccessModal(true);
+        playSuccessSound();
         showToast('Data purchase completed successfully! 🎉', 'success');
       }
     } catch (err: any) {
+      playFailureSound();
       showToast(err.message || 'Data top-up order failed', 'error');
     } finally {
       setSubmitting(false);

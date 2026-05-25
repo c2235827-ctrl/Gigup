@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { CheckCircle2, RefreshCw, ChevronRight, Building, AlertCircle } from 'lucide-react';
 import { ApiService } from '../api';
+import { playSuccessSound, playFailureSound } from '../utils/audio';
 
 interface TopupCallbackProps {
   txRef: string;
@@ -41,13 +42,16 @@ export default function TopupCallback({ txRef, amount, onProcessed, showToast }:
             console.warn('Post-funding profile synchronization failed', profileErr);
           }
           setStatusState('success');
+          playSuccessSound();
           showToast(`Wallet credited successfully! ⚡`, 'success');
         } else {
           setStatusState('delay');
+          playFailureSound();
         }
       } catch (err) {
         console.warn('Callback validation failed, transitioning to fallback status', err);
         setStatusState('delay');
+        playFailureSound();
       }
     }, 3000);
 

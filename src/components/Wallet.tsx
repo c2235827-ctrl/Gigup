@@ -3,6 +3,7 @@ import { Wallet as WalletIcon, PlusCircle, History, ArrowDownLeft, ArrowUpRight,
 import { ApiService } from '../api';
 import { User, WalletTransaction } from '../types';
 import PullToRefresh from './PullToRefresh';
+import { playSuccessSound, playFailureSound } from '../utils/audio';
 
 interface WalletProps {
   user: User;
@@ -46,6 +47,7 @@ export default function Wallet({ user, transactions, onNavigate, onRefreshData, 
     try {
       const res = await ApiService.initiateTopup(parsedAmount);
       if (res.success && res.payment_link) {
+        playSuccessSound();
         showToast('Top-Up initiated. Redirecting to payment portal...', 'success');
         // Redirect user to payment_link in same tab
         setTimeout(() => {
@@ -53,6 +55,7 @@ export default function Wallet({ user, transactions, onNavigate, onRefreshData, 
         }, 800);
       }
     } catch (err: any) {
+      playFailureSound();
       showToast(err.message || 'Failed to initiate Top-Up', 'error');
     } finally {
       setLoadingTopup(false);
@@ -519,11 +522,13 @@ export default function Wallet({ user, transactions, onNavigate, onRefreshData, 
                   account_name: accountName || user.full_name
                 });
                 if (res.success) {
+                  playSuccessSound();
                   showToast(res.message, 'success');
                   setShowWithdrawModal(false);
                   await onRefreshData(); // refresh parent balances in App.tsx
                 }
               } catch (err: any) {
+                playFailureSound();
                 showToast(err.message || 'Withdrawal transaction failed', 'error');
               } finally {
                 setWithdrawing(false);

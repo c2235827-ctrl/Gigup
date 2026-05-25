@@ -20,8 +20,16 @@ export default function PullToRefresh({ onRefresh, children, className = '' }: P
   const RESISTANCE = 0.40;
   const REFRESH_HEIGHT = 45;
 
+  // Mirror variables with React Refs so Touch Event Handlers bound once can safely read accurate instant values
+  const statusRef = useRef(status);
+  statusRef.current = status;
+
+  const pullOffsetRef = useRef(pullOffset);
+  pullOffsetRef.current = pullOffset;
+
   const handleStart = (clientY: number) => {
-    if (containerRef.current && containerRef.current.scrollTop === 0 && status !== 'refreshing') {
+    // Check if scrolled perfectly to the top (with a 1.5px sub-pixel tolerance for modern retina/high-DPI screens)
+    if (containerRef.current && containerRef.current.scrollTop <= 2 && statusRef.current !== 'refreshing') {
       startYRef.current = clientY;
       isDraggingRef.current = true;
       setStatus('pulling');
@@ -29,12 +37,12 @@ export default function PullToRefresh({ onRefresh, children, className = '' }: P
   };
 
   const handleMove = (clientY: number) => {
-    if (!isDraggingRef.current || startYRef.current === null || status === 'refreshing') return;
+    if (!isDraggingRef.current || startYRef.current === null || statusRef.current === 'refreshing') return;
 
     const diffY = clientY - startYRef.current;
 
     if (diffY > 0) {
-      // Pulling down
+      // Pulling down gesture
       const calculatedOffset = Math.min(100, diffY * RESISTANCE);
       setPullOffset(calculatedOffset);
 
@@ -44,7 +52,7 @@ export default function PullToRefresh({ onRefresh, children, className = '' }: P
         setStatus('pulling');
       }
     } else {
-      // Dragging up, ignore/cancel pull
+      // Dragged up past start, ignore/cancel
       setPullOffset(0);
       setStatus('idle');
     }
@@ -55,7 +63,7 @@ export default function PullToRefresh({ onRefresh, children, className = '' }: P
     isDraggingRef.current = false;
     startYRef.current = null;
 
-    if (status === 'ready' || pullOffset >= THRESHOLD) {
+    if (statusRef.current === 'ready' || pullOffsetRef.current >= THRESHOLD) {
       setStatus('refreshing');
       setPullOffset(REFRESH_HEIGHT);
       try {
@@ -72,14 +80,23 @@ export default function PullToRefresh({ onRefresh, children, className = '' }: P
     }
   };
 
-  // Bind Raw Touch Events with explicit passive:false to stop native bouncing
+  // Cache latest functions to protect event handler closures from stale state
+  const handleStartRef = useRef(handleStart);
+  const handleMoveRef = useRef(handleMove);
+  const handleEndRef = useRef(handleEnd);
+
+  handleStartRef.current = handleStart;
+  handleMoveRef.current = handleMove;
+  handleEndRef.current = handleEnd;
+
+  // Bind Raw Touch Events ONCE to protect natural gesture lifecycle
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const handleTouchStartRaw = (e: TouchEvent) => {
       if (e.touches.length === 1) {
-        handleStart(e.touches[0].clientY);
+        handleStartRef.current(e.touches[0].clientY);
       }
     };
 
@@ -89,19 +106,21 @@ export default function PullToRefresh({ onRefresh, children, className = '' }: P
       const clientY = e.touches[0].clientY;
       const diffY = clientY - startYRef.current;
 
-      if (diffY > 0 && container.scrollTop === 0) {
-        // Prevent browser overscroll bounce
+      // Ensure we are pulling down from the absolute top of layout
+      if (diffY > 0 && container.scrollTop <= 2) {
+        // Prevent default native browser rubber-banding/bouncing
         if (e.cancelable) {
           e.preventDefault();
         }
-        handleMove(clientY);
+        handleMoveRef.current(clientY);
       }
     };
 
     const handleTouchEndRaw = () => {
-      handleEnd();
+      handleEndRef.current();
     };
 
+    // Use passive: false explicitly to guarantee e.preventDefault() behaves on Safari
     container.addEventListener('touchstart', handleTouchStartRaw, { passive: true });
     container.addEventListener('touchmove', handleTouchMoveRaw, { passive: false });
     container.addEventListener('touchend', handleTouchEndRaw, { passive: true });
@@ -111,9 +130,9 @@ export default function PullToRefresh({ onRefresh, children, className = '' }: P
       container.removeEventListener('touchmove', handleTouchMoveRaw);
       container.removeEventListener('touchend', handleTouchEndRaw);
     };
-  }, [status, pullOffset]);
+  }, []); // Run precisely once. Handlers leverage stable mutable refs.
 
-  // Support Mouse Dragging Simulation for Desktop IFrame testing
+  // Enable desktop browser mouse pulling fallback
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button === 0) {
       handleStart(e.clientY);
@@ -144,7 +163,7 @@ export default function PullToRefresh({ onRefresh, children, className = '' }: P
       className={`relative overflow-y-auto h-full w-full select-none ${className}`}
       style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
     >
-      {/* 1. Pull Down Pill Indicator */}
+      {/* 1. Pull down panel pill */}
       <motion.div
         className="absolute left-0 right-0 z-50 flex items-center justify-center pointer-events-none"
         style={{
@@ -156,11 +175,11 @@ export default function PullToRefresh({ onRefresh, children, className = '' }: P
         }}
         transition={isDraggingRef.current ? { type: 'just' } : { type: 'spring', stiffness: 220, damping: 25 }}
       >
-        <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-full shadow-lg border border-gray-150 text-xs">
+        <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-full shadow-lg border border-gray-150 text-xs text-primary-dark">
           {status === 'refreshing' ? (
             <>
               <RefreshCw className="w-3.5 h-3.5 text-primary-blue animate-spin" />
-              <span className="font-extrabold text-primary-dark">Updating ledger...</span>
+              <span className="font-extrabold">Refreshing...</span>
             </>
           ) : (
             <>
@@ -171,7 +190,7 @@ export default function PullToRefresh({ onRefresh, children, className = '' }: P
               >
                 <ArrowDown className="w-3.5 h-3.5" />
               </motion.div>
-              <span className="font-bold text-text-muted">
+              <span className="font-bold">
                 {status === 'ready' ? 'Release to refresh' : 'Pull down to refresh'}
               </span>
             </>
@@ -179,7 +198,7 @@ export default function PullToRefresh({ onRefresh, children, className = '' }: P
         </div>
       </motion.div>
 
-      {/* 2. Page Content push visual translation */}
+      {/* 2. Visual card offset slider */}
       <motion.div
         className="w-full h-full flex flex-col"
         animate={{
