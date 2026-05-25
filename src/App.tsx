@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Home as HomeIcon, Signal, Wallet as WalletIcon, User as UserIcon, AlertCircle } from 'lucide-react';
+import { Home as HomeIcon, Signal, Wallet as WalletIcon, User as UserIcon, AlertCircle, Download, Smartphone, Share } from 'lucide-react';
 import { ApiService, subscribeToUserNotifications } from './api';
 import { User, WalletTransaction, DataOrder, Notification } from './types';
 
@@ -40,8 +40,18 @@ export default function App() {
   // Toast dynamic notifications
   const [toast, setToast] = useState<ToastState | null>(null);
 
+  // PWA Install prompt and status management
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isStandalone, setIsStandalone] = useState<boolean>(false);
+  const [showPwaInstallModal, setShowPwaInstallModal] = useState<boolean>(false);
+  const [showPwaBanner, setShowPwaBanner] = useState<boolean>(false);
+
   // 1. Initial boot: Register PWA Service Worker & Verify existing session tokens
   useEffect(() => {
+    // Check standalone mode status
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true;
+    setIsStandalone(standalone);
+
     // Service worker installation
     if ('serviceWorker' in navigator && (import.meta as any).env?.PROD) {
       window.addEventListener('load', () => {
@@ -52,6 +62,23 @@ export default function App() {
         });
       });
     }
+
+    // Capture standard PWA installation trigger
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      
+      // Only show banner automatically if they are logged in, not standalone, and haven't dismissed it
+      const dismissed = localStorage.getItem('gigup_pwa_banner_dismissed') === 'true';
+      if (!standalone && !dismissed) {
+        // Delay slightly for visual comfort after splashscreen loads
+        setTimeout(() => {
+          setShowPwaBanner(true);
+        }, 3200);
+      }
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
     // Clean up Sandbox/Demo keys from localStorage
     const keysToRemove: string[] = [];
@@ -191,6 +218,30 @@ export default function App() {
     showToast('Marked all unread inbox items as read ✅', 'success');
   };
 
+  const handlePwaInstall = async () => {
+    if (deferredPrompt) {
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`[PWA] Install prompt outcome: ${outcome}`);
+        setDeferredPrompt(null);
+        setShowPwaBanner(false);
+      } catch (err) {
+        console.warn('[PWA] Error launching browser install prompt:', err);
+        setShowPwaInstallModal(true);
+      }
+    } else {
+      // No standard prompt event in current browser context (e.g. iOS or already stashed)
+      setShowPwaInstallModal(true);
+    }
+  };
+
+  const handleDismissPwaBanner = () => {
+    localStorage.setItem('gigup_pwa_banner_dismissed', 'true');
+    setShowPwaBanner(false);
+    showToast('Add to Home Screen banner dismissed. Manage from Account tab! 📱', 'info');
+  };
+
   const handleOnscreenNavigation = (screenName: string, extras?: any) => {
     if (extras) {
       setExtraNavigationParams(extras);
@@ -271,6 +322,8 @@ export default function App() {
             onNavigate={handleOnscreenNavigation} 
             onRefreshData={refreshUserData} 
             showToast={showToast} 
+            onTriggerInstall={handlePwaInstall}
+            isStandalone={isStandalone}
           />
         ) : null;
       case 'buy_data':
@@ -302,6 +355,8 @@ export default function App() {
             onLogout={handleLogout} 
             showToast={showToast} 
             onRefreshData={refreshUserData}
+            onTriggerInstall={handlePwaInstall}
+            isStandalone={isStandalone}
           />
         ) : null;
 
@@ -424,6 +479,137 @@ export default function App() {
               <UserIcon className="w-[21px] h-[21px]" />
               <span className="text-[9px] font-bold mt-0.5">Account</span>
             </button>
+          </div>
+        )}
+
+        {/* PWA Floating Installation Promotion Banner */}
+        {showPwaBanner && !isStandalone && (
+          <div 
+            id="pwa-floating-promo-banner"
+            className="absolute bottom-20 inset-x-4 z-40 bg-slate-900/95 backdrop-blur-md text-white border border-slate-800 rounded-3xl p-4 shadow-2xl flex items-center justify-between gap-3 animate-slide-up"
+          >
+            <div className="flex items-center gap-3">
+              <img 
+                src="/favicon.png" 
+                alt="GigUp Logo" 
+                className="w-10 h-10 rounded-2xl bg-white/10 p-1 border border-white/10 shrink-0" 
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = "https://cdn-icons-png.flaticon.com/512/15106/15106527.png";
+                }}
+              />
+              <div className="space-y-0.5">
+                <h5 className="text-[11px] font-extrabold text-[#10B981] tracking-wide uppercase">⚡ Install Mobile App</h5>
+                <p className="text-[10px] text-gray-300 leading-tight max-w-[170px]">
+                  Add GigUp to your home screen for one-click access and zero-friction data.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1 shrink-0">
+              <button
+                onClick={handlePwaInstall}
+                className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-[10px] rounded-xl transition cursor-pointer text-center"
+              >
+                Install
+              </button>
+              <button
+                onClick={handleDismissPwaBanner}
+                className="px-3 py-1 text-gray-400 hover:text-white font-bold text-[9px] rounded-xl transition cursor-pointer text-center"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* PWA Dual-Mode Installation Guide Modal Overlay */}
+        {showPwaInstallModal && (
+          <div 
+            id="pwa-install-guide-modal"
+            className="absolute inset-0 bg-primary-dark/90 backdrop-blur-md z-50 flex items-center justify-center p-5 animate-fade-in"
+          >
+            <div className="bg-white text-primary-dark rounded-3xl p-6 shadow-2xl max-w-sm w-full space-y-4">
+              <div className="flex justify-between items-center pb-2 border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                  <img 
+                    src="/favicon.png" 
+                    alt="Logo" 
+                    className="w-7 h-7 rounded-lg bg-primary-dark/5 p-0.5 border border-primary-dark/10"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = "https://cdn-icons-png.flaticon.com/512/15106/15106527.png";
+                    }}
+                  />
+                  <h5 className="font-extrabold text-xs uppercase text-primary-dark tracking-wide">
+                    Install GigUp Application
+                  </h5>
+                </div>
+                <button
+                  onClick={() => setShowPwaInstallModal(false)}
+                  className="text-xs font-bold text-text-muted hover:text-primary-dark cursor-pointer bg-transparent border-none p-2 rounded-full hover:bg-gray-100"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="text-center py-1">
+                <span className="text-3xl">📱</span>
+                <p className="text-[11px] text-text-muted mt-2 leading-relaxed">
+                  GigUp works best as a light installation app on your home screen. Get offline statement receipts, auto-reloads, and up to 10% cashbacks.
+                </p>
+              </div>
+
+              {/* Detect platform or offer choosing */}
+              <div className="space-y-3 pt-2">
+                {/* Option A: deferredPrompt event is stashed & valid */}
+                {deferredPrompt ? (
+                  <div className="space-y-2">
+                    <p className="text-[10px] text-emerald-600 bg-emerald-50 py-2 px-3 rounded-xl font-semibold text-center border border-emerald-100">
+                      Your browser is fully compatible for automatic setup!
+                    </p>
+                    <button
+                      onClick={handlePwaInstall}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs py-3 rounded-2xl transition shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <Download className="w-4 h-4" /> START 1-CLICK INSTALL
+                    </button>
+                  </div>
+                ) : (
+                  /* Option B: Standard guidelines detailed per OS */
+                  <div className="space-y-3.5 border-t border-gray-100 pt-3">
+                    {/* iOS Tab Guide */}
+                    <div className="bg-amber-50/50 border border-amber-100 rounded-2xl p-3.5 space-y-2">
+                      <h4 className="text-[11px] font-extrabold text-amber-800 flex items-center gap-1.5 uppercase">
+                        <Share className="w-3.5 h-3.5 text-amber-700" /> Apple iOS (Safari instructions)
+                      </h4>
+                      <ol className="list-decimal list-inside text-[10px] text-amber-900/90 space-y-1 pl-1 leading-normal font-medium">
+                        <li>Open the app page inside your <b>Safari</b> browser.</li>
+                        <li>Tap the <b>Share icon</b> at the bottom navigation center.</li>
+                        <li>Scroll down and select <b>Add to Home Screen</b>.</li>
+                        <li>Tap <b>Add</b> at the top right corner.</li>
+                      </ol>
+                    </div>
+
+                    {/* Google Android & PC Tab Guide */}
+                    <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-3.5 space-y-2">
+                      <h4 className="text-[11px] font-extrabold text-blue-800 flex items-center gap-1.5 uppercase">
+                        <Smartphone className="w-3.5 h-3.5 text-blue-700" /> Android / Chrome Desktop
+                      </h4>
+                      <ol className="list-decimal list-inside text-[10px] text-blue-900/90 space-y-1 pl-1 leading-normal font-medium">
+                        <li>Tap the <b>three dots</b> on browser top right menu.</li>
+                        <li>Choose <b>Install App</b> or <b>Add to Home Screen</b>.</li>
+                        <li>Verify & click confirm prompt.</li>
+                      </ol>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={() => setShowPwaInstallModal(false)}
+                className="w-full bg-primary-dark/5 hover:bg-primary-dark/10 text-primary-dark font-extrabold text-[10px] py-2.5 rounded-full transition cursor-pointer uppercase tracking-wider"
+              >
+                Close Installer
+              </button>
+            </div>
           </div>
         )}
 

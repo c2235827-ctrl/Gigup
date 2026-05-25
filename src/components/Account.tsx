@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldAlert, Copy, Check, Share2, HelpCircle, LogOut, Trash2, Bell, History, KeyRound, ChevronRight, CheckCircle, Mail, MessageSquare, Sparkles, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { ShieldAlert, Copy, Check, Share2, HelpCircle, LogOut, Trash2, Bell, History, KeyRound, ChevronRight, CheckCircle, Mail, MessageSquare, Sparkles, ArrowDownLeft, ArrowUpRight, Smartphone, Download } from 'lucide-react';
 import { ApiService } from '../api';
 import { User, WalletTransaction } from '../types';
 import PullToRefresh from './PullToRefresh';
@@ -12,9 +12,11 @@ interface AccountProps {
   onLogout: () => void;
   showToast: (msg: string, type: 'success' | 'error' | 'info') => void;
   onRefreshData?: () => Promise<void>;
+  onTriggerInstall?: () => void;
+  isStandalone?: boolean;
 }
 
-export default function Account({ user, transactions = [], onNavigate, onLogout, showToast, onRefreshData }: AccountProps) {
+export default function Account({ user, transactions = [], onNavigate, onLogout, showToast, onRefreshData, onTriggerInstall, isStandalone = false }: AccountProps) {
   const [copiedCode, setCopiedCode] = useState(false);
   
   // Cashback history modal overlay
@@ -319,6 +321,26 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
           </div>
           <ChevronRight className="w-4 h-4 text-text-muted shrink-0" />
         </button>
+
+        {/* Row 3.5: Install App (PWA option) */}
+        {!isStandalone && onTriggerInstall && (
+          <button
+            id="pwa-install-row-btn"
+            onClick={onTriggerInstall}
+            className="w-full bg-emerald-50/60 text-emerald-700 rounded-2xl p-4 border border-emerald-100 flex items-center justify-between text-left shadow-sm hover:bg-emerald-100/30 transition cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white shrink-0">
+                <Smartphone className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-xs font-bold block leading-none text-emerald-800">Install GigUp Mobile App</span>
+                <span className="text-[10px] text-emerald-600/95 mt-1 block font-medium">Get 10x faster startup speed, offline access & PWA benefits</span>
+              </div>
+            </div>
+            <Download className="w-4 h-4 text-emerald-600 shrink-0" />
+          </button>
+        )}
 
         {/* Row 4: Support center */}
         <button

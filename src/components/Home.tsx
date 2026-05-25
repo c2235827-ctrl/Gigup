@@ -9,9 +9,11 @@ interface HomeProps {
   onNavigate: (screen: string, extras?: any) => void;
   onRefreshData: () => Promise<void>;
   showToast: (msg: string, type: 'success' | 'error' | 'info') => void;
+  onTriggerInstall?: () => void;
+  isStandalone?: boolean;
 }
 
-export default function Home({ user, recentOrders, onNavigate, onRefreshData, showToast }: HomeProps) {
+export default function Home({ user, recentOrders, onNavigate, onRefreshData, showToast, onTriggerInstall, isStandalone = false }: HomeProps) {
   const [refreshing, setRefreshing] = useState(false);
 
   // Helper to extract name initials
@@ -240,6 +242,32 @@ export default function Home({ user, recentOrders, onNavigate, onRefreshData, sh
           </button>
         </div>
       </div>
+
+      {/* PWA App Install Booster Prompt Card */}
+      {!isStandalone && onTriggerInstall && (
+        <div className="px-5 mt-5 shrink-0">
+          <div className="bg-emerald-50 border border-emerald-100/80 rounded-3xl p-4 flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+                <Smartphone className="w-5 h-5" />
+              </div>
+              <div className="space-y-0.5">
+                <h5 className="text-[11px] font-extrabold text-[#065F46] uppercase tracking-wide">Install GigUp App! 📲</h5>
+                <p className="text-[10px] text-[#047857] max-w-[190px] leading-tight font-medium">
+                  Launch instantly from your home screen. Uses zero store data & runs 2x faster.
+                </p>
+              </div>
+            </div>
+            <button
+              id="home-install-trigger-btn"
+              onClick={onTriggerInstall}
+              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[10px] rounded-2xl transition shadow-xs cursor-pointer select-none"
+            >
+              Install
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 5. Cashback Promo Banner */}
       <div className="px-5 mt-5 shrink-0">
