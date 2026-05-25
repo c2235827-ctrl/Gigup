@@ -36,6 +36,14 @@ html, body, #root {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* iOS safe areas support */
+.pb-safe {
+  padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+}
+.pt-safe {
+  padding-top: max(8px, env(safe-area-inset-top, 0px));
+}
+
 #root {
   display: flex;
   flex-direction: column;
@@ -86,6 +94,7 @@ input, textarea, select {
 @media (max-width: 480px) {
   .phone-frame {
     height: 100%; /* Fill viewport precisely without causing double scroll scrollbars */
+    min-height: 0 !important; /* Allow shrinking below the desktop 640px threshold */
     border-radius: 0;
     max-width: 100%;
     border: none;

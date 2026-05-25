@@ -102,7 +102,7 @@ export default function RegisterStep1({ onNextStep, onNavigate, showToast }: Reg
   };
 
   return (
-    <div className="flex flex-col h-full w-full bg-white text-text-dark p-6 overflow-y-auto justify-between">
+    <div className="flex flex-col min-h-full w-full bg-white text-text-dark p-6 overflow-y-auto justify-between">
       {/* Top Navigation */}
       <div>
         <div className="flex items-center gap-1.5 pt-2 shrink-0">

@@ -26,7 +26,7 @@ export default function Notifications({ notifications, onBack, onMarkAllAsRead }
   };
 
   return (
-    <div className="flex flex-col h-full bg-bg-light overflow-y-auto select-none">
+    <div className="flex flex-col min-h-full bg-bg-light overflow-y-auto select-none">
       
       {/* Dark Navy Header Section */}
       <div className="bg-primary-dark pt-5 pb-5 px-5 text-white shrink-0 flex items-center gap-3">

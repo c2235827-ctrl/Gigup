@@ -81,7 +81,7 @@ export default function RegisterStep2({ phone, code, onRegisterSuccess, onPrevSt
   };
 
   return (
-    <div className="flex flex-col h-full w-full bg-white text-text-dark p-6 overflow-y-auto justify-between relative">
+    <div className="flex flex-col min-h-full w-full bg-white text-text-dark p-6 overflow-y-auto justify-between relative">
       <div>
         {/* Top return arrow */}
         <div className="flex items-center gap-1.5 pt-2 shrink-0">

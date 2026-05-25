@@ -69,7 +69,7 @@ export default function Login({ onLoginSuccess, onNavigate, showToast }: LoginPr
 
   return (
     <div 
-      className="flex flex-col h-full w-full justify-between bg-gradient-to-b from-primary-dark via-[#09152b] to-[#050b18] text-white p-6 relative overflow-y-auto"
+      className="flex flex-col min-h-full w-full justify-between bg-gradient-to-b from-primary-dark via-[#09152b] to-[#050b18] text-white p-6 relative overflow-y-auto"
       style={{ contentVisibility: 'auto' }}
     >
       {/* Background glow lamps */}
