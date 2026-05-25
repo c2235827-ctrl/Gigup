@@ -78,8 +78,13 @@ export default function Login({ onLoginSuccess, onNavigate, showToast }: LoginPr
 
       {/* Mode pill toggler in top margin */}
       <div className="flex justify-between items-center z-10 pt-2 shrink-0">
-        <div className="flex items-center gap-1.5">
-          <Zap className="w-5 h-5 text-primary-blue fill-primary-blue" />
+        <div className="flex items-center gap-2">
+          <img 
+            src="/logo.png" 
+            alt="GigUp Logo" 
+            className="w-7 h-7 object-contain bg-white rounded-lg p-0.5 shadow-sm"
+            referrerPolicy="no-referrer"
+          />
           <span className="font-extrabold text-lg tracking-wide">GigUp</span>
         </div>
       </div>
