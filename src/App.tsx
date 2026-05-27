@@ -43,6 +43,9 @@ export default function App() {
   // PWA Install prompt and status management
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isStandalone, setIsStandalone] = useState<boolean>(false);
+
+  // PWA update notification state
+  const [updateAvailable, setUpdateAvailable] = useState<boolean>(false);
   const [showPwaInstallModal, setShowPwaInstallModal] = useState<boolean>(false);
   const [showPwaBanner, setShowPwaBanner] = useState<boolean>(false);
 
@@ -55,12 +58,43 @@ export default function App() {
     // Service worker installation
     if ('serviceWorker' in navigator && (import.meta as any).env?.PROD) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js').then((reg) => {
-          console.log('[PWA] Service Worker registered scope:', reg.scope);
+        navigator.serviceWorker.register('/service-worker.js').then((registration) => {
+          console.log('[PWA] Service Worker registered scope:', registration.scope);
+
+          // Check for updates every 60 seconds
+          const intervalId = setInterval(() => {
+            registration.update();
+          }, 60 * 1000);
+
+          // Listen for new service worker waiting
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            if (!newWorker) return;
+
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                // New version available — show update banner
+                window.dispatchEvent(new CustomEvent('gigup-update-available'));
+              }
+            });
+          });
+
+          // If there is already a waiting service worker, dispatch event immediately
+          if (registration.waiting) {
+            window.dispatchEvent(new CustomEvent('gigup-update-available'));
+          }
+
+          return () => clearInterval(intervalId);
         }).catch((err) => {
           console.warn('[PWA] Service Worker registration failed:', err);
         });
       });
+
+      // When new SW takes control, reload the page
+      const handleControllerChange = () => {
+        window.location.reload();
+      };
+      navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
     }
 
     // Capture standard PWA installation trigger
@@ -405,6 +439,30 @@ export default function App() {
     }
   };
 
+  // Listen for the custom "gigup-update-available" event
+  useEffect(() => {
+    const handleUpdateChange = () => {
+      setUpdateAvailable(true);
+    };
+    window.addEventListener('gigup-update-available', handleUpdateChange);
+    return () => {
+      window.removeEventListener('gigup-update-available', handleUpdateChange);
+    };
+  }, []);
+
+  const handleUpdate = () => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then((registration) => {
+        if (registration.waiting) {
+          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
+      });
+    }
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
+  };
+
   // Determine if we should show the bottom phone navigation bar
   const shouldShowBottomNavigation = 
     user && 
@@ -414,6 +472,47 @@ export default function App() {
     <div className="app-container">
       <div id="phone-simulation-frame" className="phone-frame select-none">
         
+        {/* PWA App Update Notification Banner */}
+        {updateAvailable && (
+          <div
+            onClick={handleUpdate}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 9999,
+              background: '#3B7EF8',
+              color: 'white',
+              padding: '12px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              boxShadow: '0 2px 12px rgba(59,126,248,0.4)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '18px' }}>🔄</span>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '13px' }}>Update Available</div>
+                <div style={{ fontSize: '11px', opacity: 0.85 }}>Tap to get the latest version of GigUp</div>
+              </div>
+            </div>
+            <div style={{
+              background: 'white',
+              color: '#3B7EF8',
+              padding: '6px 14px',
+              borderRadius: '20px',
+              fontWeight: 700,
+              fontSize: '12px',
+              whiteSpace: 'nowrap',
+            }}>
+              Update Now
+            </div>
+          </div>
+        )}
+
         {/* Core dynamic screen viewport container */}
         <div className="flex-grow w-full overflow-hidden relative">
           <AnimatePresence mode="wait">

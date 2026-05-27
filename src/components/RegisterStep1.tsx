@@ -14,8 +14,9 @@ export default function RegisterStep1({ onNextStep, onNavigate, showToast }: Reg
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [loading, setLoading] = useState(false);
-  const [countdown, setCountdown] = useState(0);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [countdown, setCountdown] = useState(60);
+  const [canResend, setCanResend] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
   
   const [showLegalModal, setShowLegalModal] = useState(false);
   const [legalTab, setLegalTab] = useState<'terms' | 'privacy'>('terms');
@@ -36,19 +37,26 @@ export default function RegisterStep1({ onNextStep, onNavigate, showToast }: Reg
     }
   };
 
-  // Countdown timer loop for Resend OTP
+  // Start countdown when OTP screen is shown
   useEffect(() => {
-    if (countdown > 0) {
-      timerRef.current = setTimeout(() => {
-        setCountdown(prev => prev - 1);
-      }, 1000);
-    }
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-    };
-  }, [countdown]);
+    if (!isOtpSent) return;
+
+    setCountdown(60);
+    setCanResend(false);
+
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setCanResend(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isOtpSent]);
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,17 +82,30 @@ export default function RegisterStep1({ onNextStep, onNavigate, showToast }: Reg
     }
   };
 
-  const handleResendOtp = async () => {
-    if (countdown > 0) return;
-    setLoading(true);
+  const handleResendOTP = async () => {
+    if (!canResend || resendLoading) return;
+    setResendLoading(true);
     try {
-      const res = await ApiService.sendOtp(phone);
+      await ApiService.sendOtp(phone); // Use the same phone number
+      // Reset countdown
       setCountdown(60);
-      showToast(res.message, 'success');
+      setCanResend(false);
+      setResendLoading(false);
+      // Restart timer
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            setCanResend(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      showToast('New OTP sent to your number', 'success');
     } catch (err: any) {
       showToast(err.message || 'Failed to resend OTP', 'error');
-    } finally {
-      setLoading(false);
+      setResendLoading(false);
     }
   };
 
@@ -194,17 +215,39 @@ export default function RegisterStep1({ onNextStep, onNavigate, showToast }: Reg
               </p>
             </div>
 
-            <div className="flex justify-between items-center text-xs mt-2 px-1">
-              <span className="text-text-muted">Didn't receive code?</span>
-              <button
-                id="resend-otp-btn"
-                type="button"
-                disabled={countdown > 0 || loading}
-                onClick={handleResendOtp}
-                className="text-primary-blue font-bold disabled:text-text-muted hover:underline transition cursor-pointer bg-transparent border-none p-0"
-              >
-                {countdown > 0 ? `Resend in ${countdown}s` : 'Resend OTP'}
-              </button>
+            <div style={{
+              textAlign: 'center',
+              marginTop: '20px',
+              fontSize: '14px',
+            }}>
+              {canResend ? (
+                <button
+                  id="resend-otp-btn"
+                  type="button"
+                  onClick={handleResendOTP}
+                  disabled={resendLoading}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#3B7EF8',
+                    fontWeight: 700,
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    opacity: resendLoading ? 0.6 : 1,
+                  }}
+                >
+                  {resendLoading ? '⏳ Sending...' : '🔄 Resend OTP'}
+                </button>
+              ) : (
+                <span style={{ color: '#8A96A3' }}>
+                  Resend OTP in{' '}
+                  <span style={{ color: '#0D1F3D', fontWeight: 700 }}>
+                    {countdown}s
+                  </span>
+                </span>
+              )}
             </div>
 
             <button
