@@ -9,17 +9,126 @@ interface RegisterStep1Props {
   showToast: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
 
+interface CaptchaDisplayProps {
+  code: string;
+  onRefresh: () => void;
+}
+
+export function CaptchaDisplay({ code, onRefresh }: CaptchaDisplayProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (!canvasRef.current || !code) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d')!;
+    const width = canvas.width;
+    const height = canvas.height;
+
+    // Clear
+    ctx.clearRect(0, 0, width, height);
+
+    // Background
+    ctx.fillStyle = '#0D1F3D';
+    ctx.fillRect(0, 0, width, height);
+
+    // Noise lines
+    for (let i = 0; i < 6; i++) {
+      ctx.strokeStyle = `rgba(59,126,248,${Math.random() * 0.4 + 0.1})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(Math.random() * width, Math.random() * height);
+      ctx.lineTo(Math.random() * width, Math.random() * height);
+      ctx.stroke();
+    }
+
+    // Noise dots
+    for (let i = 0; i < 30; i++) {
+      ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.3})`;
+      ctx.beginPath();
+      ctx.arc(Math.random() * width, Math.random() * height, 1, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Draw each character with variation
+    const colors = ['#3B7EF8', '#60A5FA', '#FFFFFF', '#93C5FD', '#3B7EF8', '#BFDBFE'];
+    const charWidth = width / (code.length + 1);
+
+    code.split('').forEach((char, i) => {
+      ctx.save();
+      const x = charWidth * (i + 0.9);
+      const y = height / 2 + (Math.random() * 8 - 4);
+      ctx.translate(x, y);
+      ctx.rotate((Math.random() - 0.5) * 0.4);
+      ctx.font = `bold ${24 + Math.random() * 6}px monospace`;
+      ctx.fillStyle = colors[i % colors.length];
+      ctx.shadowColor = colors[i % colors.length];
+      ctx.shadowBlur = 4;
+      ctx.fillText(char, 0, 0);
+      ctx.restore();
+    });
+
+  }, [code]);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }} className="my-4">
+      <p style={{ fontSize: '13px', color: '#8A96A3', textAlign: 'center' }} className="font-semibold text-text-muted">
+        Enter the code shown in the box below
+      </p>
+      <div style={{
+        borderRadius: '12px',
+        overflow: 'hidden',
+        border: '2px solid rgba(59,126,248,0.3)',
+        boxShadow: '0 0 20px rgba(59,126,248,0.2)',
+      }}>
+        <canvas
+          ref={canvasRef}
+          width={220}
+          height={64}
+          style={{ display: 'block' }}
+        />
+      </div>
+      <button
+        onClick={onRefresh}
+        type="button"
+        style={{
+          background: 'none',
+          border: 'none',
+          color: '#3B7EF8',
+          fontSize: '13px',
+          fontWeight: 600,
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '4px 8px',
+        }}
+        className="hover:underline"
+      >
+        🔄 Can't read it? Get a new code
+      </button>
+    </div>
+  );
+}
+
 export default function RegisterStep1({ onNextStep, onNavigate, showToast }: RegisterStep1Props) {
   const [phone, setPhone] = useState('');
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState('');
+  const [captchaCode, setCaptchaCode] = useState('');
   const [loading, setLoading] = useState(false);
-  const [countdown, setCountdown] = useState(60);
-  const [canResend, setCanResend] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   
   const [showLegalModal, setShowLegalModal] = useState(false);
   const [legalTab, setLegalTab] = useState<'terms' | 'privacy'>('terms');
+
+  const otpInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus the OTP input field
+  useEffect(() => {
+    if (isOtpSent && otpInputRef.current) {
+      otpInputRef.current.focus();
+    }
+  }, [isOtpSent]);
 
   // Auto-format standard Nigerian phone: numbers only, max 11 digits
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -29,34 +138,23 @@ export default function RegisterStep1({ onNextStep, onNavigate, showToast }: Reg
     }
   };
 
-  // Limit OTP input to 6 digits
+  // Trigger verification and navigate to next step
+  const triggerVerification = async (userInput: string) => {
+    if (userInput.length !== 6) return;
+    showToast('Verification code entered! Let\'s setup your card profile.', 'success');
+    onNextStep(phone, userInput);
+  };
+
+  // Limit OTP input to 6 digits and auto-submit
   const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawVal = e.target.value.replace(/\D/g, '');
     if (rawVal.length <= 6) {
       setOtpCode(rawVal);
+      if (rawVal.length === 6) {
+        triggerVerification(rawVal);
+      }
     }
   };
-
-  // Start countdown when OTP screen is shown
-  useEffect(() => {
-    if (!isOtpSent) return;
-
-    setCountdown(60);
-    setCanResend(false);
-
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setCanResend(true);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [isOtpSent]);
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,8 +166,8 @@ export default function RegisterStep1({ onNextStep, onNavigate, showToast }: Reg
     setLoading(true);
     try {
       const res = await ApiService.sendOtp(phone);
+      setCaptchaCode(res.code || '');
       setIsOtpSent(true);
-      setCountdown(60);
       showToast(res.message, 'success');
     } catch (err: any) {
       let msg = err.message || 'Error occurred';
@@ -83,28 +181,16 @@ export default function RegisterStep1({ onNextStep, onNavigate, showToast }: Reg
   };
 
   const handleResendOTP = async () => {
-    if (!canResend || resendLoading) return;
+    if (resendLoading) return;
     setResendLoading(true);
     try {
-      await ApiService.sendOtp(phone); // Use the same phone number
-      // Reset countdown
-      setCountdown(60);
-      setCanResend(false);
-      setResendLoading(false);
-      // Restart timer
-      const timer = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            setCanResend(true);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      showToast('New OTP sent to your number', 'success');
+      const res = await ApiService.sendOtp(phone); // Use the same phone number
+      setCaptchaCode(res.code || '');
+      setOtpCode(''); // reset typed buffer
+      showToast('New verification code generated', 'success');
     } catch (err: any) {
-      showToast(err.message || 'Failed to resend OTP', 'error');
+      showToast(err.message || 'Failed to generate new code', 'error');
+    } finally {
       setResendLoading(false);
     }
   };
@@ -112,14 +198,10 @@ export default function RegisterStep1({ onNextStep, onNavigate, showToast }: Reg
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (otpCode.length !== 6) {
-      showToast('Security OTP must be exactly 6 digits', 'error');
+      showToast('Security verification code must be exactly 6 digits', 'error');
       return;
     }
-
-    // Move to next step (Step 2 - full profile name + pin)
-    // We already do the registration request in Step 2 verification, so we just pass verified phone and OTP code to Step 2
-    showToast('OTP verified successfully! Let\'s setup your card profile.', 'success');
-    onNextStep(phone, otpCode);
+    triggerVerification(otpCode);
   };
 
   return (
@@ -140,13 +222,15 @@ export default function RegisterStep1({ onNextStep, onNavigate, showToast }: Reg
         {/* Create account header */}
         <div className="mt-6 mb-8">
           <div className="flex justify-between items-center mb-1">
-            <h2 className="text-2xl font-extrabold text-primary-dark">Create Account</h2>
+            <h2 className="text-2xl font-extrabold text-primary-dark">
+              {isOtpSent ? 'Verify Your Number' : 'Create Account'}
+            </h2>
             <span className="text-xs bg-bg-light text-primary-blue px-2.5 py-1 rounded-full font-bold">
               Step 1 of 3
             </span>
           </div>
           <p className="text-text-muted text-sm">
-            {isOtpSent ? 'Verify the status of your cell line with SMS code' : 'Let\'s get started. Enter your mobile phone number.'}
+            {isOtpSent ? 'Enter the code displayed in the box below' : 'Let\'s get started. Enter your mobile phone number.'}
           </p>
         </div>
 
@@ -173,7 +257,7 @@ export default function RegisterStep1({ onNextStep, onNavigate, showToast }: Reg
                 />
               </div>
               <p className="text-[10px] text-text-muted mt-2">
-                We will send a 6-digit confirmation code code via SMS to this phone.
+                We will display a security verification code on your screen.
               </p>
             </div>
 
@@ -189,20 +273,20 @@ export default function RegisterStep1({ onNextStep, onNavigate, showToast }: Reg
         ) : (
           <form onSubmit={handleVerifyOtp} className="space-y-5">
             <div>
-              <label id="otp-label" className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">
-                6-Digit Security Code (OTP)
-              </label>
-              <div className="relative">
+              <CaptchaDisplay code={captchaCode} onRefresh={handleResendOTP} />
+              
+              <div className="relative mt-4">
                 <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-text-muted">
                   <KeyRound className="w-5 h-5" />
                 </span>
                 <input
                   id="otp-input"
+                  ref={otpInputRef}
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
                   maxLength={6}
-                  placeholder="123456"
+                  placeholder="Type 6-digit code"
                   autoFocus
                   value={otpCode}
                   onChange={handleOtpChange}
@@ -210,53 +294,15 @@ export default function RegisterStep1({ onNextStep, onNavigate, showToast }: Reg
                   className="w-full bg-bg-light border border-gray-200 text-primary-dark font-bold tracking-widest text-center rounded-2xl pl-11 pr-4 py-3.5 text-xl placeholder-gray-400 focus:bg-white focus:border-primary-blue focus:outline-none transition-all"
                 />
               </div>
-              <p className="text-[11px] text-text-muted mt-2">
-                Code sent to <span className="font-bold text-primary-dark">{phone}</span>. (Autofills to 123456 for testing)
-              </p>
-            </div>
-
-            <div style={{
-              textAlign: 'center',
-              marginTop: '20px',
-              fontSize: '14px',
-            }}>
-              {canResend ? (
-                <button
-                  id="resend-otp-btn"
-                  type="button"
-                  onClick={handleResendOTP}
-                  disabled={resendLoading}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#3B7EF8',
-                    fontWeight: 700,
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    padding: '8px 16px',
-                    borderRadius: '8px',
-                    opacity: resendLoading ? 0.6 : 1,
-                  }}
-                >
-                  {resendLoading ? '⏳ Sending...' : '🔄 Resend OTP'}
-                </button>
-              ) : (
-                <span style={{ color: '#8A96A3' }}>
-                  Resend OTP in{' '}
-                  <span style={{ color: '#0D1F3D', fontWeight: 700 }}>
-                    {countdown}s
-                  </span>
-                </span>
-              )}
             </div>
 
             <button
               id="verify-otp-btn"
               type="submit"
-              disabled={loading}
+              disabled={loading || resendLoading}
               className="w-full bg-primary-blue hover:bg-primary-blue/90 disabled:bg-primary-blue/50 text-white rounded-full py-4 text-base font-semibold transition-all shadow-md mt-4 cursor-pointer flex items-center justify-center gap-2"
             >
-              {loading ? <div className="spinner !w-5 !h-5 border-white/20 !border-left-white" /> : 'Verify Code'}
+              {loading || resendLoading ? <div className="spinner !w-5 !h-5 border-white/20 !border-left-white" /> : 'Verify'}
             </button>
 
             <button
