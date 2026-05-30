@@ -63,20 +63,14 @@ async function request(endpoint: string, options: RequestInit = {}) {
 
 export const ApiService = {
 
-  // 1. Send OTP — returns code for CAPTCHA display
   async sendOtp(phone: string): Promise<{ success: boolean; code: string; message: string }> {
     const data = await request('send-otp', {
       method: 'POST',
       body: JSON.stringify({ phone }),
     });
-    return {
-      success: true,
-      code: data.code,
-      message: data.message || 'Enter the code displayed on your screen',
-    };
+    return { success: true, code: data.code, message: data.message };
   },
 
-  // 2. Verify CAPTCHA code & create account
   async verifyOtpAndCreate(payload: {
     phone: string;
     code: string;
@@ -88,13 +82,12 @@ export const ApiService = {
       method: 'POST',
       body: JSON.stringify(payload),
     });
-    localStorage.setItem('gigup_token', data.token || '');
+    if (data.token) localStorage.setItem('gigup_token', data.token);
     localStorage.setItem('gigup_user', JSON.stringify(data.user));
     if (data.user?.ntfy_topic) subscribeToUserNotifications(data.user.ntfy_topic);
     return { success: true, user: data.user };
   },
 
-  // 3. Login
   async login(phone: string, pin: string): Promise<{ success: boolean; token: string; user: User }> {
     const data = await request('login', {
       method: 'POST',
@@ -106,14 +99,12 @@ export const ApiService = {
     return { success: true, token: data.token, user: data.user };
   },
 
-  // 4. Get data plans
   async getDataPlans(network?: string): Promise<DataPlan[]> {
     const endpoint = network ? `get-data-plans?network=${network}` : 'get-data-plans';
     const data = await request(endpoint);
     return data.plans || [];
   },
 
-  // 5. Buy data
   async buyData(planId: string, recipientPhone: string): Promise<{
     success: boolean;
     status: string;
@@ -126,7 +117,6 @@ export const ApiService = {
       method: 'POST',
       body: JSON.stringify({ plan_id: planId, recipient_phone: recipientPhone }),
     });
-    // Update local user cache with new balances
     const cachedUser = localStorage.getItem('gigup_user');
     if (cachedUser) {
       const user = JSON.parse(cachedUser);
@@ -137,7 +127,6 @@ export const ApiService = {
     return data;
   },
 
-  // 6. Initiate wallet top-up
   async initiateTopup(amount: number): Promise<{ success: boolean; payment_link: string; tx_ref: string }> {
     const data = await request('initiate-topup', {
       method: 'POST',
@@ -146,25 +135,13 @@ export const ApiService = {
     return { success: true, payment_link: data.payment_link, tx_ref: data.tx_ref };
   },
 
-  // 6b. Confirm Flutterwave callback payment
-  async confirmCallback(tx_ref: string, amount: number): Promise<{ success: boolean; message?: string }> {
-    const data = await request('confirm-callback', {
-      method: 'POST',
-      body: JSON.stringify({ tx_ref, amount }),
-    });
-    return { success: data.success ?? true, message: data.message };
-  },
-
-  // 7. Get profile
   async getProfile(): Promise<User> {
     const data = await request('get-profile');
-    const user = data.user;
-    localStorage.setItem('gigup_user', JSON.stringify(user));
-    if (user?.ntfy_topic) subscribeToUserNotifications(user.ntfy_topic);
-    return user;
+    localStorage.setItem('gigup_user', JSON.stringify(data.user));
+    if (data.user?.ntfy_topic) subscribeToUserNotifications(data.user.ntfy_topic);
+    return data.user;
   },
 
-  // 8. Get transactions
   async getTransactions(type: 'all' | 'wallet' | 'orders' | 'notifications' = 'all'): Promise<{
     wallet_transactions: WalletTransaction[];
     data_orders: DataOrder[];
@@ -178,7 +155,6 @@ export const ApiService = {
     };
   },
 
-  // 9. Request cashback withdrawal
   async requestWithdrawal(payload: {
     amount: number;
     bank_name: string;
@@ -192,7 +168,14 @@ export const ApiService = {
     return { success: true, message: data.message };
   },
 
-  // 10. Delete account
+  async changePin(currentPin: string, newPin: string): Promise<{ success: boolean; message: string }> {
+    const data = await request('change-pin', {
+      method: 'POST',
+      body: JSON.stringify({ current_pin: currentPin, new_pin: newPin }),
+    });
+    return { success: true, message: data.message };
+  },
+
   async deleteAccount(pin: string): Promise<{ success: boolean; message: string }> {
     const data = await request('delete-account', {
       method: 'POST',
@@ -201,24 +184,19 @@ export const ApiService = {
     return { success: true, message: data.message };
   },
 
-  // 11. Logout
   logout() {
     localStorage.removeItem('gigup_token');
     localStorage.removeItem('gigup_user');
     unsubscribeFromNotifications();
   },
 
-  // 12. Get cached user (no API call)
   getCachedUser(): User | null {
     try {
       const userStr = localStorage.getItem('gigup_user');
       return userStr ? JSON.parse(userStr) : null;
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   },
 
-  // 13. Is logged in
   isLoggedIn(): boolean {
     const token = localStorage.getItem('gigup_token');
     return !!(token && token.length > 0);

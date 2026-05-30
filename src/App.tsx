@@ -114,24 +114,11 @@ export default function App() {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-    // Clean up Sandbox/Demo keys from localStorage
-    const keysToRemove: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key) {
-        const lowerKey = key.toLowerCase();
-        if (
-          (key.startsWith('gigup_') && key !== 'gigup_token' && key !== 'gigup_user') ||
-          lowerKey.includes('sandbox') ||
-          lowerKey.includes('demo') ||
-          lowerKey.includes('mock') ||
-          lowerKey.includes('mode')
-        ) {
-          keysToRemove.push(key);
-        }
-      }
-    }
-    keysToRemove.forEach(k => localStorage.removeItem(k));
+    // Clear all stale localStorage from old builds
+    ['gigup_local_users','gigup_local_transactions','gigup_local_orders',
+     'gigup_local_notifications','gigup_sandbox_users','gigup_sandbox_transactions',
+     'gigup_sandbox_orders','gigup_sandbox_notifications','gigup_mode',
+     'gigup_local_mode','gigup_sandbox_mode'].forEach(k => localStorage.removeItem(k));
 
     // Capture Flutterwave payment processor callback parameter matches
     const params = new URLSearchParams(window.location.search);
@@ -146,19 +133,21 @@ export default function App() {
       });
       setCurrentScreen('callback');
     } else {
-      // Standard local authentication search
-      const token = localStorage.getItem('gigup_token');
-      const storedUser = localStorage.getItem('gigup_user');
-      
-      if (token && storedUser) {
-        try {
-          const parsed = JSON.parse(storedUser) as User;
-          setUser(parsed);
-          // Wait 2s simulated for splash screen to complete, then navigate home
-        } catch {
-          localStorage.removeItem('gigup_token');
-          localStorage.removeItem('gigup_user');
-        }
+      // Check auth
+      if (ApiService.isLoggedIn()) {
+        const cached = ApiService.getCachedUser();
+        if (cached) setUser(cached);
+        // Refresh profile in background
+        ApiService.getProfile()
+          .then(user => setUser(user))
+          .catch(() => {
+            // Token expired — logout
+            ApiService.logout();
+            setCurrentScreen('login');
+          });
+        setCurrentScreen('home');
+      } else {
+        setCurrentScreen('splash');
       }
     }
   }, []);

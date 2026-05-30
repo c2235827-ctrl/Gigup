@@ -123,26 +123,41 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
     });
   };
 
-  const handlePinUpdate = (e: React.FormEvent) => {
+  const handlePinUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (currentPin.length !== 4 || newPin.length !== 4 || confirmNewPin.length !== 4) {
-      showToast('All PIN inputs must be exactly 4 digits.', 'error');
+    if (!currentPin || !newPin || !confirmNewPin) {
+      showToast('All fields are required', 'error');
       return;
     }
     if (newPin !== confirmNewPin) {
-      showToast('New PIN verification mismatch.', 'error');
+      showToast('New PINs do not match', 'error');
+      return;
+    }
+    if (!/^\d{4}$/.test(newPin)) {
+      showToast('PIN must be exactly 4 digits', 'error');
       return;
     }
 
     setUpdatingPin(true);
-    setTimeout(() => {
-      showToast('Security PIN changed successfully! 🛡️', 'success');
-      setShowPinModal(false);
-      setCurrentPin('');
-      setNewPin('');
-      setConfirmNewPin('');
+    try {
+      const res = await ApiService.changePin(currentPin, newPin);
+      if (res.success) {
+        showToast('PIN changed successfully! ✅', 'success');
+        setCurrentPin('');
+        setNewPin('');
+        setConfirmNewPin('');
+        setShowPinModal(false);
+      }
+    } catch (err: any) {
+      if (err.message?.includes('Unauthorized') || err.message?.includes('Invalid token')) {
+        ApiService.logout();
+        onLogout();
+        return;
+      }
+      showToast(err.message || 'Failed to change PIN', 'error');
+    } finally {
       setUpdatingPin(false);
-    }, 800);
+    }
   };
 
   const handleDeleteAccount = async (e: React.FormEvent) => {
