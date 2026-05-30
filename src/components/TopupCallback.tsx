@@ -31,12 +31,12 @@ export default function TopupCallback({ txRef, amount, onProcessed, showToast }:
     // 2. Main 3-second verification delay
     const timer = setTimeout(async () => {
       try {
-        const res = await ApiService.confirmCallback(txRef, amount);
+        const res = await ApiService.confirmCallback(txRef, parseFloat(amount) || 0);
         if (res.success) {
           try {
-            const profileRes = await ApiService.getProfile();
-            if (profileRes.success) {
-              setUpdatedBalance(profileRes.user.wallet_balance);
+            const profile = await ApiService.getProfile();
+            if (profile) {
+              setUpdatedBalance(profile.wallet_balance);
             }
           } catch (profileErr) {
             console.warn('Post-funding profile synchronization failed', profileErr);

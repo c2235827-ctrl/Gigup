@@ -175,12 +175,12 @@ export default function App() {
     try {
       // Reload profile properties
       const profile = await ApiService.getProfile();
-      if (profile.success) {
-        setUser(profile.user);
+      if (profile) {
+        setUser(profile);
       }
       // Reload logs arrays
       const trxs = await ApiService.getTransactions();
-      if (trxs.success) {
+      if (trxs) {
         setTransactions(trxs.wallet_transactions);
         setRecentOrders(trxs.data_orders);
         setNotifications(trxs.notifications);

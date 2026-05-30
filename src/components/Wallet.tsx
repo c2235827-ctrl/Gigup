@@ -48,11 +48,25 @@ export default function Wallet({ user, transactions, onNavigate, onRefreshData, 
       const res = await ApiService.initiateTopup(parsedAmount);
       if (res.success && res.payment_link) {
         playSuccessSound();
-        showToast('Top-Up initiated. Redirecting to payment portal...', 'success');
-        // Redirect user to payment_link in same tab
-        setTimeout(() => {
-          window.location.href = res.payment_link;
-        }, 800);
+        
+        // Escape iframe sandbox if inside an iframe to prevent X-Frame-Options: SAMEORIGIN block
+        const isIframe = window.self !== window.top;
+        if (isIframe) {
+          showToast('Top-Up initiated. Opening secure payment portal in a new tab...', 'success');
+          const newTab = window.open(res.payment_link, '_blank');
+          if (!newTab) {
+            // Popup blocker prevented, do top fallback
+            showToast('Pop-up blocked! Redirecting you directly...', 'info');
+            setTimeout(() => {
+              window.location.href = res.payment_link;
+            }, 1000);
+          }
+        } else {
+          showToast('Top-Up initiated. Redirecting to payment portal...', 'success');
+          setTimeout(() => {
+            window.location.href = res.payment_link;
+          }, 800);
+        }
       }
     } catch (err: any) {
       playFailureSound();

@@ -76,12 +76,12 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
       setLoadingPlans(true);
       setSelectedPlan(null);
       try {
-        const res = await ApiService.getDataPlans(activeNetwork);
-        if (active && res.success) {
-          setPlans(res.plans);
+        const plans = await ApiService.getDataPlans(activeNetwork);
+        if (active && plans) {
+          setPlans(plans);
           // Auto select first plan as default
-          if (res.plans.length > 0) {
-            setSelectedPlan(res.plans[0]);
+          if (plans.length > 0) {
+            setSelectedPlan(plans[0]);
           }
         }
       } catch (err: any) {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bell, RefreshCw, Plus, History, Signal, Gift, Sparkles, ChevronRight, ArrowUpRight, Smartphone, Compass } from 'lucide-react';
+import { Bell, RefreshCw, Plus, History, Signal, Gift, Sparkles, ChevronRight, ArrowUpRight, Smartphone, Compass, AlertTriangle } from 'lucide-react';
 import { User, DataOrder } from '../types';
 import PullToRefresh from './PullToRefresh';
 
@@ -96,15 +96,15 @@ export default function Home({ user, recentOrders, onNavigate, onRefreshData, sh
 
       {/* 2. Elevated Wallet Balance Card */}
       <div className="px-5 shrink-0 -mt-7 relative z-20">
-        <div id="elevated-home-balance-card" className="bg-white rounded-3xl p-5 shadow-lg border border-gray-100 flex flex-col space-y-3.5">
+        <div id="elevated-home-balance-card" className={`bg-white rounded-3xl p-5 shadow-lg border flex flex-col space-y-3.5 transition-all duration-300 ${user.wallet_balance < 500 ? 'border-red-500/30' : 'border-gray-100'}`}>
           
           {/* Wallet Balance Row */}
           <div className="flex justify-between items-center">
             <div className="flex flex-col">
-              <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">Wallet Balance</span>
+              <span className={`text-xs font-semibold uppercase tracking-wider transition-colors duration-300 ${user.wallet_balance < 500 ? 'text-red-500' : 'text-text-muted'}`}>Wallet Balance</span>
               <span className="text-[9px] font-medium text-primary-blue mt-0.5">Available for purchases</span>
             </div>
-            <span className="text-xl font-extrabold text-primary-dark font-mono tracking-tight leading-none">
+            <span className={`text-xl font-extrabold font-mono tracking-tight leading-none transition-all duration-300 ${user.wallet_balance < 500 ? 'text-red-600 animate-pulse' : 'text-primary-dark'}`}>
               ₦{(user.wallet_balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </span>
           </div>
@@ -185,6 +185,30 @@ export default function Home({ user, recentOrders, onNavigate, onRefreshData, sh
           </div>
         </div>
       </div>
+
+      {/* Low Wallet Balance Warning Banner */}
+      {user.wallet_balance < 500 && (
+        <div className="px-5 mt-4 shrink-0 transition-all duration-300">
+          <div className="bg-amber-50 border border-amber-200 rounded-3xl p-4 flex items-start gap-3 shadow-sm">
+            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-4 h-4 text-amber-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h5 className="text-xs font-bold text-amber-900 leading-none">Low Wallet Balance!</h5>
+              <p className="text-[11px] text-amber-700 mt-1 leading-normal">
+                Your wallet balance is <strong>₦{(user.wallet_balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong>. Top up now to enjoy uninterrupted data purchases.
+              </p>
+            </div>
+            <button
+              id="low-balance-topup-btn"
+              onClick={() => onNavigate('wallet')}
+              className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] px-3 py-1.5 rounded-full shadow-sm transition shrink-0 active:scale-95 cursor-pointer"
+            >
+              Top Up
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 3. Pull-To-Refresh Simulation Banner */}
       {refreshing && (
