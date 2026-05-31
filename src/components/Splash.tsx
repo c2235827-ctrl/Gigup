@@ -16,47 +16,53 @@ export default function Splash({ onComplete }: SplashProps) {
   return (
     <div 
       id="splash-screen" 
-      className="flex flex-col items-center justify-center h-full w-full bg-primary-dark text-white select-none relative overflow-hidden"
+      className="flex flex-col items-center justify-end pb-36 h-full w-full bg-primary-dark text-white select-none relative overflow-hidden"
     >
-      {/* Background Image */}
+      {/* Background Image - Anchored to show the top portion where the subject's face is */}
       <img 
         src="https://images.unsplash.com/photo-1642165835095-528b68f00663?q=80&w=770&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8WFyYW5kc3B=ftufbW9y=="
         alt="Splash Background" 
-        className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
+        className="absolute inset-0 w-full h-full object-cover object-[center_15%] select-none pointer-events-none"
         referrerPolicy="no-referrer"
       />
       
       {/* 30% Opacity Dark Blue Overlay */}
       <div className="absolute inset-0 bg-[#0c1b33]/30 z-1 pointer-events-none" />
 
+      {/* Top Left Branding Logo */}
+      <motion.div
+        initial={{ scale: 0.5, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="absolute top-10 left-6 z-10"
+      >
+        <img 
+          src="https://cdn-icons-png.flaticon.com/512/15749/15749415.png" 
+          alt="GigUp Logo" 
+          className="w-12 h-12 bg-white/15 backdrop-blur-md rounded-2xl p-2 border border-white/20 shadow-lg shadow-primary-blue/30"
+          referrerPolicy="no-referrer"
+        />
+      </motion.div>
+
       {/* Background ambient pulse lights (reduced opacity for subtle touch) */}
-      <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-primary-blue/5 rounded-full blur-3xl animate-pulse z-2"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-brand-cashback/5 rounded-full blur-3xl animate-pulse delay-700 z-2"></div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-primary-blue/5 rounded-full blur-3xl pointer-events-none"></div>
 
       <div className="z-10 flex flex-col items-center">
-        {/* Animated Brand Name & New Logo */}
-        <motion.div
-          initial={{ scale: 0.5, opacity: 0 }}
-          animate={{ scale: [0.5, 1.1, 1], opacity: 1 }}
+        {/* Animated Brand Name */}
+        <motion.h1
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="flex flex-col items-center"
+          className="text-4xl font-extrabold tracking-wider font-sans mb-2 text-white text-glow text-center"
         >
-          <img 
-            src="https://cdn-icons-png.flaticon.com/512/15749/15749415.png" 
-            alt="GigUp Logo" 
-            className="w-20 h-20 mb-4 bg-white/10 backdrop-blur-sm rounded-3xl p-3 border border-white/25 shadow-lg shadow-primary-blue/20"
-            referrerPolicy="no-referrer"
-          />
-          <h1 className="text-4xl font-extrabold tracking-wider font-sans mb-2 text-white relative">
-            Gig<span className="text-primary-blue text-glow">Up</span>
-          </h1>
-        </motion.div>
+          Gig<span className="text-primary-blue">Up</span>
+        </motion.h1>
 
         {/* Brand Tagline */}
         <motion.p
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.6, duration: 0.6 }}
+          transition={{ delay: 0.4, duration: 0.6 }}
           className="text-white text-sm font-extrabold tracking-widest uppercase mb-10 drop-shadow-md text-glow"
         >
           Data. Fast. Free.
