@@ -80,9 +80,9 @@ export default function Login({ onLoginSuccess, onNavigate, showToast }: LoginPr
       <div className="flex justify-between items-center z-10 pt-2 shrink-0">
         <div className="flex items-center gap-2">
           <img 
-            src="/logo.png" 
+            src="https://cdn-icons-png.flaticon.com/512/15749/15749415.png" 
             alt="GigUp Logo" 
-            className="w-7 h-7 object-contain bg-white rounded-lg p-0.5 shadow-sm"
+            className="w-8 h-8 object-contain bg-white rounded-xl p-1 shadow-md border border-white/20"
             referrerPolicy="no-referrer"
           />
           <span className="font-extrabold text-lg tracking-wide">GigUp</span>

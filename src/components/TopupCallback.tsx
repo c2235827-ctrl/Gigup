@@ -14,23 +14,73 @@ interface TopupCallbackProps {
 export default function TopupCallback({ txRef, amount, onProcessed, showToast }: TopupCallbackProps) {
   const [status, setStatus] = useState<'loading' | 'success' | 'pending'>('loading');
   const [newBalance, setNewBalance] = useState<number | null>(null);
+  const [attempts, setAttempts] = useState<number>(0);
 
-  useEffect(() => {
-    const refreshBalance = async () => {
+  // Retrieve baseline balance (pre-topup balance)
+  const getPreTopupBalance = (): number => {
+    const saved = localStorage.getItem('gigup_pre_topup_balance');
+    if (saved) {
+      const parsed = parseFloat(saved);
+      if (!isNaN(parsed)) return parsed;
+    }
+    const cached = ApiService.getCachedUser();
+    return cached ? cached.wallet_balance : 0;
+  };
+
+  const checkDepositStatus = async (isManual = false) => {
+    if (isManual) {
       setStatus('loading');
-      try {
-        await new Promise(resolve => setTimeout(resolve, 3000)); // wait 3s for webhook
-        const user = await ApiService.getProfile();
+      showToast('Re-verifying with payment network...', 'info');
+    }
+
+    try {
+      const profile = await ApiService.getProfile();
+      const baseline = getPreTopupBalance();
+
+      // If wallet balance is higher than our baseline, the payment was credited!
+      if (profile.wallet_balance > baseline) {
+        setNewBalance(profile.wallet_balance);
         setStatus('success');
-        setNewBalance(user.wallet_balance);
+        localStorage.removeItem('gigup_pre_topup_balance');
         playSuccessSound();
         showToast('Wallet funded successfully! ⚡', 'success');
-      } catch {
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.warn('Profile refresh check encountered an error:', err);
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    let pollTimeout: NodeJS.Timeout | null = null;
+    let currentAttempt = 0;
+    const maxPolls = 12; // Check 12 times (36 seconds)
+
+    const poll = async () => {
+      if (!isMounted) return;
+      const success = await checkDepositStatus();
+      if (success) return;
+
+      if (isMounted && currentAttempt < maxPolls) {
+        currentAttempt++;
+        setAttempts(currentAttempt);
+        pollTimeout = setTimeout(poll, 3000);
+      } else if (isMounted) {
         setStatus('pending');
         playFailureSound();
       }
     };
-    refreshBalance();
+
+    // First initial delay of 3 seconds for standard bank/card settlement webhook delivery
+    pollTimeout = setTimeout(poll, 3000);
+
+    return () => {
+      isMounted = false;
+      if (pollTimeout) clearTimeout(pollTimeout);
+    };
   }, []);
 
   return (
@@ -117,21 +167,35 @@ export default function TopupCallback({ txRef, amount, onProcessed, showToast }:
         )}
 
         {status === 'pending' && (
-          <div className="space-y-6 text-center">
+          <div className="space-y-6 text-center animate-fade-in">
             {/* Delay/Pending caution Indicator */}
-            <div className="w-20 h-20 bg-amber-500 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-amber-500/20 relative">
+            <div className="w-20 h-20 bg-amber-500 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-amber-500/20 relative animate-pulse">
               <AlertCircle className="w-10 h-10 text-primary-dark" />
             </div>
 
             <div className="space-y-2">
-              <span className="text-[9px] bg-brand-cashback/10 border border-brand-cashback/20 text-brand-cashback font-black px-2.5 py-0.5 rounded-full uppercase tracking-widest inline-block">
+              <span className="text-[9px] bg-brand-cashback/10 border border-brand-cashback/20 text-brand-cashback font-black px-2.5 py-0.5 rounded-full uppercase tracking-widest inline-block mb-1">
                 ⏳ Processing
               </span>
-              <h3 className="text-2xl font-black text-white">⏳ Payment is being confirmed. Check back shortly.</h3>
-              <p className="text-xs text-text-muted max-w-[270px] mx-auto leading-relaxed">
-                Payment is being confirmed by the gateway. Check back shortly. Your wallet balance will update automatically in the background.
+              <h3 className="text-xl font-extrabold text-white leading-tight">Confirmation is taking a moment...</h3>
+              <p className="text-xs text-[#8A96A3] max-w-[280px] mx-auto leading-relaxed">
+                Your bank is taking slightly longer than usual to settle this transaction on the ledger. Don't worry! Your money is safe. You can check again manually or return to home.
               </p>
             </div>
+
+            <button
+              onClick={async () => {
+                const updated = await checkDepositStatus(true);
+                if (!updated) {
+                  setStatus('pending');
+                  showToast('Deposit is still pending. Try again in a few seconds or contact support.', 'info');
+                }
+              }}
+              className="bg-white/10 hover:bg-white/15 text-white text-xs font-bold py-2.5 px-5 rounded-full border border-white/10 transition-all flex items-center justify-center gap-1.5 mx-auto active:scale-95 cursor-pointer shadow-sm"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Verify Settlement Now</span>
+            </button>
           </div>
         )}
 

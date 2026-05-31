@@ -34,13 +34,19 @@ export default function Splash({ onComplete }: SplashProps) {
       <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-brand-cashback/5 rounded-full blur-3xl animate-pulse delay-700 z-2"></div>
 
       <div className="z-10 flex flex-col items-center">
-        {/* Animated Brand Name */}
+        {/* Animated Brand Name & New Logo */}
         <motion.div
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: [0.5, 1.1, 1], opacity: 1 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
           className="flex flex-col items-center"
         >
+          <img 
+            src="https://cdn-icons-png.flaticon.com/512/15749/15749415.png" 
+            alt="GigUp Logo" 
+            className="w-20 h-20 mb-4 bg-white/10 backdrop-blur-sm rounded-3xl p-3 border border-white/25 shadow-lg shadow-primary-blue/20"
+            referrerPolicy="no-referrer"
+          />
           <h1 className="text-4xl font-extrabold tracking-wider font-sans mb-2 text-white relative">
             Gig<span className="text-primary-blue text-glow">Up</span>
           </h1>

@@ -578,12 +578,10 @@ export default function App() {
           >
             <div className="flex items-center gap-3">
               <img 
-                src="/favicon.png" 
+                src="https://cdn-icons-png.flaticon.com/512/15749/15749415.png" 
                 alt="GigUp Logo" 
-                className="w-10 h-10 rounded-2xl bg-white/10 p-1 border border-white/10 shrink-0" 
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = "https://cdn-icons-png.flaticon.com/512/15106/15106527.png";
-                }}
+                className="w-10 h-10 rounded-2xl bg-white p-1 shrink-0" 
+                referrerPolicy="no-referrer"
               />
               <div className="space-y-0.5">
                 <h5 className="text-[11px] font-extrabold text-[#10B981] tracking-wide uppercase">⚡ Install Mobile App</h5>
@@ -619,12 +617,10 @@ export default function App() {
               <div className="flex justify-between items-center pb-2 border-b border-gray-100">
                 <div className="flex items-center gap-2">
                   <img 
-                    src="/favicon.png" 
+                    src="https://cdn-icons-png.flaticon.com/512/15749/15749415.png" 
                     alt="Logo" 
-                    className="w-7 h-7 rounded-lg bg-primary-dark/5 p-0.5 border border-primary-dark/10"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = "https://cdn-icons-png.flaticon.com/512/15106/15106527.png";
-                    }}
+                    className="w-8 h-8 rounded-lg bg-white p-0.5 border border-gray-100"
+                    referrerPolicy="no-referrer"
                   />
                   <h5 className="font-extrabold text-xs uppercase text-primary-dark tracking-wide">
                     Install GigUp Application

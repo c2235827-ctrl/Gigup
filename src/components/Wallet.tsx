@@ -45,6 +45,9 @@ export default function Wallet({ user, transactions, onNavigate, onRefreshData, 
 
     setLoadingTopup(true);
     try {
+      // Store baseline user balance to verify deposit credit later
+      localStorage.setItem('gigup_pre_topup_balance', (user.wallet_balance || 0).toString());
+      
       const res = await ApiService.initiateTopup(parsedAmount);
       if (res.success && res.payment_link) {
         playSuccessSound();
