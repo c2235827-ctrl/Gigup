@@ -412,7 +412,7 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
 
       {/* Change PIN Modal Dialog */}
       {showPinModal && (
-        <div className="absolute inset-0 bg-primary-dark/80 backdrop-blur-sm z-50 flex items-center justify-center p-5">
+        <div className="fixed inset-0 bg-primary-dark/80 backdrop-blur-sm z-50 flex items-center justify-center p-5">
           <div className="bg-white text-primary-dark rounded-3xl p-6 shadow-2xl max-w-sm w-full space-y-4">
             <div className="flex justify-between items-center pb-2 border-b border-gray-100">
               <h5 className="font-extrabold text-sm uppercase text-primary-dark tracking-wide flex items-center gap-1.5">
@@ -486,7 +486,7 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
 
       {/* Technical Support & Legal Documents Modal */}
       {showSupportModal && (
-        <div className="absolute inset-0 bg-primary-dark/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-primary-dark/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white text-primary-dark rounded-3xl shadow-2xl max-w-md w-full h-[580px] max-h-[85vh] flex flex-col overflow-hidden animate-fade-in">
             {/* Header - Fixed */}
             <div className="p-5 pb-3 border-b border-gray-100 shrink-0">
@@ -741,7 +741,7 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
 
       {/* Delete Account Modal Dialog */}
       {showDeleteModal && (
-        <div className="absolute inset-0 bg-primary-dark/85 backdrop-blur-sm z-50 flex items-center justify-center p-5 select-none animate-fade-in">
+        <div className="fixed inset-0 bg-primary-dark/85 backdrop-blur-sm z-50 flex items-center justify-center p-5 select-none animate-fade-in">
           <div className="bg-white text-primary-dark rounded-3xl p-6 shadow-2xl max-w-sm w-full space-y-5">
             <div className="flex justify-between items-center pb-2 border-b border-gray-100">
               <h5 className="font-extrabold text-sm uppercase text-red-600 tracking-wide flex items-center gap-1.5">
@@ -812,7 +812,7 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
 
       {/* 5. Cashback History Modal Overlay */}
       {showCashbackHistoryModal && (
-        <div className="absolute inset-0 bg-primary-dark/80 backdrop-blur-sm z-50 flex items-end justify-center">
+        <div className="fixed inset-0 bg-primary-dark/80 backdrop-blur-sm z-50 flex items-end justify-center">
           <div className="bg-white rounded-t-[32px] w-full max-w-sm p-6 space-y-4 shadow-2xl pb-10 border-t border-gray-100 text-primary-dark select-none animate-slide-up">
             
             <div className="flex justify-between items-center pb-2 border-b border-gray-100">
