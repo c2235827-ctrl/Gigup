@@ -245,7 +245,7 @@ export default function RegisterStep2({ phone, code, onRegisterSuccess, onPrevSt
                   className="w-full bg-white border border-gray-200 text-primary-dark font-mono font-bold uppercase rounded-xl px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:border-primary-blue"
                 />
                 <p className="text-[10px] text-text-muted mt-1">
-                  You and your referrer earn 500MB each when you complete first topup.
+                  You and your referrer earn 1GB each when you complete first topup.
                 </p>
               </div>
             )}
@@ -298,7 +298,7 @@ export default function RegisterStep2({ phone, code, onRegisterSuccess, onPrevSt
                   ✓
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold uppercase text-white">5GB LTE MTN SME Data</h4>
+                  <h4 className="text-xs font-bold uppercase text-white">1GB LTE MTN SME Data</h4>
                   <p className="text-[11px] text-text-muted">Bonus credited to your registered profile automatically</p>
                 </div>
               </div>

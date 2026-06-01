@@ -98,7 +98,7 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
   };
 
   const handleShareCode = () => {
-    const shareText = `Get 5GB free data + 10% cashback on airtime and data on GigUp! Sign up with my code: ${user.referral_code}`;
+    const shareText = `Get 1GB free data + 10% cashback on airtime and data on GigUp! Sign up with my code: ${user.referral_code}`;
     if (navigator.share) {
       navigator.share({
         title: 'GigUp PWA Invite',
@@ -225,7 +225,7 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
               </span>
               <h4 className="text-sm font-extrabold">Invite Friends, Earn Data 🎁</h4>
               <p className="text-[10px] text-white/80 max-w-[210px] leading-snug">
-                You and your friend both receive free 500MB when they join and fund ₦2,000!
+                You and your friend both receive free 1GB when they join and fund ₦2,000!
               </p>
             </div>
 
@@ -543,14 +543,14 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
 
                   <div className="space-y-2.5 pt-3">
                     <a
-                      href="mailto:support@gigup.com.ng"
+                      href="mailto:support@gigupnigeria.com"
                       onClick={() => { showToast('Email dispatch opened ✉️', 'info'); }}
                       className="flex items-center gap-3 bg-bg-light border border-gray-200 hover:border-gray-300 rounded-2xl p-4 text-left transition text-xs font-bold text-primary-dark"
                     >
                       <Mail className="w-5 h-5 text-primary-blue shrink-0" />
                       <div>
                         <span className="block leading-none text-xs font-extrabold">Email Support Team</span>
-                        <span className="text-[10px] font-normal text-text-muted mt-1.5 block">support@gigup.com.ng • 5m SLA</span>
+                        <span className="text-[10px] font-normal text-text-muted mt-1.5 block">support@gigupnigeria.com • 5m SLA</span>
                       </div>
                     </a>
 

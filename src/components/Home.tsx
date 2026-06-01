@@ -343,7 +343,7 @@ export default function Home({ user, recentOrders, onNavigate, onRefreshData, sh
             <span className="text-3xl mb-2">🎁</span>
             <h5 className="text-xs font-bold text-primary-dark uppercase">No Orders Yet</h5>
             <p className="text-[10px] text-text-muted max-w-[200px] mt-1">
-              Your free 5GB was processed! Get 10% cashback on your next data purchase.
+              Your free 1GB was processed! Get 10% cashback on your next data purchase.
             </p>
           </div>
         ) : (

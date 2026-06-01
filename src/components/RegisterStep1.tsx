@@ -458,8 +458,8 @@ export default function RegisterStep1({ onNextStep, onNavigate, showToast }: Reg
 
             {/* Modal Footer */}
             <div className="p-3 bg-gray-50 border-t border-gray-100 text-center shrink-0">
-              <span className="text-[9px] text-text-muted block tracking-wider uppercase font-bold">
-                🔒 Certificated gigup.com.ng legal center
+               <span className="text-[9px] text-text-muted block tracking-wider uppercase font-bold">
+                🔒 Certificated gigupnigeria.com legal center
               </span>
             </div>
           </div>

@@ -14,11 +14,11 @@ export const FAQ_DATA: FAQCategory[] = [
     items: [
       {
         question: "What is GigUp?",
-        answer: "GigUp is a Nigerian data reselling platform that lets you buy cheap MTN, GLO, and Airtel data bundles directly from your wallet. We give you 5GB free data when you sign up, and you earn 10% cashback on every purchase."
+        answer: "GigUp is a Nigerian data reselling platform that lets you buy cheap MTN, GLO, and Airtel data bundles directly from your wallet. We give you 1GB free data when you sign up, and you earn 10% cashback on every purchase."
       },
       {
         question: "How is GigUp different from OPay or PalmPay?",
-        answer: "Unlike OPay and PalmPay, GigUp gives you 10% cashback on every data purchase — withdrawable to your bank account. We also give you free 5GB data just for signing up. No hidden charges, no confusing menus. Just cheap data."
+        answer: "Unlike OPay and PalmPay, GigUp gives you 10% cashback on every data purchase — withdrawable to your bank account. We also give you free 1GB data just for signing up. No hidden charges, no confusing menus. Just cheap data."
       },
       {
         question: "Which networks do you support?",
@@ -135,11 +135,11 @@ export const FAQ_DATA: FAQCategory[] = [
     items: [
       {
         question: "How does the referral program work?",
-        answer: "Share your unique referral code with friends. When they sign up and use your code, you both get 500MB bonus data. Your referral code is in your Account screen."
+        answer: "Share your unique referral code with friends. When they sign up and use your code, you both get 1GB bonus data. Your referral code is in your Account screen."
       },
       {
         question: "How many people can I refer?",
-        answer: "Unlimited. Every successful referral earns you 500MB bonus data."
+        answer: "Unlimited. Every successful referral earns you 1GB bonus data."
       },
       {
         question: "When do I receive my referral bonus?",
@@ -152,7 +152,7 @@ export const FAQ_DATA: FAQCategory[] = [
     items: [
       {
         question: "What is the signup bonus?",
-        answer: "Every new GigUp user receives free data on registration: MTN users get 5GB, GLO users get 5GB, and Airtel users get 4GB."
+        answer: "Every new GigUp user receives free data on registration: MTN users get 1GB, GLO users get 1GB, and Airtel users get 1GB."
       },
       {
         question: "When will I receive my signup bonus?",
@@ -212,7 +212,7 @@ export const TERMS_OF_SERVICE = {
     },
     {
       title: "7. Referral Program",
-      content: "7.1 Users earn 500MB bonus data for each valid referral (when the referred user completes registration using the referral code).\n7.2 Self-referrals or fake accounts created for referral bonuses are prohibited and will result in account termination.\n7.3 Referral bonuses are non-transferable and have no cash value.\n7.4 GigUp reserves the right to modify or end the referral program at any time."
+      content: "7.1 Users earn 1GB bonus data for each valid referral (when the referred user completes registration using the referral code).\n7.2 Self-referrals or fake accounts created for referral bonuses are prohibited and will result in account termination.\n7.3 Referral bonuses are non-transferable and have no cash value.\n7.4 GigUp reserves the right to modify or end the referral program at any time."
     },
     {
       title: "8. Prohibited Conduct",
@@ -244,7 +244,7 @@ export const TERMS_OF_SERVICE = {
     },
     {
       title: "15. Contact",
-      content: "For questions about these Terms, contact us at:\nEmail: support@gigup.com.ng\nWebsite: gigup.com.ng"
+      content: "For questions about these Terms, contact us at:\nEmail: support@gigupnigeria.com\nWebsite: gigupnigeria.com"
     }
   ]
 };
@@ -298,7 +298,7 @@ export const PRIVACY_POLICY = {
     },
     {
       title: "12. Contact Us",
-      content: "If you have any questions, concerns, or data requests, contact us at: support@gigup.com.ng or gigup.com.ng."
+      content: "If you have any questions, concerns, or data requests, contact us at: support@gigupnigeria.com or gigupnigeria.com."
     }
   ]
 };
