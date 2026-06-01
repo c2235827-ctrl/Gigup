@@ -136,16 +136,31 @@ export default function App() {
       // Check auth and let splash handle transition
       setCurrentScreen('splash');
       if (ApiService.isLoggedIn()) {
-        const cached = ApiService.getCachedUser();
-        if (cached) setUser(cached);
-        // Refresh profile in background
-        ApiService.getProfile()
-          .then(user => setUser(user))
-          .catch(() => {
-            // Token expired — logout
-            ApiService.logout();
-            setUser(null);
-          });
+        const lastActivity = localStorage.getItem('gigup_last_activity');
+        const now = Date.now();
+        const inactiveLimit = 120 * 1000; // 2 minutes
+
+        if (lastActivity && (now - parseInt(lastActivity, 10)) > inactiveLimit) {
+          // Token or session expired after 2 minutes of closing/inactivity
+          ApiService.logout();
+          setUser(null);
+          localStorage.removeItem('gigup_last_activity');
+          setTimeout(() => {
+            showToast('Session expired: Auto-logged out after 2 minutes 🔒', 'info');
+          }, 3200); // Dispense toast after splash completes
+        } else {
+          const cached = ApiService.getCachedUser();
+          if (cached) setUser(cached);
+          localStorage.setItem('gigup_last_activity', now.toString());
+          // Refresh profile in background
+          ApiService.getProfile()
+            .then(user => setUser(user))
+            .catch(() => {
+              // Token expired — logout
+              ApiService.logout();
+              setUser(null);
+            });
+        }
       }
     }
   }, []);
@@ -197,6 +212,7 @@ export default function App() {
     }
     localStorage.removeItem('gigup_token');
     localStorage.removeItem('gigup_user');
+    localStorage.removeItem('gigup_last_activity');
     setUser(null);
     setTransactions([]);
     setRecentOrders([]);
@@ -213,6 +229,10 @@ export default function App() {
 
     const resetInactivityTimer = () => {
       if (inactivityTimeout) clearTimeout(inactivityTimeout);
+      
+      // Persist the current timestamp as the user's latest active gesture
+      localStorage.setItem('gigup_last_activity', Date.now().toString());
+
       inactivityTimeout = setTimeout(() => {
         if (autoLogoutRef.current) {
           autoLogoutRef.current();
@@ -220,10 +240,31 @@ export default function App() {
       }, 120 * 1000); // 2 minutes (120 seconds)
     };
 
+    // Check visibility state to immediately logout if returning after 2+ minutes
+    const handleVisibilityOrFocusChange = () => {
+      const now = Date.now();
+      const lastActivity = localStorage.getItem('gigup_last_activity');
+      const inactiveLimit = 120 * 1000;
+
+      if (document.visibilityState === 'visible' || document.hasFocus()) {
+        if (lastActivity && (now - parseInt(lastActivity, 10)) > inactiveLimit) {
+          if (autoLogoutRef.current) {
+            autoLogoutRef.current();
+          }
+        } else {
+          localStorage.setItem('gigup_last_activity', now.toString());
+          resetInactivityTimer();
+        }
+      } else {
+        // App is hidden/backgrounded or blurred - stash current time
+        localStorage.setItem('gigup_last_activity', now.toString());
+      }
+    };
+
     // Initialize/reset timer
     resetInactivityTimer();
 
-    // Track common user active gestures
+    // Track active mouse and input interface gestures
     const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
     const eventHandler = () => resetInactivityTimer();
 
@@ -231,10 +272,19 @@ export default function App() {
       window.addEventListener(event, eventHandler, { passive: true });
     });
 
+    // Listen to focus/blur and tab switching events
+    const visibilityEvents = ['visibilitychange', 'focus', 'blur'];
+    visibilityEvents.forEach((event) => {
+      window.addEventListener(event, handleVisibilityOrFocusChange, { passive: true });
+    });
+
     return () => {
       if (inactivityTimeout) clearTimeout(inactivityTimeout);
       activityEvents.forEach((event) => {
         window.removeEventListener(event, eventHandler);
+      });
+      visibilityEvents.forEach((event) => {
+        window.removeEventListener(event, handleVisibilityOrFocusChange);
       });
     };
   }, [user, currentScreen]);
@@ -255,12 +305,14 @@ export default function App() {
   }, [toast]);
 
   const handleLoginSuccess = (signedInUser: User) => {
+    localStorage.setItem('gigup_last_activity', Date.now().toString());
     setUser(signedInUser);
     setCurrentScreen('home');
     refreshUserData();
   };
 
   const handleRegistrationSuccess = (newlySignedUser: User) => {
+    localStorage.setItem('gigup_last_activity', Date.now().toString());
     setUser(newlySignedUser);
     setCurrentScreen('home');
     refreshUserData();
@@ -275,6 +327,7 @@ export default function App() {
     }
     localStorage.removeItem('gigup_token');
     localStorage.removeItem('gigup_user');
+    localStorage.removeItem('gigup_last_activity');
     setUser(null);
     setTransactions([]);
     setRecentOrders([]);
