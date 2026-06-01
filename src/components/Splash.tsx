@@ -9,7 +9,7 @@ export default function Splash({ onComplete }: SplashProps) {
   useEffect(() => {
     const timer = setTimeout(() => {
       onComplete();
-    }, 15000);
+    }, 3000);
     return () => clearTimeout(timer);
   }, [onComplete]);
 
@@ -74,7 +74,7 @@ export default function Splash({ onComplete }: SplashProps) {
         <motion.div
           initial={{ x: "-100%" }}
           animate={{ x: "0%" }}
-          transition={{ duration: 15, ease: "linear" }}
+          transition={{ duration: 3, ease: "linear" }}
           className="h-full bg-primary-blue"
         />
       </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Home as HomeIcon, Signal, Wallet as WalletIcon, User as UserIcon, AlertCircle, Download, Smartphone, Share } from 'lucide-react';
 import { ApiService, subscribeToUserNotifications } from './api';
@@ -133,7 +133,8 @@ export default function App() {
       });
       setCurrentScreen('callback');
     } else {
-      // Check auth
+      // Check auth and let splash handle transition
+      setCurrentScreen('splash');
       if (ApiService.isLoggedIn()) {
         const cached = ApiService.getCachedUser();
         if (cached) setUser(cached);
@@ -143,11 +144,8 @@ export default function App() {
           .catch(() => {
             // Token expired — logout
             ApiService.logout();
-            setCurrentScreen('login');
+            setUser(null);
           });
-        setCurrentScreen('home');
-      } else {
-        setCurrentScreen('splash');
       }
     }
   }, []);
@@ -185,6 +183,61 @@ export default function App() {
       refreshUserData();
     }
   }, [user?.id, currentScreen]);
+
+  // Inactivity auto-logout tracker (Logs out user if inactive for 2 minutes = 120,000 ms)
+  const autoLogoutRef = useRef<(() => void) | null>(null);
+
+  autoLogoutRef.current = () => {
+    if (!user) return;
+    if ((window as any)._gigupNtfy) {
+      try {
+        (window as any)._gigupNtfy.close();
+      } catch {}
+      delete (window as any)._gigupNtfy;
+    }
+    localStorage.removeItem('gigup_token');
+    localStorage.removeItem('gigup_user');
+    setUser(null);
+    setTransactions([]);
+    setRecentOrders([]);
+    setNotifications([]);
+    setRegistrationPhone('');
+    showToast('Inactivity alert: Auto-logged out after 2 minutes 🔒', 'info');
+    setCurrentScreen('login');
+  };
+
+  useEffect(() => {
+    if (!user) return;
+
+    let inactivityTimeout: NodeJS.Timeout;
+
+    const resetInactivityTimer = () => {
+      if (inactivityTimeout) clearTimeout(inactivityTimeout);
+      inactivityTimeout = setTimeout(() => {
+        if (autoLogoutRef.current) {
+          autoLogoutRef.current();
+        }
+      }, 120 * 1000); // 2 minutes (120 seconds)
+    };
+
+    // Initialize/reset timer
+    resetInactivityTimer();
+
+    // Track common user active gestures
+    const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
+    const eventHandler = () => resetInactivityTimer();
+
+    activityEvents.forEach((event) => {
+      window.addEventListener(event, eventHandler, { passive: true });
+    });
+
+    return () => {
+      if (inactivityTimeout) clearTimeout(inactivityTimeout);
+      activityEvents.forEach((event) => {
+        window.removeEventListener(event, eventHandler);
+      });
+    };
+  }, [user, currentScreen]);
 
   // Toast Alert trigger dispatch
   const showToast = (message: string, type: 'success' | 'error' | 'info') => {
