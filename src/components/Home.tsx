@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bell, RefreshCw, Plus, History, Signal, Gift, Sparkles, ChevronRight, ArrowUpRight, Smartphone, Compass, AlertTriangle } from 'lucide-react';
-import { User, DataOrder } from '../types';
+import { User, DataOrder, DataPlan } from '../types';
 import PullToRefresh from './PullToRefresh';
+import { ApiService } from '../api';
 
 interface HomeProps {
   user: User;
@@ -15,6 +16,23 @@ interface HomeProps {
 
 export default function Home({ user, recentOrders, onNavigate, onRefreshData, showToast, onTriggerInstall, isStandalone = false }: HomeProps) {
   const [refreshing, setRefreshing] = useState(false);
+  const [backendPlans, setBackendPlans] = useState<DataPlan[]>([]);
+
+  // Fetch all plans from backend to map prices dynamically
+  const fetchBackendPlans = async () => {
+    try {
+      const plans = await ApiService.getDataPlans();
+      if (plans && plans.length > 0) {
+        setBackendPlans(plans);
+      }
+    } catch (e) {
+      console.warn('Unable to retrieve backend plans for price mapping.', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchBackendPlans();
+  }, []);
 
   // Helper to extract name initials
   const getInitials = (name: string) => {
@@ -26,10 +44,50 @@ export default function Home({ user, recentOrders, onNavigate, onRefreshData, sh
       .toUpperCase();
   };
 
+  // Helper to fallback order pricing when 0 or falsy (standard market valuation matching the plans)
+  const getOrderDisplayPrice = (order: DataOrder) => {
+    // 1. Check if order price is already populated properly directly from database/API
+    if (order.price && order.price > 0) {
+      return order.price;
+    }
+    // Check key aliasing as fail-safe fallback (like order.amount or plan_price)
+    const anyOrder = order as any;
+    if (anyOrder.amount && anyOrder.amount > 0) {
+      return anyOrder.amount;
+    }
+    if (anyOrder.plan_price && anyOrder.plan_price > 0) {
+      return anyOrder.plan_price;
+    }
+
+    // 2. Query dynamically fetched real-time plans from database to fetch the exact price from backend
+    if (backendPlans.length > 0) {
+      const matched = backendPlans.find(p => 
+        p.network === order.network && 
+        (p.plan_name.toLowerCase() === order.plan_name.toLowerCase() ||
+         p.size_label.toLowerCase() === order.plan_name.toLowerCase() ||
+         p.plan_name.toLowerCase().includes(order.plan_name.toLowerCase()) ||
+         order.plan_name.toLowerCase().includes(p.plan_name.toLowerCase()))
+      );
+      if (matched && matched.price > 0) {
+        return matched.price;
+      }
+    }
+
+    // 3. Complete static fallback if both options fail so we match standard market rates
+    const nameStr = (order.plan_name || '').toLowerCase();
+    if (nameStr.includes('230mb')) return 150;
+    if (nameStr.includes('1gb')) return 300;
+    if (nameStr.includes('2gb') || nameStr.includes('2.5gb')) return 600;
+    if (nameStr.includes('500mb')) return 220;
+    if (nameStr.includes('5gb')) return 1100;
+    if (nameStr.includes('10gb')) return 2100;
+    return 300; // default standard plan pricing
+  };
+
   const handlePullToRefresh = async () => {
     setRefreshing(true);
     try {
-      await onRefreshData();
+      await Promise.all([onRefreshData(), fetchBackendPlans()]);
       showToast('Wallet balance & orders refreshed ⚡', 'success');
     } catch {
       showToast('Refresh failed. Check your network.', 'error');
@@ -371,7 +429,7 @@ export default function Home({ user, recentOrders, onNavigate, onRefreshData, sh
 
                   <div className="text-right">
                     <span className="text-xs font-extrabold text-primary-dark font-mono block mb-1">
-                      ₦{(order.price || 0).toLocaleString('en-US')}
+                      ₦{getOrderDisplayPrice(order).toLocaleString('en-US')}
                     </span>
                     <span className={`status-badge text-[8px] px-2 py-0.5 uppercase font-extrabold tracking-wider ${
                       order.status === 'success' 

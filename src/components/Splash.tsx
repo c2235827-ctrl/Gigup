@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 
 interface SplashProps {
@@ -6,11 +6,42 @@ interface SplashProps {
 }
 
 export default function Splash({ onComplete }: SplashProps) {
+  const [progress, setProgress] = useState(0);
+  const [statusText, setStatusText] = useState("Initializing safe handshake...");
+
+  const statuses = [
+    "Establishing cloud connection secure nodes...",
+    "Querying bulk data pipelines (MTN, GLO, Airtel)...",
+    "Initializing 10% instant withdrawable cashback mechanisms...",
+    "Securing your free account registration bonuses...",
+    "Configuring secure TLS connection protocols...",
+    "Preparing your ultimate GigUp workspace experience...",
+    "Handshake complete. Launching dashboard!"
+  ];
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      onComplete();
-    }, 3000);
-    return () => clearTimeout(timer);
+    const startTime = Date.now();
+    const duration = 25000; // 25 seconds
+
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const currentProgress = Math.min((elapsed / duration) * 100, 100);
+      setProgress(currentProgress);
+
+      // Select status text based on progress segment
+      const statIndex = Math.min(
+        Math.floor((currentProgress / 100) * statuses.length),
+        statuses.length - 1
+      );
+      setStatusText(statuses[statIndex]);
+
+      if (elapsed >= duration) {
+        clearInterval(interval);
+        onComplete();
+      }
+    }, 50);
+
+    return () => clearInterval(interval);
   }, [onComplete]);
 
   return (
@@ -69,20 +100,39 @@ export default function Splash({ onComplete }: SplashProps) {
         </motion.p>
       </div>
 
-      {/* Loading Bar Indicator */}
-      <div className="z-10 absolute bottom-16 w-38 h-1 bg-white/20 rounded-full overflow-hidden backdrop-blur-xs">
-        <motion.div
-          initial={{ x: "-100%" }}
-          animate={{ x: "0%" }}
-          transition={{ duration: 3, ease: "linear" }}
-          className="h-full bg-primary-blue"
-        />
+      {/* Impressive Progress System */}
+      <div className="z-10 absolute bottom-18 w-[55%] max-w-[190px] bg-black/45 border border-white/10 p-3 rounded-2xl backdrop-blur-md shadow-2xl flex flex-col items-center">
+        {/* Progress header with percentage */}
+        <div className="w-full flex justify-between items-center mb-1.5">
+          <span className="text-[7.5px] text-primary-blue font-black tracking-widest uppercase">
+            GIGUP CORE
+          </span>
+          <span className="text-[9.5px] font-black font-mono text-white tracking-tighter bg-primary-blue/20 border border-primary-blue/30 px-1.5 py-0.5 rounded">
+            {Math.round(progress)}%
+          </span>
+        </div>
+
+        {/* Console-style status feed */}
+        <div className="w-full text-[8px] text-white/75 font-mono text-left tracking-tight mb-2 h-8 leading-snug overflow-hidden select-none">
+          <span className="text-primary-blue mr-0.5">&gt;</span> {statusText}
+        </div>
+
+        {/* Dual-track loading progress track */}
+        <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden relative border border-white/5 shadow-inner">
+          <div 
+            style={{ width: `${progress}%` }}
+            className="h-full bg-gradient-to-r from-yellow-400 via-primary-blue to-emerald-400 rounded-full transition-all duration-75 ease-out shadow-[0_0_12px_rgba(59,126,248,0.7)] relative"
+          >
+            {/* Shifting gloss overlays */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse" />
+          </div>
+        </div>
       </div>
 
       {/* Skip Button */}
       <button
         onClick={onComplete}
-        className="z-10 absolute bottom-8 text-[11px] font-bold text-white/70 hover:text-white uppercase tracking-widest bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-full border border-white/20 backdrop-blur-xs transition cursor-pointer select-none"
+        className="z-10 absolute bottom-6 text-[11px] font-bold text-white/70 hover:text-white uppercase tracking-widest bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-full border border-white/20 backdrop-blur-xs transition cursor-pointer select-none"
       >
         Skip Loading →
       </button>

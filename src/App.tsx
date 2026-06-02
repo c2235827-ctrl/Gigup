@@ -21,6 +21,21 @@ interface ToastState {
   type: 'success' | 'error' | 'info';
 }
 
+const getReadNotificationIds = (): string[] => {
+  try {
+    const stored = localStorage.getItem('gigup_read_notification_ids');
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveReadNotificationIds = (ids: string[]) => {
+  try {
+    localStorage.setItem('gigup_read_notification_ids', JSON.stringify(ids));
+  } catch {}
+};
+
 export default function App() {
   // Session states
   const [user, setUser] = useState<User | null>(null);
@@ -185,7 +200,13 @@ export default function App() {
       if (trxs) {
         setTransactions(trxs.wallet_transactions);
         setRecentOrders(trxs.data_orders);
-        setNotifications(trxs.notifications);
+        
+        const readIds = getReadNotificationIds();
+        const mappedNotifications = (trxs.notifications || []).map(n => ({
+          ...n,
+          is_read: n.is_read || readIds.includes(n.id)
+        }));
+        setNotifications(mappedNotifications);
       }
     } catch (e) {
       console.warn('Unable to coordinate background profile telemetry.', e);
@@ -338,6 +359,11 @@ export default function App() {
   };
 
   const markAllNotificationsAsRead = () => {
+    const allIds = notifications.map(n => n.id);
+    const readIds = getReadNotificationIds();
+    const updatedReadIds = Array.from(new Set([...readIds, ...allIds]));
+    saveReadNotificationIds(updatedReadIds);
+
     setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
     if (user) {
       const updatedUser = { ...user, unread_notifications: 0 };

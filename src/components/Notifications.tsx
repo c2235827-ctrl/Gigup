@@ -26,7 +26,7 @@ export default function Notifications({ notifications, onBack, onMarkAllAsRead }
   };
 
   return (
-    <div className="flex flex-col min-h-full bg-bg-light overflow-y-auto select-none">
+    <div className="flex flex-col h-full max-h-full bg-bg-light overflow-hidden select-none">
       
       {/* Dark Navy Header Section */}
       <div className="bg-primary-dark pt-5 pb-5 px-5 text-white shrink-0 flex items-center gap-3">
@@ -51,7 +51,7 @@ export default function Notifications({ notifications, onBack, onMarkAllAsRead }
       </div>
 
       {/* Main Core View Area */}
-      <div className="p-5 flex-grow">
+      <div className="p-5 flex-grow overflow-y-auto pb-16">
         {notifications.length === 0 ? (
           <div className="bg-white rounded-3xl p-10 text-center border border-gray-100 flex flex-col items-center justify-center min-h-[220px] shadow-sm my-auto">
             <span className="text-4xl mb-3">🔔</span>
