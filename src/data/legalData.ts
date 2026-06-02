@@ -244,7 +244,7 @@ export const TERMS_OF_SERVICE = {
     },
     {
       title: "15. Contact",
-      content: "For questions about these Terms, contact us at:\nEmail: support@gigupnigeria.com\nWebsite: gigupnigeria.com"
+      content: "For questions about these Terms, contact us at:\nEmail: hello@gigupnigeria.com\nWebsite: gigupnigeria.com"
     }
   ]
 };
@@ -298,7 +298,7 @@ export const PRIVACY_POLICY = {
     },
     {
       title: "12. Contact Us",
-      content: "If you have any questions, concerns, or data requests, contact us at: support@gigupnigeria.com or gigupnigeria.com."
+      content: "If you have any questions, concerns, or data requests, contact us at: hello@gigupnigeria.com or gigupnigeria.com."
     }
   ]
 };

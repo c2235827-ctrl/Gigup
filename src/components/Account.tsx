@@ -543,19 +543,19 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
 
                   <div className="space-y-2.5 pt-3">
                     <a
-                      href="mailto:support@gigupnigeria.com"
+                      href="mailto:hello@gigupnigeria.com"
                       onClick={() => { showToast('Email dispatch opened ✉️', 'info'); }}
                       className="flex items-center gap-3 bg-bg-light border border-gray-200 hover:border-gray-300 rounded-2xl p-4 text-left transition text-xs font-bold text-primary-dark"
                     >
                       <Mail className="w-5 h-5 text-primary-blue shrink-0" />
                       <div>
                         <span className="block leading-none text-xs font-extrabold">Email Support Team</span>
-                        <span className="text-[10px] font-normal text-text-muted mt-1.5 block">support@gigupnigeria.com • 5m SLA</span>
+                        <span className="text-[10px] font-normal text-text-muted mt-1.5 block">hello@gigupnigeria.com • 5m SLA</span>
                       </div>
                     </a>
 
                     <a
-                      href="https://wa.me/2348012345678"
+                      href="https://wa.me/2349064704370"
                       target="_blank"
                       rel="noreferrer"
                       onClick={() => { showToast('WhatsApp router opened 💬', 'info'); }}
@@ -564,7 +564,7 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
                       <MessageSquare className="w-5 h-5 text-green-500 shrink-0" />
                       <div>
                         <span className="block leading-none text-xs font-extrabold">WhatsApp Secure Chat</span>
-                        <span className="text-[10px] font-normal text-text-muted mt-1.5 block">+234 801 234 5678 • Live Admin</span>
+                        <span className="text-[10px] font-normal text-text-muted mt-1.5 block">+234 906 470 4370 • Live Admin</span>
                       </div>
                     </a>
                   </div>
