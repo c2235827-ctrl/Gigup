@@ -152,15 +152,15 @@ export const FAQ_DATA: FAQCategory[] = [
     items: [
       {
         question: "What is the signup bonus?",
-        answer: "Every new GigUp user receives free data on registration: MTN users get 1GB, GLO users get 1GB, and Airtel users get 1GB."
+        answer: "Every new GigUp user is eligible for a FREE 1GB welcome data bonus. Simply fund your wallet with ₦2,000 or more to claim your free data instantly!"
       },
       {
         question: "When will I receive my signup bonus?",
-        answer: "Within minutes of completing registration. Check your phone's data balance."
+        answer: "Immediately after your first top-up. Once you fund your wallet with ₦2,000 or more for the first time, your 1GB free welcome data bonus is automatically dispatched to your registered number."
       },
       {
         question: "I didn't receive my signup bonus. What do I do?",
-        answer: "Contact us on support with your registered phone number and we'll resolve it."
+        answer: "Ensure you have funded your wallet with ₦2,000 or more as a first-time user. If you have done this and still did not receive your bonus, contact support at hello@gigupnigeria.com or call 09064704370."
       }
     ]
   },
@@ -220,7 +220,7 @@ export const TERMS_OF_SERVICE = {
     },
     {
       title: "9. Signup Bonus",
-      content: "9.1 The free data signup bonus is offered once per user at GigUp's discretion.\n9.2 The bonus amount may vary by network and is subject to change at any time.\n9.3 GigUp reserves the right to modify or withdraw the signup bonus program without notice."
+      content: "9.1 The free data welcome bonus of 1GB is offered once per user after their first wallet top-up of ₦2,000 or more.\n9.2 The bonus amount may vary by network and is subject to change at any time.\n9.3 GigUp reserves the right to modify or withdraw the welcome signup bonus program without notice."
     },
     {
       title: "10. Service Availability",

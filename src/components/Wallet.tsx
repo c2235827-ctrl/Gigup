@@ -91,6 +91,31 @@ export default function Wallet({ user, transactions, onNavigate, onRefreshData, 
 
   return (
     <PullToRefresh onRefresh={onRefreshData} className="bg-bg-light pb-24">
+      {!user.signup_bonus_claimed && (
+        <div className="px-5 pt-5">
+          <div style={{
+            background: 'linear-gradient(135deg, #0D1F3D, #1a3a6e)',
+            borderRadius: '16px',
+            padding: '16px 20px',
+            marginBottom: '4px',
+            border: '1px solid rgba(59,126,248,0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+          }} className="text-left select-none">
+            <span style={{ fontSize: '32px' }}>🎁</span>
+            <div>
+              <p style={{ color: 'white', fontWeight: 700, fontSize: '15px', margin: 0 }}>
+                Claim Your FREE 1GB Data!
+              </p>
+              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px', margin: '4px 0 0' }}>
+                Fund your wallet with ₦2,000 or more and we'll send 1GB data to your number instantly.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Navy Header Panel */}
       <div className="bg-primary-dark pt-5 pb-7 px-5 text-white shrink-0 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-primary-blue/10 rounded-full blur-xl pointer-events-none"></div>

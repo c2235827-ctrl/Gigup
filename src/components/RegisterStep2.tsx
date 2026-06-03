@@ -282,12 +282,12 @@ export default function RegisterStep2({ phone, code, onRegisterSuccess, onPrevSt
             </div>
 
             <div className="space-y-2">
-              <span className="text-xs text-brand-cashback tracking-widest font-extrabold uppercase bg-brand-cashback/10 px-3 py-1 rounded-full border border-brand-cashback/10">
-                Signup Bonus Active
+              <span className="text-[10px] text-brand-cashback tracking-widest font-extrabold uppercase bg-brand-cashback/10 px-3 py-1 rounded-full border border-brand-cashback/10">
+                One-time welcome bonus for new users
               </span>
-              <h3 className="text-3xl font-extrabold tracking-tight pt-2">Account Created!</h3>
+              <h3 className="text-2xl font-extrabold tracking-tight pt-2">🎉 Account created successfully!</h3>
               <p className="text-text-muted text-sm max-w-xs mx-auto">
-                Welcome to GigUp, <span className="text-white font-bold">{fullName}</span>! Your registration is complete.
+                Fund your wallet to claim your FREE 1GB welcome data.
               </p>
             </div>
 
@@ -298,8 +298,8 @@ export default function RegisterStep2({ phone, code, onRegisterSuccess, onPrevSt
                   ✓
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold uppercase text-white">1GB LTE MTN SME Data</h4>
-                  <p className="text-[11px] text-text-muted">Bonus credited to your registered profile automatically</p>
+                  <h4 className="text-xs font-bold uppercase text-white">1GB Welcome Data</h4>
+                  <p className="text-[11px] text-text-muted">Fund your wallet with ₦2,000 or more to claim your FREE 1GB welcome data!</p>
                 </div>
               </div>
 

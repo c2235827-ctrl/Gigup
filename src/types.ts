@@ -16,6 +16,7 @@ export interface User {
   } | null;
   unread_notifications?: number;
   total_referrals?: number;
+  signup_bonus_claimed?: boolean;
   created_at?: string;
   ntfy_topic?: string;
 }
@@ -43,6 +44,8 @@ export interface DataOrder {
   plan_name: string;
   recipient_phone: string;
   price: number;
+  amount?: number;
+  smedata_ref?: string | null;
   status: 'success' | 'failed' | 'pending';
   created_at: string;
 }

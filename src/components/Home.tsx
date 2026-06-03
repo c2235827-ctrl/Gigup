@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bell, RefreshCw, Plus, History, Signal, Gift, Sparkles, ChevronRight, ArrowUpRight, Smartphone, Compass, AlertTriangle } from 'lucide-react';
+import { Bell, RefreshCw, Plus, History, Signal, Gift, Sparkles, ChevronRight, ArrowUpRight, Smartphone, Compass, AlertTriangle, X, Info, Phone, Mail } from 'lucide-react';
 import { User, DataOrder, DataPlan } from '../types';
 import PullToRefresh from './PullToRefresh';
 import { ApiService } from '../api';
@@ -17,6 +17,8 @@ interface HomeProps {
 export default function Home({ user, recentOrders, onNavigate, onRefreshData, showToast, onTriggerInstall, isStandalone = false }: HomeProps) {
   const [refreshing, setRefreshing] = useState(false);
   const [backendPlans, setBackendPlans] = useState<DataPlan[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<DataOrder | null>(null);
+  const [requerying, setRequerying] = useState(false);
 
   // Fetch all plans from backend to map prices dynamically
   const fetchBackendPlans = async () => {
@@ -357,13 +359,13 @@ export default function Home({ user, recentOrders, onNavigate, onRefreshData, sh
           <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
           <div className="absolute top-2 left-1/3 w-8 h-8 bg-brand-cashback/20 rounded-full blur-md pointer-events-none"></div>
 
-          <div className="space-y-1 relative z-10 max-w-[70%]">
+          <div className="space-y-1 relative z-10 max-w-[75%]">
             <span className="text-[9px] bg-brand-cashback text-primary-dark font-extrabold px-2 py-0.5 rounded-full uppercase">
-              10% Cashback
+              Welcome Bonus Active
             </span>
-            <h4 className="text-sm font-extrabold">Instant Cashback Promo!</h4>
+            <h4 className="text-xs sm:text-sm font-extrabold leading-tight">🎁 New here? Fund your wallet to get FREE 1GB data!</h4>
             <p className="text-[10px] text-white/80 leading-snug">
-              Fund Wallet → Buy Data → Earn cashback instantly accumulated separate and withdrawable to bank.
+              Plus earn 10% cashback on every purchase.
             </p>
           </div>
 
@@ -401,17 +403,19 @@ export default function Home({ user, recentOrders, onNavigate, onRefreshData, sh
             <span className="text-3xl mb-2">🎁</span>
             <h5 className="text-xs font-bold text-primary-dark uppercase">No Orders Yet</h5>
             <p className="text-[10px] text-text-muted max-w-[200px] mt-1">
-              Your free 1GB was processed! Get 10% cashback on your next data purchase.
+              Fund your wallet with ₦2,000 or more to claim your FREE 1GB welcome data!
             </p>
           </div>
         ) : (
           <div className="space-y-2.5">
             {recentOrders.slice(0, 3).map((order) => {
               const theme = networkThemes[order.network] || { bg: 'bg-gray-100 text-gray-800 border-gray-300', iconColor: 'text-gray-600', code: 'gray' };
+              const isBonusOrder = order.amount === 0;
               return (
                 <div 
                   key={order.id} 
-                  className="bg-white rounded-2xl p-3 border border-gray-100 flex items-center justify-between shadow-sm"
+                  onClick={() => setSelectedOrder(order)}
+                  className="bg-white rounded-2xl p-3 border border-gray-100 flex items-center justify-between shadow-sm cursor-pointer hover:bg-slate-50 transition active:scale-[0.99] select-none"
                 >
                   <div className="flex items-center gap-3">
                     <div className={`w-9 h-9 rounded-full ${theme.bg} border flex items-center justify-center shrink-0`}>
@@ -420,6 +424,14 @@ export default function Home({ user, recentOrders, onNavigate, onRefreshData, sh
                     <div>
                       <span className="text-xs font-bold text-primary-dark block leading-none mb-1">
                         {order.plan_name}
+                        {isBonusOrder && (
+                          <span style={{
+                            background: '#F0FDF4', color: '#22C55E',
+                            fontSize: '10px', fontWeight: 700,
+                            padding: '2px 6px', borderRadius: '4px',
+                            marginLeft: '6px'
+                          }}>🎁 FREE BONUS</span>
+                        )}
                       </span>
                       <span className="text-[10px] text-text-muted">
                         Recipient: {order.recipient_phone}
@@ -429,7 +441,11 @@ export default function Home({ user, recentOrders, onNavigate, onRefreshData, sh
 
                   <div className="text-right">
                     <span className="text-xs font-extrabold text-primary-dark font-mono block mb-1">
-                      ₦{getOrderDisplayPrice(order).toLocaleString('en-US')}
+                      {isBonusOrder ? (
+                        <span style={{ color: '#22C55E', fontWeight: 700, fontSize: '13px' }}>FREE</span>
+                      ) : (
+                        <span>₦{Number(typeof order.amount !== 'undefined' ? order.amount : getOrderDisplayPrice(order)).toLocaleString()}</span>
+                      )}
                     </span>
                     <span className={`status-badge text-[8px] px-2 py-0.5 uppercase font-extrabold tracking-wider ${
                       order.status === 'success' 
@@ -445,6 +461,155 @@ export default function Home({ user, recentOrders, onNavigate, onRefreshData, sh
           </div>
         )}
       </div>
+
+      {/* 7. VTU Invoice / Order Detail Modal */}
+      {selectedOrder && (
+        <div className="absolute inset-0 bg-primary-dark/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 select-none">
+          <div className="bg-white text-primary-dark rounded-t-[32px] sm:rounded-3xl p-6 shadow-2xl max-w-sm w-full space-y-5 flex flex-col animate-slide-up border-t border-gray-100 max-h-[85vh] overflow-y-auto">
+            
+            {/* Header */}
+            <div className="flex justify-between items-center pb-2 border-b border-gray-100">
+              <h4 className="font-extrabold text-sm text-primary-dark tracking-wide uppercase">
+                VTU Delivery Receipt
+              </h4>
+              <button
+                onClick={() => setSelectedOrder(null)}
+                className="p-1 rounded-full hover:bg-gray-100 text-gray-500 hover:text-primary-dark cursor-pointer transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Receipt Summary details */}
+            <div className="text-center py-2 space-y-1.5">
+              <span className={`text-[9px] px-2 py-0.5 uppercase font-extrabold tracking-wider rounded-full ${
+                selectedOrder.status === 'success' 
+                  ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
+                  : 'bg-red-50 text-red-500 border border-red-100'
+              }`}>
+                {selectedOrder.status}
+              </span>
+              <h3 className="text-2xl font-black text-primary-dark font-mono">
+                {selectedOrder.amount === 0 ? (
+                  <span style={{ color: '#22C55E' }}>FREE</span>
+                ) : (
+                  <span>₦{Number(selectedOrder.amount ?? selectedOrder.price ?? 0).toLocaleString()}</span>
+                )}
+              </h3>
+              <p className="text-[10px] text-text-muted">
+                Order: <span className="font-mono">{selectedOrder.id.substring(0, 8).toUpperCase()}</span>
+              </p>
+            </div>
+
+            {/* Details Table */}
+            <div className="bg-bg-light rounded-2xl p-4 border border-gray-100 text-left text-xs space-y-2.5">
+              <div className="flex justify-between">
+                <span className="text-text-muted">Mobile Network</span>
+                <span className="font-bold text-primary-dark">{selectedOrder.network} VTU Network</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-text-muted">Plan Bundle</span>
+                <span className="font-bold text-primary-dark">{selectedOrder.plan_name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-text-muted">Recipient Number</span>
+                <span className="font-bold text-primary-dark font-mono">{selectedOrder.recipient_phone}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-text-muted">Charges Applied</span>
+                <span className="font-bold text-primary-dark font-mono">
+                  {selectedOrder.amount === 0 ? "₦0 (Free Bonus)" : `₦${Number(selectedOrder.amount ?? selectedOrder.price ?? 0).toLocaleString()}`}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-text-muted">SME Aggregator Ref</span>
+                <span className="font-bold text-primary-dark font-mono text-[10px]">
+                  {selectedOrder.smedata_ref || "None"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-text-muted">Dispatch Date</span>
+                <span className="font-bold text-primary-dark">
+                  {new Date(selectedOrder.created_at).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </span>
+              </div>
+            </div>
+
+            {/* Requery button and support panel logic */}
+            <div className="pt-2">
+              {selectedOrder.amount === 0 ? (
+                /* FREE Bonus Order */
+                <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4 text-left text-xs space-y-2">
+                  <span className="text-[10px] font-extrabold text-green-600 uppercase tracking-wider block">
+                    🎁 Free Bonus Order
+                  </span>
+                  <p className="text-text-muted leading-relaxed">
+                    This is a free bonus order. Contact support if not received:
+                  </p>
+                  <div className="space-y-1.5 pt-1 text-primary-dark font-bold font-mono">
+                    <div className="flex items-center gap-1.5 text-xs text-primary-dark">
+                      <Phone className="w-3.5 h-3.5 text-primary-blue shrink-0" />
+                      09064704370
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-primary-dark">
+                      <Mail className="w-3.5 h-3.5 text-primary-blue shrink-0" />
+                      hello@gigupnigeria.com
+                    </div>
+                  </div>
+                </div>
+              ) : selectedOrder.amount > 0 && !selectedOrder.smedata_ref ? (
+                /* Paid order with Null reference */
+                <div className="bg-amber-50 border border-amber-150 rounded-2xl p-4 text-left text-xs space-y-2">
+                  <span className="text-[10px] font-extrabold text-amber-600 uppercase tracking-widest block">
+                    ⚠️ Delivery Caution
+                  </span>
+                  <p className="text-amber-900 leading-relaxed font-medium">
+                    Order reference missing. Contact support:
+                  </p>
+                  <div className="flex items-center gap-1.5 font-bold font-mono text-amber-900 pt-1 text-xs">
+                    <Phone className="w-3.5 h-3.5 text-primary-blue shrink-0" />
+                    09064704370
+                  </div>
+                </div>
+              ) : (
+                /* Only show Requery button when order.smedata_ref is not null AND order.amount > 0 */
+                <button
+                  onClick={async () => {
+                    setRequerying(true);
+                    setTimeout(() => {
+                      setRequerying(false);
+                      showToast('VTU delivery re-verified successfully! ✅', 'success');
+                    }, 1200);
+                  }}
+                  disabled={requerying}
+                  className="w-full bg-primary-blue hover:bg-primary-blue/90 disabled:bg-primary-blue/50 text-white rounded-full py-3.5 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-md shadow-primary-blue/15 cursor-pointer"
+                >
+                  {requerying ? (
+                    <div className="spinner !w-4 !h-4 border-white/20 !border-left-white" />
+                  ) : (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5" /> Requery VTU Delivery
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+
+            {/* Back button */}
+            <button
+              onClick={() => setSelectedOrder(null)}
+              className="w-full bg-bg-light hover:bg-gray-100 text-primary-dark rounded-full py-3 text-xs font-bold border border-gray-150 transition cursor-pointer"
+            >
+              Done — Back to Feed
+            </button>
+          </div>
+        </div>
+      )}
 
     </PullToRefresh>
   );

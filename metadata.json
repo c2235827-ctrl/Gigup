@@ -1,6 +1,6 @@
 {
   "name": "GigUp PWA",
-  "description": "Buy cheap data bundles for MTN, GLO, and Airtel. Get 5GB free on signup and earn 10% cashback.",
+  "description": "Buy cheap data bundles for MTN, GLO, and Airtel. Fund your wallet to claim your FREE 1GB welcome data and earn 10% cashback.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
