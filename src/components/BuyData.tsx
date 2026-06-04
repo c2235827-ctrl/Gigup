@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Signal, Smartphone, Wallet, RefreshCw, ShoppingBag, CheckCircle, Gift, Sparkles } from 'lucide-react';
-import { ApiService } from '../api';
+import { ApiService, triggerNativeNotification } from '../api';
 import { User, DataPlan } from '../types';
 import { playSuccessSound, playFailureSound } from '../utils/audio';
 
@@ -137,6 +137,12 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
         
         // Reload global layout profile data (wallet, orders, notifications)
         await onRefreshData();
+        
+        // Trigger real-time native on-device drop-down alert
+        triggerNativeNotification(
+          '📦 Order Dispatched!',
+          `Successfully sent ${selectedPlan.plan_name} to ${recipient}. Cashback of ₦${Number(res.cashback_earned || 0).toFixed(2)} added!`
+        );
         
 
 

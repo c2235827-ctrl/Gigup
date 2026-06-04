@@ -12,6 +12,59 @@ const getHeaders = () => {
 
 let currentSubscribedTopic: string | null = null;
 
+export function triggerNativeNotification(title: string, message: string) {
+  if (!('Notification' in window)) {
+    console.warn('[Notifications] System notifications are not supported on this browser/device.');
+    return;
+  }
+
+  if (Notification.permission === 'granted') {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then((registration) => {
+        try {
+          registration.showNotification(title, {
+            body: message,
+            icon: '/icons/icon-192.png',
+            badge: '/icons/icon-192.png',
+            vibrate: [200, 100, 200],
+            tag: 'gigup-vtu-update',
+            renotify: true
+          } as any);
+        } catch (e) {
+          try {
+            new Notification(title, {
+              body: message,
+              icon: '/icons/icon-192.png'
+            });
+          } catch (err) {
+            console.warn('[Notifications] Failed standard Notification fallback', err);
+          }
+        }
+      }).catch(() => {
+        try {
+          new Notification(title, {
+            body: message,
+            icon: '/icons/icon-192.png'
+          });
+        } catch (err) {
+          console.warn('[Notifications] Failed standard Notification fallback', err);
+        }
+      });
+    } else {
+      try {
+        new Notification(title, {
+          body: message,
+          icon: '/icons/icon-192.png'
+        });
+      } catch (err) {
+        console.warn('[Notifications] Failed standard Notification fallback', err);
+      }
+    }
+  } else {
+    console.warn('[Notifications] Permissions not granted. Current state:', Notification.permission);
+  }
+}
+
 export function subscribeToUserNotifications(ntfyTopic: string) {
   if (!ntfyTopic || !('Notification' in window)) return;
   if (currentSubscribedTopic === ntfyTopic) return;
@@ -27,11 +80,7 @@ export function subscribeToUserNotifications(ntfyTopic: string) {
         try {
           const data = JSON.parse(event.data);
           if (data.event === 'message') {
-            new Notification(data.title || 'GigUp', {
-              body: data.message,
-              icon: '/icons/icon-192.png',
-              badge: '/icons/icon-192.png',
-            });
+            triggerNativeNotification(data.title || 'GigUp Nigeria', data.message);
           }
         } catch {}
       });
