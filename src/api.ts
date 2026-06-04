@@ -13,91 +13,15 @@ const getHeaders = () => {
 let currentSubscribedTopic: string | null = null;
 
 export function triggerNativeNotification(title: string, message: string) {
-  if (!('Notification' in window)) {
-    console.warn('[Notifications] System notifications are not supported on this browser/device.');
-    return;
-  }
-
-  if (Notification.permission === 'granted') {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then((registration) => {
-        try {
-          registration.showNotification(title, {
-            body: message,
-            icon: '/icons/icon-192.png',
-            badge: '/icons/icon-192.png',
-            vibrate: [200, 100, 200],
-            tag: 'gigup-vtu-update',
-            renotify: true
-          } as any);
-        } catch (e) {
-          try {
-            new Notification(title, {
-              body: message,
-              icon: '/icons/icon-192.png'
-            });
-          } catch (err) {
-            console.warn('[Notifications] Failed standard Notification fallback', err);
-          }
-        }
-      }).catch(() => {
-        try {
-          new Notification(title, {
-            body: message,
-            icon: '/icons/icon-192.png'
-          });
-        } catch (err) {
-          console.warn('[Notifications] Failed standard Notification fallback', err);
-        }
-      });
-    } else {
-      try {
-        new Notification(title, {
-          body: message,
-          icon: '/icons/icon-192.png'
-        });
-      } catch (err) {
-        console.warn('[Notifications] Failed standard Notification fallback', err);
-      }
-    }
-  } else {
-    console.warn('[Notifications] Permissions not granted. Current state:', Notification.permission);
-  }
+  // Notifications disabled as requested
 }
 
 export function subscribeToUserNotifications(ntfyTopic: string) {
-  if (!ntfyTopic || !('Notification' in window)) return;
-  if (currentSubscribedTopic === ntfyTopic) return;
-  if ((window as any)._gigupNtfy) {
-    try { (window as any)._gigupNtfy.close(); } catch {}
-  }
-  currentSubscribedTopic = ntfyTopic;
-  Notification.requestPermission().then(permission => {
-    if (permission !== 'granted') return;
-    try {
-      const eventSource = new EventSource(`https://ntfy.sh/${ntfyTopic}/sse`);
-      eventSource.addEventListener('message', (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.event === 'message') {
-            triggerNativeNotification(data.title || 'GigUp Nigeria', data.message);
-          }
-        } catch {}
-      });
-      (window as any)._gigupNtfy = eventSource;
-    } catch (err) {
-      console.warn('ntfy SSE connection failed:', err);
-    }
-  });
+  // Notifications disabled as requested
 }
 
-
 export function unsubscribeFromNotifications() {
-  if ((window as any)._gigupNtfy) {
-    try { (window as any)._gigupNtfy.close(); } catch {}
-    delete (window as any)._gigupNtfy;
-  }
-  currentSubscribedTopic = null;
+  // Notifications disabled as requested
 }
 
 async function request(endpoint: string, options: RequestInit = {}) {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { CheckCircle2, RefreshCw, ChevronRight, Building, AlertCircle } from 'lucide-react';
-import { ApiService, triggerNativeNotification } from '../api';
+import { ApiService } from '../api';
 import { playSuccessSound, playFailureSound } from '../utils/audio';
 
 interface TopupCallbackProps {
@@ -42,11 +42,6 @@ export default function TopupCallback({ txRef, amount, onProcessed, showToast }:
         setNewBalance(profile.wallet_balance);
         setStatus('success');
         localStorage.removeItem('gigup_pre_topup_balance');
-        // Trigger real native OS push notification dropdown on user's device
-        triggerNativeNotification(
-          '💰 Wallet Funded!',
-          `Your payment was verified. New wallet balance: ₦${Number(profile.wallet_balance).toLocaleString()}`
-        );
         
 
 

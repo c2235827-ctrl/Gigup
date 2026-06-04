@@ -77,51 +77,5 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Push Event Listener: listens to native mobile pushes and triggers self.registration.showNotification
-self.addEventListener('push', (event) => {
-  let payload = { title: 'GigUp Nigeria', message: 'New update received!' };
-  
-  if (event.data) {
-    try {
-      payload = event.data.json();
-    } catch (e) {
-      payload = { title: 'GigUp Nigeria', message: event.data.text() };
-    }
-  }
 
-  const title = payload.title || payload.subject || 'GigUp Nigeria';
-  const options = {
-    body: payload.message || payload.body || 'Update received!',
-    icon: '/icons/icon-192.png',
-    badge: '/icons/icon-192.png',
-    vibrate: [200, 100, 200],
-    data: payload
-  };
-
-  event.waitUntil(
-    self.registration.showNotification(title, options)
-  );
-});
-
-// Click action feedback: opens/focuses browser viewport 
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      if (clientList.length > 0) {
-        let client = clientList[0];
-        for (let i = 0; i < clientList.length; i++) {
-          if (clientList[i].focused) {
-            client = clientList[i];
-            break;
-          }
-        }
-        return client.focus();
-      }
-      if (clients.openWindow) {
-        return clients.openWindow('/');
-      }
-    })
-  );
-});
 
