@@ -48,6 +48,7 @@ export interface DataOrder {
   smedata_ref?: string | null;
   status: 'success' | 'failed' | 'pending';
   created_at: string;
+  status_message?: string;
 }
 
 export interface Notification {

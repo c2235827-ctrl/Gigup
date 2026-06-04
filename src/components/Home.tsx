@@ -425,7 +425,24 @@ export default function Home({
               return (
                 <div 
                   key={order.id} 
-                  onClick={() => setSelectedOrder(order)}
+                  onClick={() => onNavigate('receipt', {
+                    status: order.status,
+                    network: order.network,
+                    plan_name: order.plan_name,
+                    recipient_phone: order.recipient_phone,
+                    amount: order.amount !== undefined ? order.amount : getOrderDisplayPrice(order),
+                    id: order.id,
+                    receiptId: order.smedata_ref || ('REC' + order.id.substring(0, 8).toUpperCase()),
+                    date: new Date(order.created_at).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    }),
+                    reason: order.status_message,
+                    cashback: order.status === 'success' && order.amount && order.amount > 0 ? Math.ceil(order.amount * 0.01) : 0
+                  })}
                   className="bg-white rounded-2xl p-3 border border-gray-100 flex items-center justify-between shadow-sm cursor-pointer hover:bg-slate-50 transition active:scale-[0.99] select-none"
                 >
                   <div className="flex items-center gap-3">
@@ -472,212 +489,6 @@ export default function Home({
           </div>
         )}
       </div>
-
-      {/* 7. VTU Invoice / Order Detail Modal */}
-      {selectedOrder && (
-        <div className="absolute inset-0 bg-primary-dark/85 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 select-none">
-          <div className="bg-white text-primary-dark rounded-t-[32px] sm:rounded-3xl p-6 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.3)] max-w-sm w-full space-y-5 flex flex-col animate-slide-up border-t border-gray-100 max-h-[90vh] overflow-y-auto">
-            
-            {/* Elegant Header with Branding */}
-            <div className="flex justify-between items-center pb-2 border-b border-gray-100/80">
-              <div className="text-left font-sans">
-                <span className="text-[9px] uppercase font-bold tracking-widest text-text-muted block">Transaction Receipt</span>
-                <span className="font-extrabold text-sm text-primary-dark tracking-tight">GigUp Nigeria</span>
-              </div>
-              <button
-                onClick={() => setSelectedOrder(null)}
-                className="w-8 h-8 rounded-full hover:bg-gray-100 text-gray-500 hover:text-primary-dark flex items-center justify-center cursor-pointer transition border border-gray-100 bg-white"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Status & Amount Overview */}
-            <div className="flex flex-col items-center py-1">
-              {selectedOrder.status === 'success' ? (
-                <div className="w-12 h-12 rounded-full bg-emerald-50 border-4 border-emerald-400/20 flex items-center justify-center text-emerald-500 shadow-sm mb-2.5">
-                  <Check className="w-5 h-5 stroke-[3]" />
-                </div>
-              ) : selectedOrder.status === 'failed' ? (
-                <div className="w-12 h-12 rounded-full bg-red-50 border-4 border-red-400/20 flex items-center justify-center text-red-500 shadow-sm mb-2.5">
-                  <X className="w-5 h-5 stroke-[3]" />
-                </div>
-              ) : (
-                <div className="w-12 h-12 rounded-full bg-amber-50 border-4 border-amber-400/20 flex items-center justify-center text-amber-500 shadow-sm mb-2.5 animate-spin">
-                  <RefreshCw className="w-5 h-5 stroke-[3]" />
-                </div>
-              )}
-              <span className={`text-[10px] px-3 py-1 uppercase font-extrabold tracking-wider rounded-full ${
-                selectedOrder.status === 'success' 
-                  ? 'bg-emerald-50 text-emerald-600 border border-emerald-100/60' 
-                  : selectedOrder.status === 'failed'
-                    ? 'bg-red-50 text-red-500 border border-red-100/60'
-                    : 'bg-amber-50 text-amber-600 border border-amber-100/60'
-              }`}>
-                Transaction {selectedOrder.status}
-              </span>
-              <h3 className="text-3xl font-black text-primary-dark font-mono mt-3 select-all">
-                {selectedOrder.amount === 0 ? (
-                  <span className="text-emerald-500">FREE</span>
-                ) : (
-                  <span className={selectedOrder.status === 'failed' ? 'text-gray-500 line-through' : ''}>₦{Number(selectedOrder.amount ?? selectedOrder.price ?? 0).toLocaleString()}</span>
-                )}
-              </h3>
-              <p className="text-[10px] text-text-muted mt-0.5">
-                Order Reference: <span className="font-mono font-bold text-primary-dark select-all">{selectedOrder.id}</span>
-              </p>
-            </div>
-
-            {/* Perforated Receipt Details Card */}
-            <div className="relative bg-slate-50/70 rounded-2.5xl p-5 border border-slate-100 overflow-hidden text-xs text-left space-y-4">
-              {/* Notch Perforations */}
-              <div className="absolute -left-3 top-[43%] w-5 h-5 bg-white border border-slate-100 rounded-full z-10 shadow-[inset_-2px_0_3px_rgba(0,0,0,0.01)]" />
-              <div className="absolute -right-3 top-[43%] w-5 h-5 bg-white border border-slate-100 rounded-full z-10 shadow-[inset_2px_0_3px_rgba(0,0,0,0.01)]" />
-              <div className="absolute left-3 right-3 top-[43%] h-[1px] border-t border-dashed border-slate-200 pointer-events-none mt-2.5" />
-
-              {/* Upper Section */}
-              <div className="space-y-3 pb-6">
-                <div className="flex justify-between items-center">
-                  <span className="text-text-muted font-medium font-sans">Mobile Network</span>
-                  <span className="font-bold text-primary-dark flex items-center gap-1.5 capitalize">
-                    <span className={`w-2 h-2 rounded-full ${selectedOrder.network === 'MTN' ? 'bg-yellow-400' : selectedOrder.network === 'GLO' ? 'bg-green-500' : 'bg-red-500'}`} />
-                    {selectedOrder.network} Connection
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-text-muted font-medium font-sans">Plan Bundle</span>
-                  <span className="font-black text-primary-dark">{selectedOrder.plan_name}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-text-muted font-medium font-sans">Recipient Number</span>
-                  <span className="font-bold text-primary-dark font-mono bg-white/70 px-1.5 py-0.5 rounded border border-gray-100">{selectedOrder.recipient_phone}</span>
-                </div>
-              </div>
-
-              {/* Lower Section */}
-              <div className="space-y-3 pt-4 relative">
-                <div className="flex justify-between items-center">
-                  <span className="text-text-muted font-medium font-sans">Charges Applied</span>
-                  <span className={`font-extrabold font-mono ${selectedOrder.status === 'failed' ? 'text-gray-400 line-through' : 'text-primary-dark'}`}>
-                    {selectedOrder.amount === 0 ? "₦0 (Free Bonus)" : `₦${Number(selectedOrder.amount ?? selectedOrder.price ?? 0).toLocaleString()}`}
-                  </span>
-                </div>
-
-                {selectedOrder.status === 'failed' && (
-                  <div className="flex flex-col gap-1 pt-1 pb-1">
-                    <span className="text-text-muted font-medium font-sans">Failure Reason</span>
-                    <span className="font-bold text-red-600 bg-red-50 border border-red-100 rounded-lg p-2 leading-relaxed text-[11px]">
-                      {selectedOrder.status_message || "Transaction was rejected or declined by the payment/VTU gateway due to insufficient wallet balance or limit controls."}
-                    </span>
-                  </div>
-                )}
-
-                <div className="flex justify-between items-center">
-                  <span className="text-text-muted font-medium font-sans">Order ID</span>
-                  <span className="font-bold text-primary-dark font-mono text-[10.5px] bg-white border border-gray-150 px-2 py-0.5 rounded-lg">
-                    {selectedOrder.id}
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="text-text-muted font-medium font-sans">Receipt ID</span>
-                  <span className="font-bold text-primary-dark font-mono text-[10.5px] bg-white border border-gray-150 px-2 py-0.5 rounded-lg">
-                    {selectedOrder.smedata_ref || ('REC' + selectedOrder.id.substring(0, 8).toUpperCase())}
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="text-text-muted font-medium font-sans">Dispatch Date</span>
-                  <span className="font-bold text-primary-dark font-mono text-[11px]">
-                    {new Date(selectedOrder.created_at).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </span>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Support warnings and Troubleshoot Actions panel */}
-            <div className="space-y-2">
-              {selectedOrder.amount === 0 ? (
-                /* FREE Bonus Order */
-                <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4 text-left text-[11px] space-y-1.5">
-                  <span className="text-[9px] font-extrabold text-green-600 uppercase tracking-wider block">
-                    🎁 Free Promo Bonus Order
-                  </span>
-                  <p className="text-text-muted leading-relaxed">
-                    This was a free activation bonus. For claims or issues, contact us:
-                  </p>
-                  <div className="flex items-center gap-3 pt-1 text-primary-dark font-bold font-mono text-[10.5px]">
-                    <div className="flex items-center gap-1">
-                      <Phone className="w-3 h-3 text-primary-blue shrink-0" />
-                      09064704370
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Mail className="w-3 h-3 text-primary-blue shrink-0" />
-                      hello@gigupnigeria.com
-                    </div>
-                  </div>
-                </div>
-              ) : selectedOrder.amount > 0 && !selectedOrder.smedata_ref ? (
-                /* Paid order with Null reference */
-                <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 text-left text-[11px] space-y-1.5">
-                  <span className="text-[9px] font-extrabold text-amber-600 uppercase tracking-widest block">
-                    ⚠️ Delivery In Progress
-                  </span>
-                  <p className="text-amber-900 leading-relaxed font-semibold">
-                    Dispatch verification pending. Live support line:
-                  </p>
-                  <div className="flex items-center gap-1 font-bold font-mono text-amber-900 text-xs">
-                    <Phone className="w-3 h-3 text-primary-blue shrink-0" />
-                    09064704370
-                  </div>
-                </div>
-              ) : null}
-
-              {/* ACTION BUTTON GRID */}
-              <div className="flex flex-col gap-2.5 pt-1">
-                {/* Back button (Primary Done action) */}
-                <button
-                  onClick={() => setSelectedOrder(null)}
-                  className="w-full bg-primary-dark hover:bg-black text-white rounded-full py-4 text-xs font-extrabold tracking-wide transition border-none shadow-md shadow-primary-dark/15 cursor-pointer active:scale-[0.98]"
-                >
-                  Done — Back to Feed
-                </button>
-
-                {/* Only show Requery button when order.smedata_ref is not null AND order.amount > 0 */}
-                {selectedOrder.amount > 0 && selectedOrder.smedata_ref && (
-                  <button
-                    onClick={async () => {
-                      setRequerying(true);
-                      setTimeout(() => {
-                        setRequerying(false);
-                        showToast('VTU delivery status verified successfully! ✅', 'success');
-                      }, 1200);
-                    }}
-                    disabled={requerying}
-                    className="w-full bg-transparent hover:bg-gray-50 text-gray-500 hover:text-primary-dark rounded-full py-3 text-xs font-semibold transition flex items-center justify-center gap-1.5 border border-gray-250 cursor-pointer"
-                  >
-                    {requerying ? (
-                      <div className="spinner !w-4 !h-4 border-gray-300 !border-left-primary-dark" />
-                    ) : (
-                      <>
-                        <RefreshCw className="w-3.5 h-3.5 text-gray-400" /> Reverify Delivery Status
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
-            </div>
-
-          </div>
-        </div>
-      )}
 
     </PullToRefresh>
   );

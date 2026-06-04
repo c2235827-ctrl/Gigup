@@ -15,6 +15,7 @@ import Wallet from './components/Wallet';
 import Account from './components/Account';
 import Notifications from './components/Notifications';
 import TopupCallback from './components/TopupCallback';
+import ReceiptView from './components/ReceiptView';
 
 interface ToastState {
   message: string;
@@ -502,7 +503,7 @@ export default function App() {
             showToast={showToast} 
             onTriggerInstall={handlePwaInstall}
             isStandalone={isStandalone}
-            unreadNotificationsCount={notifications.filter(n => !n.is_read).length}
+            unreadNotificationsCount={notifications.length > 0 ? notifications.filter(n => !n.is_read).length : (user?.unread_notifications || 0)}
           />
         ) : null;
       case 'buy_data':
@@ -567,6 +568,15 @@ export default function App() {
             showToast={showToast} 
           />
         ) : null;
+      case 'receipt':
+        return (
+          <ReceiptView 
+            onClose={() => setCurrentScreen('home')}
+            params={extraNavigationParams}
+            showToast={showToast}
+            onNavigate={handleOnscreenNavigation}
+          />
+        );
 
       default:
         return (
