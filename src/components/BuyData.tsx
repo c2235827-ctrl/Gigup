@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Signal, Smartphone, Wallet, RefreshCw, ShoppingBag, CheckCircle, Gift, Sparkles } from 'lucide-react';
+import { Signal, Smartphone, Wallet, RefreshCw, ShoppingBag, CheckCircle, Gift, Sparkles, X, AlertCircle } from 'lucide-react';
 import { ApiService } from '../api';
 import { User, DataPlan } from '../types';
 import { playSuccessSound, playFailureSound } from '../utils/audio';
@@ -50,7 +50,11 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
   
   // Success Modal State
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [lastPurchaseInfo, setLastPurchaseInfo] = useState<{ plan: DataPlan; recipient: string; cashback: number } | null>(null);
+  const [lastPurchaseInfo, setLastPurchaseInfo] = useState<{ plan: DataPlan; recipient: string; cashback: number; orderId: string; receiptId: string; date: string } | null>(null);
+
+  // Failure Modal State
+  const [showFailureModal, setShowFailureModal] = useState(false);
+  const [lastFailureInfo, setLastFailureInfo] = useState<{ plan: DataPlan; recipient: string; reason: string; orderId: string; receiptId: string; date: string } | null>(null);
 
   // Auto-detect mobile network from recipient number
   useEffect(() => {
@@ -120,8 +124,26 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
 
     // Check balance
     if (user.wallet_balance < selectedPlan.price) {
-      showToast('Insufficient wallet balance. Redirecting to top-up.', 'info');
-      onNavigate('wallet');
+      playFailureSound();
+      const generatedOrderId = 'DA' + Math.random().toString(16).substring(2, 10).toUpperCase();
+      const generatedReceiptId = 'REC' + Math.random().toString(16).substring(2, 10).toUpperCase();
+      
+      setLastFailureInfo({
+        plan: selectedPlan,
+        recipient,
+        reason: 'Insufficient wallet balance. Please fund your wallet with ₦' + (selectedPlan.price - user.wallet_balance).toLocaleString('en-US') + ' more to complete this purchase.',
+        orderId: generatedOrderId,
+        receiptId: generatedReceiptId,
+        date: new Date().toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      });
+      setShowFailureModal(true);
+      showToast('Transaction failed: Insufficient wallet balance', 'error');
       return;
     }
 
@@ -129,24 +151,55 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
     try {
       const res = await ApiService.buyData(selectedPlan.id, recipient);
       if (res.success) {
+        const generatedOrderId = (res as any).order_id || (res as any).id || 'DA' + Math.random().toString(16).substring(2, 10).toUpperCase();
+        const generatedReceiptId = (res as any).receipt_id || 'REC' + Math.random().toString(16).substring(2, 10).toUpperCase();
+        
         setLastPurchaseInfo({
           plan: selectedPlan,
           recipient,
-          cashback: res.cashback_earned
+          cashback: res.cashback_earned || 0,
+          orderId: generatedOrderId,
+          receiptId: generatedReceiptId,
+          date: new Date().toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })
         });
         
         // Reload global layout profile data (wallet, orders, notifications)
         await onRefreshData();
-        
-
 
         // Show success splash modal
         setShowSuccessModal(true);
         playSuccessSound();
         showToast('Data purchase completed successfully! 🎉', 'success');
+      } else {
+        throw new Error(res.message || 'Transaction was rejected or declined by the payment/VTU gateway.');
       }
     } catch (err: any) {
       playFailureSound();
+      const errData = err.data || {};
+      const generatedOrderId = errData.order_id || errData.id || 'DA' + Math.random().toString(16).substring(2, 10).toUpperCase();
+      const generatedReceiptId = errData.receipt_id || 'REC' + Math.random().toString(16).substring(2, 10).toUpperCase();
+      
+      setLastFailureInfo({
+        plan: selectedPlan,
+        recipient,
+        reason: err.message || 'System verification failed',
+        orderId: generatedOrderId,
+        receiptId: generatedReceiptId,
+        date: new Date().toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      });
+      setShowFailureModal(true);
       showToast(err.message || 'Data top-up order failed', 'error');
     } finally {
       setSubmitting(false);
@@ -156,6 +209,15 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
   const handleSuccessFinished = () => {
     setShowSuccessModal(false);
     setLastPurchaseInfo(null);
+    setSendToSelf(false);
+    setRecipient('');
+    // Go to Home
+    onNavigate('home');
+  };
+
+  const handleFailureFinished = () => {
+    setShowFailureModal(false);
+    setLastFailureInfo(null);
     setSendToSelf(false);
     setRecipient('');
     // Go to Home
@@ -363,8 +425,8 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
 
       {/* Success Modal Overlay Sheet */}
       {showSuccessModal && lastPurchaseInfo && (
-        <div className="absolute inset-0 bg-primary-dark/95 backdrop-blur-sm z-50 flex items-center justify-center p-6 text-white text-center">
-          <div className="bg-white text-primary-dark rounded-3xl p-6 shadow-2xl max-w-sm w-full space-y-6 relative overflow-hidden">
+        <div className="absolute inset-0 bg-primary-dark/85 backdrop-blur-sm z-50 flex items-center justify-center p-6 text-white text-center">
+          <div className="bg-white text-primary-dark rounded-3xl p-6 shadow-2xl max-w-sm w-full space-y-5 relative overflow-hidden animate-slide-up">
             {/* Background cash flow sparkles */}
             <div className="absolute -top-12 -right-12 w-28 h-28 bg-brand-cashback/10 rounded-full blur-xl pointer-events-none"></div>
 
@@ -384,42 +446,204 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
               </div>
             </div>
 
-            {/* Receipt Summary details */}
-            <div className="bg-bg-light rounded-2xl p-4 border border-gray-100 text-left text-xs space-y-2.5">
-              <div className="flex justify-between">
-                <span className="text-text-muted">Mobile Network</span>
-                <span className="font-bold text-primary-dark">{lastPurchaseInfo?.plan?.network || ''} VTU Network</span>
+            {/* Perforated Receipt Details Card */}
+            <div className="relative bg-slate-50/70 rounded-2.5xl p-5 border border-slate-100 overflow-hidden text-xs text-left space-y-3.5">
+              {/* Notch Perforations */}
+              <div className="absolute -left-3 top-[43%] w-5 h-5 bg-white border border-slate-100 rounded-full z-10 shadow-[inset_-2px_0_3px_rgba(0,0,0,0.01)]" />
+              <div className="absolute -right-3 top-[43%] w-5 h-5 bg-white border border-slate-100 rounded-full z-10 shadow-[inset_2px_0_3px_rgba(0,0,0,0.01)]" />
+              <div className="absolute left-3 right-3 top-[43%] h-[1px] border-t border-dashed border-slate-200 pointer-events-none mt-2.5" />
+
+              {/* Upper Section */}
+              <div className="space-y-2.5 pb-5">
+                <div className="flex justify-between items-center">
+                  <span className="text-text-muted font-medium font-sans">Mobile Network</span>
+                  <span className="font-bold text-primary-dark flex items-center gap-1.5 capitalize">
+                    <span className={`w-2 h-2 rounded-full ${lastPurchaseInfo.plan.network === 'MTN' ? 'bg-yellow-400' : lastPurchaseInfo.plan.network === 'GLO' ? 'bg-green-500' : 'bg-red-500'}`} />
+                    {lastPurchaseInfo.plan.network} Connection
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-text-muted font-medium font-sans">Plan Name</span>
+                  <span className="font-black text-primary-dark">{lastPurchaseInfo.plan.plan_name}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-text-muted font-medium font-sans">Data Volume</span>
+                  <span className="font-bold text-primary-blue bg-primary-blue/5 border border-primary-blue/10 px-2 py-0.5 rounded-md font-mono">{lastPurchaseInfo.plan.size_label}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-text-muted font-medium font-sans">Recipient Number</span>
+                  <span className="font-bold text-primary-dark font-mono bg-white px-2 py-0.5 rounded border border-gray-150">{lastPurchaseInfo.recipient}</span>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-text-muted">Plan Bundle</span>
-                <span className="font-bold text-primary-dark">{lastPurchaseInfo?.plan?.plan_name || ''}</span>
+
+              {/* Lower Section */}
+              <div className="space-y-2.5 pt-3.5 relative">
+                <div className="flex justify-between items-center">
+                  <span className="text-text-muted font-medium font-sans">Debit Charge</span>
+                  <span className="font-extrabold text-primary-dark font-mono">₦{lastPurchaseInfo.plan.price.toLocaleString('en-US')}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-text-muted font-medium font-sans">Earned Cashback</span>
+                  <span className="font-extrabold text-[#F59E0B] font-mono">+₦{lastPurchaseInfo.cashback.toLocaleString('en-US')}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-text-muted font-medium font-sans">Order ID</span>
+                  <span className="font-bold text-primary-dark font-mono bg-white border border-gray-150 px-2 py-0.5 rounded-lg text-[10px]">
+                    {lastPurchaseInfo.orderId}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-text-muted font-medium font-sans">Receipt ID</span>
+                  <span className="font-bold text-primary-dark font-mono bg-white border border-gray-150 px-2 py-0.5 rounded-lg text-[10px]">
+                    {lastPurchaseInfo.receiptId}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-text-muted font-medium font-sans">Dispatch Time</span>
+                  <span className="font-bold text-primary-dark font-mono text-[10px]">
+                    {lastPurchaseInfo.date}
+                  </span>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-text-muted">Debit Charge</span>
-                <span className="font-bold text-primary-dark font-mono">₦{(lastPurchaseInfo?.plan?.price || 0).toLocaleString('en-US')}</span>
+            </div>
+
+            {/* Additional Balances in Receipt bottom */}
+            <div className="bg-bg-light/85 border border-dashed border-gray-150 rounded-2xl p-3 flex justify-between text-[10.5px] font-medium text-left">
+              <div>
+                <span className="text-[9px] uppercase font-bold text-text-muted block">Wallet</span>
+                <span className="font-bold text-primary-dark font-mono">₦{user.wallet_balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
               </div>
-              <div className="border-t border-dashed border-gray-200 my-1"></div>
-              <div className="flex justify-between">
-                <span className="text-text-muted font-medium">Earned Cashback (10%)</span>
-                <span className="font-extrabold text-[#F59E0B] font-mono">+₦{(lastPurchaseInfo.cashback || 0).toLocaleString('en-US')}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-text-muted">Updated Wallet Balance</span>
-                <span className="font-bold text-primary-dark font-mono">₦{(user.wallet_balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-text-muted">Updated Cashback Balance</span>
-                <span className="font-bold text-[#F59E0B] font-mono">₦{(user.cashback_balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+              <div className="text-right">
+                <span className="text-[9px] uppercase font-bold text-text-muted block">Cashback</span>
+                <span className="font-bold text-[#F59E0B] font-mono">₦{user.cashback_balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
               </div>
             </div>
 
             <button
               id="confirm-success-modal-btn"
               onClick={handleSuccessFinished}
-              className="w-full bg-primary-blue hover:bg-primary-blue/90 text-white rounded-full py-4 text-xs font-bold shadow-md cursor-pointer select-none text-center"
+              className="w-full bg-primary-blue hover:bg-primary-blue/90 text-white rounded-full py-4 text-xs font-bold shadow-md cursor-pointer select-none text-center active:scale-[0.98] transition border-none"
             >
               Done — Check Wallet Balance ⚡
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Failure Modal Overlay Sheet */}
+      {showFailureModal && lastFailureInfo && (
+        <div className="absolute inset-0 bg-primary-dark/85 backdrop-blur-sm z-50 flex items-center justify-center p-6 text-white text-center">
+          <div className="bg-white text-primary-dark rounded-3xl p-6 shadow-2xl max-w-sm w-full space-y-5 relative overflow-hidden animate-slide-up">
+            
+            <div className="space-y-4">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                <X className="w-10 h-10 text-red-500 stroke-[3.5]" />
+              </div>
+
+              <div>
+                <span className="text-[10px] bg-red-50 text-red-600 font-bold px-2.5 py-1 rounded-full border border-red-150 inline-block uppercase">
+                  ⚠️ Transaction Failed
+                </span>
+                <h4 className="text-xl font-extrabold tracking-tight text-primary-dark mt-2">Data Purchase Failed!</h4>
+                <p className="text-xs text-text-muted mt-1.5 px-3">
+                  {lastFailureInfo.plan.size_label} bundle purchase could not be completed.
+                </p>
+              </div>
+            </div>
+
+            {/* Perforated Receipt Details Card */}
+            <div className="relative bg-slate-50/70 rounded-2.5xl p-5 border border-slate-100 overflow-hidden text-xs text-left space-y-3.5">
+              {/* Notch Perforations */}
+              <div className="absolute -left-3 top-[43%] w-5 h-5 bg-white border border-slate-100 rounded-full z-10 shadow-[inset_-2px_0_3px_rgba(0,0,0,0.01)]" />
+              <div className="absolute -right-3 top-[43%] w-5 h-5 bg-white border border-slate-100 rounded-full z-10 shadow-[inset_2px_0_3px_rgba(0,0,0,0.01)]" />
+              <div className="absolute left-3 right-3 top-[43%] h-[1px] border-t border-dashed border-slate-200 pointer-events-none mt-2.5" />
+
+              {/* Upper Section */}
+              <div className="space-y-2.5 pb-5">
+                <div className="flex justify-between items-center">
+                  <span className="text-text-muted font-medium font-sans">Mobile Network</span>
+                  <span className="font-bold text-primary-dark flex items-center gap-1.5 capitalize">
+                    <span className={`w-2 h-2 rounded-full ${lastFailureInfo.plan.network === 'MTN' ? 'bg-yellow-400' : lastFailureInfo.plan.network === 'GLO' ? 'bg-green-500' : 'bg-red-500'}`} />
+                    {lastFailureInfo.plan.network} Connection
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-text-muted font-medium font-sans">Plan Name</span>
+                  <span className="font-black text-primary-dark">{lastFailureInfo.plan.plan_name}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-text-muted font-medium font-sans">Data Volume</span>
+                  <span className="font-bold text-red-500 bg-red-50 border border-red-100 px-2 py-0.5 rounded-md font-mono">{lastFailureInfo.plan.size_label}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-text-muted font-medium font-sans">Recipient Number</span>
+                  <span className="font-bold text-primary-dark font-mono bg-white px-2 py-0.5 rounded border border-gray-150">{lastFailureInfo.recipient}</span>
+                </div>
+              </div>
+
+              {/* Lower Section */}
+              <div className="space-y-2.5 pt-3.5 relative">
+                <div className="flex justify-between items-center">
+                  <span className="text-text-muted font-medium font-sans">Intended Debit</span>
+                  <span className="font-extrabold text-primary-dark font-mono text-gray-500 line-through">₦{lastFailureInfo.plan.price.toLocaleString('en-US')}</span>
+                </div>
+                <div className="flex flex-col gap-1.5 pt-0.5">
+                  <span className="text-text-muted font-medium font-sans">Failure Reason</span>
+                  <span className="font-bold text-red-600 bg-red-50 border border-red-100 rounded-lg p-2 leading-normal text-[11px]">
+                    {lastFailureInfo.reason}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-text-muted font-medium font-sans">Order ID</span>
+                  <span className="font-bold text-primary-dark font-mono bg-white border border-gray-150 px-2 py-0.5 rounded-lg text-[10px]">
+                    {lastFailureInfo.orderId}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-text-muted font-medium font-sans">Receipt ID</span>
+                  <span className="font-bold text-primary-dark font-mono bg-white border border-gray-150 px-2 py-0.5 rounded-lg text-[10px]">
+                    {lastFailureInfo.receiptId}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-text-muted font-medium font-sans">Attempt Time</span>
+                  <span className="font-bold text-primary-dark font-mono text-[10px]">
+                    {lastFailureInfo.date}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions for failure */}
+            <div className="space-y-2.5 w-full">
+              {lastFailureInfo.reason.toLowerCase().includes('insufficient') ? (
+                <button
+                  id="fund-failed-modal-btn"
+                  onClick={() => {
+                    setShowFailureModal(false);
+                    onNavigate('wallet');
+                  }}
+                  className="w-full bg-[#F59E0B] hover:bg-[#F59E0B]/90 text-primary-dark font-extrabold rounded-full py-3.5 text-xs shadow-md cursor-pointer select-none text-center active:scale-[0.98] transition border-none"
+                >
+                  Fund Wallet Directly 💳
+                </button>
+              ) : (
+                <button
+                  id="retry-failed-modal-btn"
+                  onClick={() => setShowFailureModal(false)}
+                  className="w-full bg-primary-blue hover:bg-primary-blue/90 text-white rounded-full py-3.5 text-xs font-bold shadow-md cursor-pointer select-none text-center active:scale-[0.98] transition border-none"
+                >
+                  Retry Transaction 🔄
+                </button>
+              )}
+              <button
+                id="close-failed-modal-btn"
+                onClick={handleFailureFinished}
+                className="w-full bg-slate-100 hover:bg-slate-200 text-primary-dark rounded-full py-3 text-xs font-bold cursor-pointer select-none text-center transition border-none"
+              >
+                Close — Back to Feed
+              </button>
+            </div>
           </div>
         </div>
       )}
