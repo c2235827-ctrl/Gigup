@@ -120,3 +120,6 @@ export function playFailureSound() {
     console.warn('[Audio] Could not synthesize failure sound feedback:', error);
   }
 }
+
+
+

@@ -42,6 +42,9 @@ export default function TopupCallback({ txRef, amount, onProcessed, showToast }:
         setNewBalance(profile.wallet_balance);
         setStatus('success');
         localStorage.removeItem('gigup_pre_topup_balance');
+        
+
+
         playSuccessSound();
         showToast('Wallet funded successfully! ⚡', 'success');
         return true;

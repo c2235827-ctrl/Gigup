@@ -42,6 +42,7 @@ export function subscribeToUserNotifications(ntfyTopic: string) {
   });
 }
 
+
 export function unsubscribeFromNotifications() {
   if ((window as any)._gigupNtfy) {
     try { (window as any)._gigupNtfy.close(); } catch {}
@@ -202,3 +203,6 @@ export const ApiService = {
     return !!(token && token.length > 0);
   },
 };
+
+
+

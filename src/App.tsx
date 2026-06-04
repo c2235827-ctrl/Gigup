@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Home as HomeIcon, Signal, Wallet as WalletIcon, User as UserIcon, AlertCircle, Download, Smartphone, Share } from 'lucide-react';
+import { Home as HomeIcon, Signal, Wallet as WalletIcon, User as UserIcon, AlertCircle, Download, Smartphone, Share, Bell, X } from 'lucide-react';
 import { ApiService, subscribeToUserNotifications } from './api';
 import { User, WalletTransaction, DataOrder, Notification } from './types';
 
@@ -63,6 +63,8 @@ export default function App() {
   const [updateAvailable, setUpdateAvailable] = useState<boolean>(false);
   const [showPwaInstallModal, setShowPwaInstallModal] = useState<boolean>(false);
   const [showPwaBanner, setShowPwaBanner] = useState<boolean>(false);
+
+
 
   // 1. Initial boot: Register PWA Service Worker & Verify existing session tokens
   useEffect(() => {
@@ -330,6 +332,7 @@ export default function App() {
     setUser(signedInUser);
     setCurrentScreen('home');
     refreshUserData();
+    showToast('Logged in successfully! 🔓', 'success');
   };
 
   const handleRegistrationSuccess = (newlySignedUser: User) => {
@@ -337,6 +340,7 @@ export default function App() {
     setUser(newlySignedUser);
     setCurrentScreen('home');
     refreshUserData();
+    showToast('Account created successfully! 🎉', 'success');
   };
 
   const handleLogout = () => {
@@ -847,6 +851,8 @@ export default function App() {
             </div>
           </div>
         )}
+
+
 
       </div>
     </div>

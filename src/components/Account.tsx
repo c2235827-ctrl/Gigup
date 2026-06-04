@@ -19,6 +19,83 @@ interface AccountProps {
 export default function Account({ user, transactions = [], onNavigate, onLogout, showToast, onRefreshData, onTriggerInstall, isStandalone = false }: AccountProps) {
   const [copiedCode, setCopiedCode] = useState(false);
   
+  // Notification Permission states
+  const [permissionState, setPermissionState] = useState<string>(
+    typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'unsupported'
+  );
+
+  const requestNotificationPermission = async () => {
+    if (!('Notification' in window)) {
+      showToast('System notifications are not supported on this device/browser. 📱', 'error');
+      return;
+    }
+
+    try {
+      if (Notification.permission === 'denied') {
+        showToast('Notification permission is blocked. Please enable it in browser settings manually. 🔒', 'info');
+        return;
+      }
+
+      const res = await Notification.requestPermission();
+      setPermissionState(res);
+
+      if (res === 'granted') {
+        showToast('Standard system notifications activated! 🔔', 'success');
+        // Instantly trigger a native system level welcome notification
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.ready.then((reg) => {
+            reg.showNotification('🔔 System Notifications Active', {
+              body: 'You will now receive native, real-time alerts for VTU data orders and wallet balances on GigUp!',
+              icon: '/icons/icon-192.png',
+              badge: '/icons/icon-192.png',
+            });
+          }).catch(() => {
+            new Notification('🔔 System Notifications Active', {
+              body: 'You will now receive native, real-time alerts for VTU data orders and wallet balances on GigUp!',
+              icon: '/icons/icon-192.png',
+            });
+          });
+        } else {
+          new Notification('🔔 System Notifications Active', {
+            body: 'You will now receive native, real-time alerts for VTU data orders and wallet balances on GigUp!',
+            icon: '/icons/icon-192.png',
+          });
+        }
+      } else if (res === 'denied') {
+        showToast('Notification permissions were denied. 🔒', 'error');
+      } else {
+        showToast('Notification permissions dismissed. ⚠️', 'info');
+      }
+    } catch (err) {
+      showToast('Error requesting notification configurations.', 'error');
+    }
+  };
+
+  const handleTestAlert = () => {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      const show = () => {
+        new Notification('⚡ GigUp Native Alert Test', {
+          body: 'Success! Real-time data orders and system recharges will pop up on your device like this! 🚀',
+          icon: '/icons/icon-192.png',
+        });
+      };
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then(reg => {
+          reg.showNotification('⚡ GigUp Native Alert Test', {
+            body: 'Success! Real-time data orders and system recharges will pop up on your device like this! 🚀',
+            icon: '/icons/icon-192.png',
+            badge: '/icons/icon-192.png',
+          });
+        }).catch(show);
+      } else {
+        show();
+      }
+      showToast('Test native alert sent successfully! 🚀', 'success');
+    } else {
+      requestNotificationPermission();
+    }
+  };
+
   // Cashback history modal overlay
   const [showCashbackHistoryModal, setShowCashbackHistoryModal] = useState(false);
   
@@ -260,6 +337,78 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
               title="Share"
             >
               <Share2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Native Push Notification Control Card */}
+      <div className="px-5 pb-4">
+        <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm text-left space-y-4" id="native-push-notification-setting-card">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Bell className={`w-5 h-5 ${permissionState === 'granted' ? 'text-primary-blue text-glow' : 'text-gray-400'}`} />
+              <h5 className="text-xs font-black uppercase text-primary-dark tracking-wide">
+                Native Push Alerts
+              </h5>
+            </div>
+            
+            {/* Visual Indicator Switch or Toggle */}
+            <button 
+              onClick={requestNotificationPermission}
+              className={`w-11 h-6 rounded-full p-1 transition-colors duration-200 ease-in-out cursor-pointer focus:outline-none border-none flex items-center shrink-0 ${
+                permissionState === 'granted' ? 'bg-primary-blue' : 'bg-gray-200'
+              }`}
+              id="native-notification-toggle-switch"
+              title="Toggle Notifications"
+            >
+              <div 
+                className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${
+                  permissionState === 'granted' ? 'translate-x-[20px]' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+
+          <p className="text-[10px] text-gray-500 font-medium leading-relaxed">
+            Get instant on-device system window alerts whenever you execute data top-ups or when your wallet balance updates!
+          </p>
+
+          <div className="bg-bg-light rounded-2xl p-3 border border-gray-100 flex items-center justify-between">
+            <div>
+              <span className="text-[9px] uppercase font-bold text-text-muted block">OS Permission Status</span>
+              <div className="flex items-center gap-1.5 mt-1">
+                {permissionState === 'granted' ? (
+                  <>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span className="font-extrabold text-[10px] text-emerald-600 uppercase">ACTIVE 📱</span>
+                  </>
+                ) : permissionState === 'denied' ? (
+                  <>
+                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                    <span className="font-extrabold text-[10px] text-red-600 uppercase">BLOCKED 🔒</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                    <span className="font-extrabold text-[10px] text-amber-500 uppercase">NOT GRANTED ⚠️</span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <button
+              id="native-permission-request-btn"
+              onClick={permissionState === 'granted' ? handleTestAlert : requestNotificationPermission}
+              className={`font-extrabold text-[9px] uppercase tracking-wider px-3 py-1.5 rounded-xl transition cursor-pointer border-none ${
+                permissionState === 'granted'
+                  ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100/50'
+                  : permissionState === 'denied'
+                    ? 'bg-red-50 text-red-600 hover:bg-red-100/50'
+                    : 'bg-primary-dark hover:bg-black text-white'
+              }`}
+            >
+              {permissionState === 'granted' ? 'Test Alert' : 'Request Permission'}
             </button>
           </div>
         </div>

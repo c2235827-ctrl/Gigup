@@ -138,6 +138,8 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
         // Reload global layout profile data (wallet, orders, notifications)
         await onRefreshData();
         
+
+
         // Show success splash modal
         setShowSuccessModal(true);
         playSuccessSound();
