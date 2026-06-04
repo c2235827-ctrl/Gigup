@@ -41,26 +41,6 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
 
       if (res === 'granted') {
         showToast('Standard system notifications activated! 🔔', 'success');
-        // Instantly trigger a native system level welcome notification
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.ready.then((reg) => {
-            reg.showNotification('🔔 System Notifications Active', {
-              body: 'You will now receive native, real-time alerts for VTU data orders and wallet balances on GigUp!',
-              icon: '/icons/icon-192.png',
-              badge: '/icons/icon-192.png',
-            });
-          }).catch(() => {
-            new Notification('🔔 System Notifications Active', {
-              body: 'You will now receive native, real-time alerts for VTU data orders and wallet balances on GigUp!',
-              icon: '/icons/icon-192.png',
-            });
-          });
-        } else {
-          new Notification('🔔 System Notifications Active', {
-            body: 'You will now receive native, real-time alerts for VTU data orders and wallet balances on GigUp!',
-            icon: '/icons/icon-192.png',
-          });
-        }
       } else if (res === 'denied') {
         showToast('Notification permissions were denied. 🔒', 'error');
       } else {
@@ -68,31 +48,6 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
       }
     } catch (err) {
       showToast('Error requesting notification configurations.', 'error');
-    }
-  };
-
-  const handleTestAlert = () => {
-    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-      const show = () => {
-        new Notification('⚡ GigUp Native Alert Test', {
-          body: 'Success! Real-time data orders and system recharges will pop up on your device like this! 🚀',
-          icon: '/icons/icon-192.png',
-        });
-      };
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.ready.then(reg => {
-          reg.showNotification('⚡ GigUp Native Alert Test', {
-            body: 'Success! Real-time data orders and system recharges will pop up on your device like this! 🚀',
-            icon: '/icons/icon-192.png',
-            badge: '/icons/icon-192.png',
-          });
-        }).catch(show);
-      } else {
-        show();
-      }
-      showToast('Test native alert sent successfully! 🚀', 'success');
-    } else {
-      requestNotificationPermission();
     }
   };
 
@@ -397,19 +352,19 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
               </div>
             </div>
 
-            <button
-              id="native-permission-request-btn"
-              onClick={permissionState === 'granted' ? handleTestAlert : requestNotificationPermission}
-              className={`font-extrabold text-[9px] uppercase tracking-wider px-3 py-1.5 rounded-xl transition cursor-pointer border-none ${
-                permissionState === 'granted'
-                  ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100/50'
-                  : permissionState === 'denied'
+            {permissionState !== 'granted' && (
+              <button
+                id="native-permission-request-btn"
+                onClick={requestNotificationPermission}
+                className={`font-extrabold text-[9px] uppercase tracking-wider px-3 py-1.5 rounded-xl transition cursor-pointer border-none ${
+                  permissionState === 'denied'
                     ? 'bg-red-50 text-red-600 hover:bg-red-100/50'
                     : 'bg-primary-dark hover:bg-black text-white'
-              }`}
-            >
-              {permissionState === 'granted' ? 'Test Alert' : 'Request Permission'}
-            </button>
+                }`}
+              >
+                Request Permission
+              </button>
+            )}
           </div>
         </div>
       </div>
