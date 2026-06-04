@@ -194,9 +194,7 @@ export default function App() {
     try {
       // Reload profile properties
       const profile = await ApiService.getProfile();
-      if (profile) {
-        setUser(profile);
-      }
+      
       // Reload logs arrays
       const trxs = await ApiService.getTransactions();
       if (trxs) {
@@ -209,6 +207,27 @@ export default function App() {
           is_read: n.is_read || readIds.includes(n.id)
         }));
         setNotifications(mappedNotifications);
+
+        // Compute actual unread notifications count based on our mapped array
+        const actualUnreadCount = mappedNotifications.filter(n => !n.is_read).length;
+
+        if (profile) {
+          const updatedProfile = {
+            ...profile,
+            unread_notifications: actualUnreadCount
+          };
+          setUser(updatedProfile);
+          localStorage.setItem('gigup_user', JSON.stringify(updatedProfile));
+        } else if (user) {
+          const updatedUser = {
+            ...user,
+            unread_notifications: actualUnreadCount
+          };
+          setUser(updatedUser);
+          localStorage.setItem('gigup_user', JSON.stringify(updatedUser));
+        }
+      } else if (profile) {
+        setUser(profile);
       }
     } catch (e) {
       console.warn('Unable to coordinate background profile telemetry.', e);
@@ -483,6 +502,7 @@ export default function App() {
             showToast={showToast} 
             onTriggerInstall={handlePwaInstall}
             isStandalone={isStandalone}
+            unreadNotificationsCount={notifications.filter(n => !n.is_read).length}
           />
         ) : null;
       case 'buy_data':

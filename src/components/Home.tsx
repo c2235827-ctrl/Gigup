@@ -12,9 +12,19 @@ interface HomeProps {
   showToast: (msg: string, type: 'success' | 'error' | 'info') => void;
   onTriggerInstall?: () => void;
   isStandalone?: boolean;
+  unreadNotificationsCount?: number;
 }
 
-export default function Home({ user, recentOrders, onNavigate, onRefreshData, showToast, onTriggerInstall, isStandalone = false }: HomeProps) {
+export default function Home({ 
+  user, 
+  recentOrders, 
+  onNavigate, 
+  onRefreshData, 
+  showToast, 
+  onTriggerInstall, 
+  isStandalone = false,
+  unreadNotificationsCount
+}: HomeProps) {
   const [refreshing, setRefreshing] = useState(false);
   const [backendPlans, setBackendPlans] = useState<DataPlan[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<DataOrder | null>(null);
@@ -144,9 +154,9 @@ export default function Home({ user, recentOrders, onNavigate, onRefreshData, sh
               className="p-2 rounded-full bg-white/5 border border-white/5 hover:bg-white/10 relative text-white transition active:scale-95 cursor-pointer"
             >
               <Bell className="w-5 h-5" />
-              {user.unread_notifications && user.unread_notifications > 0 ? (
+              {((unreadNotificationsCount !== undefined ? unreadNotificationsCount : user.unread_notifications) || 0) > 0 ? (
                 <span className="absolute -top-1 -right-1 bg-brand-cashback text-primary-dark font-extrabold text-[9px] w-5 h-5 rounded-full flex items-center justify-center border-2 border-primary-dark">
-                  {user.unread_notifications}
+                  {unreadNotificationsCount !== undefined ? unreadNotificationsCount : user.unread_notifications}
                 </span>
               ) : null}
             </button>
