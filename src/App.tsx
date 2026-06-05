@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Home as HomeIcon, Signal, Wallet as WalletIcon, User as UserIcon, AlertCircle, Download, Smartphone, Share, Bell, X } from 'lucide-react';
 import { ApiService, subscribeToUserNotifications } from './api';
 import { User, WalletTransaction, DataOrder, Notification } from './types';
+import { identifyUserInOneSignal, logoutOneSignal } from './onesignal';
 
 // Screen File imports
 import Splash from './components/Splash';
@@ -74,7 +75,7 @@ export default function App() {
     setIsStandalone(standalone);
 
     // Service worker installation
-    if ('serviceWorker' in navigator && (import.meta as any).env?.PROD) {
+    if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/service-worker.js').then((registration) => {
           console.log('[PWA] Service Worker registered scope:', registration.scope);
@@ -250,6 +251,7 @@ export default function App() {
       } catch {}
       delete (window as any)._gigupNtfy;
     }
+    logoutOneSignal();
     localStorage.removeItem('gigup_token');
     localStorage.removeItem('gigup_user');
     localStorage.removeItem('gigup_last_activity');
@@ -347,6 +349,11 @@ export default function App() {
   const handleLoginSuccess = (signedInUser: User) => {
     localStorage.setItem('gigup_last_activity', Date.now().toString());
     setUser(signedInUser);
+    identifyUserInOneSignal({
+      id: signedInUser.id,
+      full_name: signedInUser.full_name,
+      phone: signedInUser.phone,
+    });
     setCurrentScreen('home');
     refreshUserData();
     showToast('Logged in successfully! 🔓', 'success');
@@ -355,6 +362,11 @@ export default function App() {
   const handleRegistrationSuccess = (newlySignedUser: User) => {
     localStorage.setItem('gigup_last_activity', Date.now().toString());
     setUser(newlySignedUser);
+    identifyUserInOneSignal({
+      id: newlySignedUser.id,
+      full_name: newlySignedUser.full_name,
+      phone: newlySignedUser.phone,
+    });
     setCurrentScreen('home');
     refreshUserData();
     showToast('Account created successfully! 🎉', 'success');
@@ -367,6 +379,7 @@ export default function App() {
       } catch {}
       delete (window as any)._gigupNtfy;
     }
+    logoutOneSignal();
     localStorage.removeItem('gigup_token');
     localStorage.removeItem('gigup_user');
     localStorage.removeItem('gigup_last_activity');

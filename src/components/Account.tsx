@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShieldAlert, Copy, Check, Share2, HelpCircle, LogOut, Trash2, Bell, History, KeyRound, ChevronRight, CheckCircle, Mail, MessageSquare, Sparkles, ArrowDownLeft, ArrowUpRight, Smartphone, Download } from 'lucide-react';
 import { ApiService } from '../api';
 import { User, WalletTransaction } from '../types';
 import PullToRefresh from './PullToRefresh';
 import { FAQ_DATA, TERMS_OF_SERVICE, PRIVACY_POLICY } from '../data/legalData';
+import { requestPushPermission, isPushPermissionGranted } from '../onesignal';
 
 interface AccountProps {
   user: User;
@@ -18,6 +19,20 @@ interface AccountProps {
 
 export default function Account({ user, transactions = [], onNavigate, onLogout, showToast, onRefreshData, onTriggerInstall, isStandalone = false }: AccountProps) {
   const [copiedCode, setCopiedCode] = useState(false);
+  
+  const [pushEnabled, setPushEnabled] = useState(false);
+
+  useEffect(() => {
+    isPushPermissionGranted().then(setPushEnabled);
+  }, []);
+
+  const handleEnablePush = async () => {
+    const granted = await requestPushPermission();
+    setPushEnabled(granted);
+    if (granted) {
+      showToast('🔔 Push notifications enabled!', 'success');
+    }
+  };
   
   // Cashback history modal overlay
   const [showCashbackHistoryModal, setShowCashbackHistoryModal] = useState(false);
@@ -356,6 +371,29 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
             <Download className="w-4 h-4 text-emerald-600 shrink-0" />
           </button>
         )}
+
+        {/* OneSignal Push Notifications Opt-in Section */}
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex flex-col">
+          <h3 className="text-xs font-bold text-primary-dark uppercase tracking-wider mb-1 flex items-center gap-1.5">
+            <span>🔔</span> Push Notifications
+          </h3>
+          <p className="text-[11px] text-text-muted mb-4 leading-normal">
+            Get notified instantly when your data is delivered, cashback is earned, or we have a special offer for you.
+          </p>
+          {pushEnabled ? (
+            <div className="flex items-center gap-2 text-emerald-600 text-xs font-bold select-none">
+              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+              Push Notifications Enabled
+            </div>
+          ) : (
+            <button
+              onClick={handleEnablePush}
+              className="w-full py-2.5 bg-primary-blue text-white font-bold rounded-xl text-xs hover:bg-primary-blue/90 active:scale-[0.98] transition cursor-pointer"
+            >
+              Enable Push Notifications
+            </button>
+          )}
+        </div>
 
         {/* Row 4: Support center */}
         <button

@@ -4,6 +4,7 @@ import { Signal, Smartphone, Wallet, RefreshCw, ShoppingBag, CheckCircle, Gift, 
 import { ApiService } from '../api';
 import { User, DataPlan } from '../types';
 import { playSuccessSound, playFailureSound } from '../utils/audio';
+import { updateOneSignalTag } from '../onesignal';
 
 interface BuyDataProps {
   user: User;
@@ -160,6 +161,10 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
         
         // Reload global layout profile data (wallet, orders, notifications)
         await onRefreshData();
+
+        // OneSignal tags synchronization
+        updateOneSignalTag('last_purchase', new Date().toISOString());
+        updateOneSignalTag('total_orders', String(((user as any).total_orders || 0) + 1));
 
         playSuccessSound();
         const bonusUsed = res.bonus_used || 0;
