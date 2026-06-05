@@ -195,40 +195,37 @@ export default function App() {
     try {
       // Reload profile properties
       const profile = await ApiService.getProfile();
+      if (profile) {
+        setUser(profile);
+        localStorage.setItem('gigup_user', JSON.stringify(profile));
+      }
       
       // Reload logs arrays
-      const trxs = await ApiService.getTransactions();
-      if (trxs) {
-        setTransactions(trxs.wallet_transactions);
-        setRecentOrders(trxs.data_orders);
-        
-        const readIds = getReadNotificationIds();
-        const mappedNotifications = (trxs.notifications || []).map(n => ({
-          ...n,
-          is_read: n.is_read || readIds.includes(n.id)
-        }));
-        setNotifications(mappedNotifications);
+      try {
+        const trxs = await ApiService.getTransactions();
+        if (trxs) {
+          setTransactions(trxs.wallet_transactions);
+          setRecentOrders(trxs.data_orders);
+          
+          const readIds = getReadNotificationIds();
+          const mappedNotifications = (trxs.notifications || []).map(n => ({
+            ...n,
+            is_read: n.is_read || readIds.includes(n.id)
+          }));
+          setNotifications(mappedNotifications);
 
-        // Compute actual unread notifications count based on our mapped array
-        const actualUnreadCount = mappedNotifications.filter(n => !n.is_read).length;
+          // Compute actual unread notifications count based on our mapped array
+          const actualUnreadCount = mappedNotifications.filter(n => !n.is_read).length;
 
-        if (profile) {
           const updatedProfile = {
-            ...profile,
+            ...(profile || user || {}),
             unread_notifications: actualUnreadCount
-          };
+          } as User;
           setUser(updatedProfile);
           localStorage.setItem('gigup_user', JSON.stringify(updatedProfile));
-        } else if (user) {
-          const updatedUser = {
-            ...user,
-            unread_notifications: actualUnreadCount
-          };
-          setUser(updatedUser);
-          localStorage.setItem('gigup_user', JSON.stringify(updatedUser));
         }
-      } else if (profile) {
-        setUser(profile);
+      } catch (trxErr) {
+        console.warn('Unable to load transactions or notification sub-ledgers.', trxErr);
       }
     } catch (e) {
       console.warn('Unable to coordinate background profile telemetry.', e);

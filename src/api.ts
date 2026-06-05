@@ -86,6 +86,8 @@ export const ApiService = {
     cashback_balance: number;
     wallet_balance: number;
     message: string;
+    bonus_balance?: number;
+    bonus_used?: number;
   }> {
     const data = await request('buy-data', {
       method: 'POST',
@@ -96,6 +98,7 @@ export const ApiService = {
       const user = JSON.parse(cachedUser);
       user.wallet_balance = data.wallet_balance ?? user.wallet_balance;
       user.cashback_balance = data.cashback_balance ?? user.cashback_balance;
+      user.bonus_balance = data.bonus_balance ?? user.bonus_balance;
       localStorage.setItem('gigup_user', JSON.stringify(user));
     }
     return data;

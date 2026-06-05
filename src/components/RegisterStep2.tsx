@@ -289,6 +289,9 @@ export default function RegisterStep2({ phone, code, onRegisterSuccess, onPrevSt
               <p className="text-text-muted text-sm max-w-xs mx-auto">
                 Fund your wallet to claim your FREE 1GB welcome data.
               </p>
+              <p className="text-amber-400 text-xs font-bold max-w-xs mx-auto mt-2 animate-bounce">
+                🎁 ₦100 welcome bonus added to your account — buy data now!
+              </p>
             </div>
 
             {/* Checklist Box */}

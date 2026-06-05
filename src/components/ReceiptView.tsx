@@ -44,6 +44,7 @@ export default function ReceiptView({ onClose, params, showToast, onNavigate }: 
     }),
     reason = '',
     cashback = 0,
+    bonus_used = 0,
   } = params;
 
   const handleCopy = (text: string, type: 'order' | 'receipt') => {
@@ -178,6 +179,18 @@ export default function ReceiptView({ onClose, params, showToast, onNavigate }: 
                   {amount === 0 ? '₦0 (Bonus Promotion)' : `₦${amount.toLocaleString('en-US')}`}
                 </span>
               </div>
+
+              {/* Welcome Bonus Used if Success */}
+              {status === 'success' && bonus_used > 0 && (
+                <div className="flex justify-between items-center p-2 bg-amber-50 border border-amber-200 rounded-xl">
+                  <span className="text-amber-850 font-extrabold flex items-center gap-1.5 select-none">
+                    🎁 Welcome Bonus Used
+                  </span>
+                  <span className="font-extrabold text-[#D97706] font-mono text-[11.5px]">
+                    ₦{bonus_used.toLocaleString('en-US')}
+                  </span>
+                </div>
+              )}
 
               {/* Failure Reason if Failed */}
               {status === 'failed' && (

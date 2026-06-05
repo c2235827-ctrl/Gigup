@@ -167,6 +167,51 @@ export default function Wallet({ user, transactions, onNavigate, onRefreshData, 
       <div className="p-5 flex-grow">
         {activeSubTab === 'topup' ? (
           <div className="space-y-4">
+            
+            {/* Balance Breakdown Section */}
+            <div className="bg-white rounded-3xl p-5 border border-gray-150/80 shadow-sm space-y-4">
+              <div className="flex items-center gap-2 pb-1 border-b border-gray-100">
+                <WalletIcon className="w-4 h-4 text-primary-blue" />
+                <h5 className="text-xs font-bold text-primary-dark uppercase tracking-wider">Balance Breakdown</h5>
+              </div>
+              
+              <div className="space-y-3.5 text-xs">
+                {/* Wallet Balance Row */}
+                <div className="flex justify-between items-center">
+                  <span className="text-text-muted font-bold">Wallet Balance</span>
+                  <span className="font-extrabold text-primary-blue font-mono text-sm">
+                    ₦{(user.wallet_balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+
+                {/* Welcome Bonus Row */}
+                {user.bonus_balance && user.bonus_balance > 0 ? (
+                  <div className="flex justify-between items-center">
+                    <span className="text-text-muted font-bold flex items-center gap-1">Welcome Bonus</span>
+                    <span className="font-extrabold text-amber-500 font-mono text-sm">
+                      ₦{user.bonus_balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                ) : null}
+
+                {/* Cashback Balance Row */}
+                <div className="flex justify-between items-center">
+                  <span className="text-text-muted font-bold">Cashback Balance</span>
+                  <span className="font-extrabold text-[#10B981] font-mono text-sm">
+                    ₦{(user.cashback_balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Bonus Usage Note */}
+              {user.bonus_balance && user.bonus_balance > 0 && (
+                <div className="pt-2.5 border-t border-gray-100 flex items-center gap-1.5 text-[10.5px] text-text-muted">
+                  <span>🎁</span>
+                  <span>Bonus can only be used for data purchases</span>
+                </div>
+              )}
+            </div>
+
             <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm space-y-5">
             <div className="space-y-1.5 px-1">
               <h5 className="text-xs font-bold text-primary-dark uppercase">Fund Ledger Balance</h5>
