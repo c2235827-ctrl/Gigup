@@ -1,6 +1,7 @@
 import { User, DataPlan, WalletTransaction, DataOrder, Notification as CustomNotification } from './types';
 
 const API_BASE_URL = 'https://ndcztauwnkycknrbbmix.supabase.co/functions/v1';
+export const BASE_URL = API_BASE_URL;
 
 const getHeaders = () => {
   const token = localStorage.getItem('gigup_token');
@@ -179,6 +180,27 @@ export const ApiService = {
     return !!(token && token.length > 0);
   },
 };
+
+export async function startSession(token: string): Promise<{ session_id: string } | null> {
+  try {
+    const res = await fetch(`${BASE_URL}/session-start`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    });
+    const data = await res.json();
+    return data.session_id ? { session_id: data.session_id } : null;
+  } catch { return null; }
+}
+
+export async function endSession(token: string, session_id: string, duration_seconds: number): Promise<void> {
+  try {
+    await fetch(`${BASE_URL}/session-end`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id, duration_seconds }),
+    });
+  } catch { /* silent */ }
+}
 
 
 

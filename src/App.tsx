@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Home as HomeIcon, Signal, Wallet as WalletIcon, User as UserIcon, AlertCircle, Download, Smartphone, Share, Bell, X } from 'lucide-react';
-import { ApiService, subscribeToUserNotifications } from './api';
+import { ApiService, subscribeToUserNotifications, startSession, endSession, BASE_URL } from './api';
 import { User, WalletTransaction, DataOrder, Notification } from './types';
 import { identifyUserInOneSignal, logoutOneSignal } from './onesignal';
 
@@ -41,6 +41,27 @@ const saveReadNotificationIds = (ids: string[]) => {
 export default function App() {
   // Session states
   const [user, setUser] = useState<User | null>(null);
+  const sessionIdRef = useRef<string | null>(null);
+  const sessionStartRef = useRef<number | null>(null);
+
+  const beginSession = async () => {
+    const token = localStorage.getItem('gigup_token');
+    if (!token) return;
+    const result = await startSession(token);
+    if (result) {
+      sessionIdRef.current = result.session_id;
+      sessionStartRef.current = Date.now();
+    }
+  };
+
+  const finishSession = async () => {
+    const token = localStorage.getItem('gigup_token');
+    if (!token || !sessionIdRef.current || !sessionStartRef.current) return;
+    const duration = Math.floor((Date.now() - sessionStartRef.current) / 1000);
+    await endSession(token, sessionIdRef.current, duration);
+    sessionIdRef.current = null;
+    sessionStartRef.current = null;
+  };
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [recentOrders, setRecentOrders] = useState<DataOrder[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -169,7 +190,10 @@ export default function App() {
           }, 3200); // Dispense toast after splash completes
         } else {
           const cached = ApiService.getCachedUser();
-          if (cached) setUser(cached);
+          if (cached) {
+            setUser(cached);
+            beginSession();
+          }
           localStorage.setItem('gigup_last_activity', now.toString());
           // Refresh profile in background
           ApiService.getProfile()
@@ -243,7 +267,7 @@ export default function App() {
   // Inactivity auto-logout tracker (Logs out user if inactive for 2 minutes = 120,000 ms)
   const autoLogoutRef = useRef<(() => void) | null>(null);
 
-  autoLogoutRef.current = () => {
+  autoLogoutRef.current = async () => {
     if (!user) return;
     if ((window as any)._gigupNtfy) {
       try {
@@ -251,6 +275,7 @@ export default function App() {
       } catch {}
       delete (window as any)._gigupNtfy;
     }
+    await finishSession();
     logoutOneSignal();
     localStorage.removeItem('gigup_token');
     localStorage.removeItem('gigup_user');
@@ -331,6 +356,27 @@ export default function App() {
     };
   }, [user, currentScreen]);
 
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Use sendBeacon for reliable delivery on tab close
+      const token = localStorage.getItem('gigup_token');
+      const sessionId = sessionIdRef.current;
+      const startTime = sessionStartRef.current;
+      if (!token || !sessionId || !startTime) return;
+      const duration = Math.floor((Date.now() - startTime) / 1000);
+      const blob = new Blob([JSON.stringify({ session_id: sessionId, duration_seconds: duration })], {
+        type: 'application/json'
+      });
+      navigator.sendBeacon(
+        `${BASE_URL}/session-end`,
+        blob
+      );
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
   // Toast Alert trigger dispatch
   const showToast = (message: string, type: 'success' | 'error' | 'info') => {
     setToast({ message, type });
@@ -349,6 +395,7 @@ export default function App() {
   const handleLoginSuccess = (signedInUser: User) => {
     localStorage.setItem('gigup_last_activity', Date.now().toString());
     setUser(signedInUser);
+    beginSession();
     identifyUserInOneSignal({
       id: signedInUser.id,
       full_name: signedInUser.full_name,
@@ -362,6 +409,7 @@ export default function App() {
   const handleRegistrationSuccess = (newlySignedUser: User) => {
     localStorage.setItem('gigup_last_activity', Date.now().toString());
     setUser(newlySignedUser);
+    beginSession();
     identifyUserInOneSignal({
       id: newlySignedUser.id,
       full_name: newlySignedUser.full_name,
@@ -372,13 +420,14 @@ export default function App() {
     showToast('Account created successfully! 🎉', 'success');
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if ((window as any)._gigupNtfy) {
       try {
         (window as any)._gigupNtfy.close();
       } catch {}
       delete (window as any)._gigupNtfy;
     }
+    await finishSession();
     logoutOneSignal();
     localStorage.removeItem('gigup_token');
     localStorage.removeItem('gigup_user');
