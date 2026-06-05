@@ -130,9 +130,17 @@ export default function App() {
         });
       });
 
+      // Track if the page was already controlled when loaded to avoid reload loops during initial activation/claiming
+      const wasControlled = !!navigator.serviceWorker.controller;
+      let refreshing = false;
+
       // When new SW takes control, reload the page
       const handleControllerChange = () => {
-        window.location.reload();
+        if (refreshing) return;
+        if (wasControlled) {
+          refreshing = true;
+          window.location.reload();
+        }
       };
       navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
     }
