@@ -59,7 +59,7 @@ export default function Login({ onLoginSuccess, onNavigate, showToast }: LoginPr
       if (msg.includes('Incorrect PIN')) {
         cleanMsg = 'Wrong PIN. Please try again.';
       } else if (msg.includes('not registered')) {
-        cleanMsg = 'Phone number is not registered on this environment.';
+        cleanMsg = 'Phone number not found. Please create an account.';
       }
       showToast(cleanMsg, 'error');
     } finally {

@@ -27,6 +27,7 @@ export default function Home({
 }: HomeProps) {
   const bonusBalance = user.bonus_balance || 0;
   const totalAvailable = (user.wallet_balance || 0) + bonusBalance;
+  const showLowBalanceWarning = totalAvailable < 200; // less than ₦200 combined
 
   const [refreshing, setRefreshing] = useState(false);
   const [backendPlans, setBackendPlans] = useState<DataPlan[]>([]);
@@ -169,18 +170,18 @@ export default function Home({
 
       {/* 2. Elevated Wallet Balance Card */}
       <div className="px-5 shrink-0 -mt-7 relative z-20">
-        <div id="elevated-home-balance-card" className={`bg-white rounded-3xl p-5 shadow-lg border flex flex-col space-y-3.5 transition-all duration-300 ${totalAvailable < 500 ? 'border-red-500/30' : 'border-gray-100'}`}>
+        <div id="elevated-home-balance-card" className={`bg-white rounded-3xl p-5 shadow-lg border flex flex-col space-y-3.5 transition-all duration-300 ${showLowBalanceWarning ? 'border-red-500/30' : 'border-gray-100'}`}>
           
           {/* Wallet Balance Row */}
           <div className="flex flex-col space-y-2">
             <div className="flex justify-between items-center">
               <div className="flex flex-col">
-                <span className={`text-xs font-semibold uppercase tracking-wider transition-colors duration-300 ${totalAvailable < 500 ? 'text-red-500' : 'text-text-muted'}`}>
+                <span className={`text-xs font-semibold uppercase tracking-wider transition-colors duration-300 ${showLowBalanceWarning ? 'text-red-500' : 'text-text-muted'}`}>
                   {bonusBalance > 0 ? 'Total Available' : 'Wallet Balance'}
                 </span>
                 <span className="text-[9px] font-medium text-primary-blue mt-0.5">Available for purchases</span>
               </div>
-              <span className={`text-xl font-extrabold font-mono tracking-tight leading-none transition-all duration-300 ${totalAvailable < 500 ? 'text-red-600 animate-pulse' : 'text-primary-dark'}`}>
+              <span className={`text-xl font-extrabold font-mono tracking-tight leading-none transition-all duration-300 ${showLowBalanceWarning ? 'text-red-600 animate-pulse' : 'text-primary-dark'}`}>
                 ₦{totalAvailable.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </span>
             </div>
@@ -271,7 +272,7 @@ export default function Home({
       </div>
 
       {/* Low Wallet Balance Warning Banner */}
-      {totalAvailable < 500 && (
+      {showLowBalanceWarning && (
         <div className="px-5 mt-4 shrink-0 transition-all duration-300">
           <div className="bg-amber-50 border border-amber-200 rounded-3xl p-4 flex items-start gap-3 shadow-sm">
             <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">

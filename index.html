@@ -15,20 +15,28 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="GigUp" />
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/15749/15749415.png" />
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
-      if (window.location.origin === "https://gigupnigeria.com") {
-        const script = document.createElement('script');
-        script.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
-        script.defer = true;
-        document.head.appendChild(script);
+      // Gracefully prevent OneSignal origin/domain mismatch errors from crashing the app or flagging as unhandled in dev/preview environments
+      window.addEventListener('error', function(event) {
+        if (event.message && (event.message.includes('gigupnigeria.com') || event.message.includes('OneSignal') || event.message.includes('used on'))) {
+          event.preventDefault();
+          return true;
+        }
+      }, true);
+      window.addEventListener('unhandledrejection', function(event) {
+        const msg = event.reason && (event.reason.message || event.reason.toString() || '');
+        if (msg && (msg.includes('gigupnigeria.com') || msg.includes('OneSignal') || msg.includes('used on'))) {
+          event.preventDefault();
+        }
+      }, true);
 
-        window.OneSignalDeferred = window.OneSignalDeferred || [];
-        OneSignalDeferred.push(async function(OneSignal) {
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        try {
           await OneSignal.init({
             appId: "1ed9f951-1289-4c70-8cf2-d7b03721d553",
             safari_web_id: "web.onesignal.auto.0908e376-c893-48cd-92f7-007572df5c49",
-            serviceWorkerPath: "service-worker.js",
-            serviceWorkerParam: { scope: "/" },
             notifyButton: {
               enable: false,
             },
@@ -36,8 +44,10 @@
               disable: true,
             },
           });
-        });
-      }
+        } catch (err) {
+          console.warn('OneSignal initialization skipped or failed:', err);
+        }
+      });
     </script>
   </head>
   <body>

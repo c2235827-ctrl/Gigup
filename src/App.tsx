@@ -159,15 +159,15 @@ export default function App() {
       if (ApiService.isLoggedIn()) {
         const lastActivity = localStorage.getItem('gigup_last_activity');
         const now = Date.now();
-        const inactiveLimit = 120 * 1000; // 2 minutes
+        const inactiveLimit = 30 * 60 * 1000; // 30 minutes
 
         if (lastActivity && (now - parseInt(lastActivity, 10)) > inactiveLimit) {
-          // Token or session expired after 2 minutes of closing/inactivity
+          // Token or session expired after 30 minutes of closing/inactivity
           ApiService.logout();
           setUser(null);
           localStorage.removeItem('gigup_last_activity');
           setTimeout(() => {
-            showToast('Session expired: Auto-logged out after 2 minutes 🔒', 'info');
+            showToast('Session expired: Auto-logged out after 30 minutes 🔒', 'info');
           }, 3200); // Dispense toast after splash completes
         } else {
           const cached = ApiService.getCachedUser();
@@ -266,7 +266,7 @@ export default function App() {
     setRecentOrders([]);
     setNotifications([]);
     setRegistrationPhone('');
-    showToast('Inactivity alert: Auto-logged out after 2 minutes 🔒', 'info');
+    showToast('Inactivity alert: Auto-logged out after 30 minutes of inactivity 🔒', 'info');
     setCurrentScreen('login');
   };
 
@@ -285,14 +285,14 @@ export default function App() {
         if (autoLogoutRef.current) {
           autoLogoutRef.current();
         }
-      }, 120 * 1000); // 2 minutes (120 seconds)
+      }, 30 * 60 * 1000); // 30 minutes
     };
 
     // Check visibility state to immediately logout if returning after 2+ minutes
     const handleVisibilityOrFocusChange = () => {
       const now = Date.now();
       const lastActivity = localStorage.getItem('gigup_last_activity');
-      const inactiveLimit = 120 * 1000;
+      const inactiveLimit = 30 * 60 * 1000;
 
       if (document.visibilityState === 'visible' || document.hasFocus()) {
         if (lastActivity && (now - parseInt(lastActivity, 10)) > inactiveLimit) {
@@ -641,7 +641,7 @@ export default function App() {
 
   // Determine if we should show the bottom phone navigation bar
   const shouldShowBottomNavigation = 
-    (user || !!localStorage.getItem('gigup_token')) && 
+    !!user && 
     ['home', 'buy_data', 'wallet', 'account', 'wallet_history'].includes(currentScreen);
 
   return (

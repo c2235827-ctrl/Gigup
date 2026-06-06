@@ -4,7 +4,7 @@ export interface User {
   full_name: string;
   referral_code: string;
   wallet_balance: number;
-  cashback_balance?: number;
+  cashback_balance: number;
   can_withdraw?: boolean;
   cashback_to_withdrawal?: number;
   pending_withdrawal?: {

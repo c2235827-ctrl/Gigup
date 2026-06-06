@@ -185,7 +185,7 @@ export default function Wallet({ user, transactions, onNavigate, onRefreshData, 
                 </div>
 
                 {/* Welcome Bonus Row */}
-                {user.bonus_balance && user.bonus_balance > 0 ? (
+                {(user.bonus_balance ?? 0) > 0 ? (
                   <div className="flex justify-between items-center">
                     <span className="text-text-muted font-bold flex items-center gap-1">Welcome Bonus</span>
                     <span className="font-extrabold text-amber-500 font-mono text-sm">
@@ -204,7 +204,7 @@ export default function Wallet({ user, transactions, onNavigate, onRefreshData, 
               </div>
 
               {/* Bonus Usage Note */}
-              {user.bonus_balance && user.bonus_balance > 0 && (
+              {(user.bonus_balance ?? 0) > 0 && (
                 <div className="pt-2.5 border-t border-gray-100 flex items-center gap-1.5 text-[10.5px] text-text-muted">
                   <span>🎁</span>
                   <span>Bonus can only be used for data purchases</span>
