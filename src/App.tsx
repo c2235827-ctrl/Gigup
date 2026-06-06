@@ -518,7 +518,11 @@ export default function App() {
         return (
           <Splash 
             onComplete={() => {
-              if (user) {
+              if (ApiService.isLoggedIn()) {
+                const cached = ApiService.getCachedUser();
+                if (cached && !user) {
+                  setUser(cached);
+                }
                 setCurrentScreen('home');
               } else {
                 setCurrentScreen('login');
@@ -686,7 +690,7 @@ export default function App() {
 
   // Determine if we should show the bottom phone navigation bar
   const shouldShowBottomNavigation = 
-    user && 
+    (user || !!localStorage.getItem('gigup_token')) && 
     ['home', 'buy_data', 'wallet', 'account', 'wallet_history'].includes(currentScreen);
 
   return (
@@ -697,38 +701,17 @@ export default function App() {
         {updateAvailable && (
           <div
             onClick={handleUpdate}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              zIndex: 9999,
-              background: '#3B7EF8',
-              color: 'white',
-              padding: '12px 20px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              cursor: 'pointer',
-              boxShadow: '0 2px 12px rgba(59,126,248,0.4)',
-            }}
+            className="w-full bg-primary-blue text-white px-5 py-3 flex items-center justify-between cursor-pointer shrink-0 z-50"
+            style={{ boxShadow: '0 2px 12px rgba(59,126,248,0.4)' }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '18px' }}>🔄</span>
+            <div className="flex items-center gap-3">
+              <span className="text-lg">🔄</span>
               <div>
-                <div style={{ fontWeight: 700, fontSize: '13px' }}>Update Available</div>
-                <div style={{ fontSize: '11px', opacity: 0.85 }}>Tap to get the latest version of GigUp</div>
+                <div className="font-bold text-xs">Update Available</div>
+                <div className="text-[10px] opacity-85">Tap to get the latest version of GigUp</div>
               </div>
             </div>
-            <div style={{
-              background: 'white',
-              color: '#3B7EF8',
-              padding: '6px 14px',
-              borderRadius: '20px',
-              fontWeight: 700,
-              fontSize: '12px',
-              whiteSpace: 'nowrap',
-            }}>
+            <div className="bg-white text-primary-blue px-3 py-1.5 rounded-full font-bold text-[11px] whitespace-nowrap">
               Update Now
             </div>
           </div>

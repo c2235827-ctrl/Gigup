@@ -69,7 +69,7 @@ export default function Login({ onLoginSuccess, onNavigate, showToast }: LoginPr
 
   return (
     <div 
-      className="flex flex-col min-h-full w-full justify-between bg-gradient-to-b from-primary-dark via-[#09152b] to-[#050b18] text-white p-6 relative overflow-y-auto"
+      className="flex flex-col min-h-full w-full bg-gradient-to-b from-primary-dark via-[#09152b] to-[#050b18] text-white p-6 relative overflow-y-auto"
       style={{ contentVisibility: 'auto' }}
     >
       {/* Background glow lamps */}
@@ -188,20 +188,21 @@ export default function Login({ onLoginSuccess, onNavigate, showToast }: LoginPr
             </button>
           </p>
         </div>
-      </div>
 
-      {/* Footnote with Signup redirect button */}
-      <div className="z-10 text-center pt-4 border-t border-white/5 max-w-xs w-full mx-auto shrink-0">
-        <p className="text-sm text-text-muted">
-          Don't have an account?{' '}
-          <button
-            id="go-to-signup-btn"
-            onClick={() => onNavigate('register_1')}
-            className="text-primary-blue font-semibold hover:underline bg-transparent border-none p-0 cursor-pointer"
-          >
-            Sign Up
-          </button>
-        </p>
+        {/* Sign Up link — always visible */}
+        <div className="mt-6 text-center pt-4 border-t border-white/10">
+          <p className="text-sm text-text-muted">
+            Don't have an account?{' '}
+            <button
+              id="go-to-signup-btn"
+              type="button"
+              onClick={() => onNavigate('register_1')}
+              className="text-primary-blue font-bold hover:underline bg-transparent border-none p-0 cursor-pointer"
+            >
+              Create Account
+            </button>
+          </p>
+        </div>
       </div>
 
       {/* Legal documents desk modal */}
