@@ -4,7 +4,12 @@ import { ApiService } from '../api';
 import { User, WalletTransaction } from '../types';
 import PullToRefresh from './PullToRefresh';
 import { FAQ_DATA, TERMS_OF_SERVICE, PRIVACY_POLICY } from '../data/legalData';
-import { requestPushPermission, isPushPermissionGranted } from '../onesignal';
+import {
+  requestPushPermission,
+  isPushPermissionGranted,
+  disablePushNotifications,
+  enablePushNotifications,
+} from '../onesignal';
 
 interface AccountProps {
   user: User;
@@ -22,6 +27,7 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
   const [copiedCode, setCopiedCode] = useState(false);
   
   const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
 
   const referralSectionRef = useRef<HTMLDivElement>(null);
 
@@ -37,11 +43,27 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
     }
   }, [initialScrollTo]);
 
-  const handleEnablePush = async () => {
-    const granted = await requestPushPermission();
-    setPushEnabled(granted);
-    if (granted) {
-      showToast('🔔 Push notifications enabled!', 'success');
+  const handleTogglePush = async () => {
+    setPushLoading(true);
+    try {
+      if (pushEnabled) {
+        // Disable
+        await disablePushNotifications();
+        setPushEnabled(false);
+        showToast('Push notifications disabled', 'info');
+      } else {
+        // Re-enable — request permission again
+        const granted = await requestPushPermission();
+        if (granted) {
+          await enablePushNotifications();
+          setPushEnabled(true);
+          showToast('Push notifications enabled 🔔', 'success');
+        } else {
+          showToast('Permission denied. Enable in your browser settings.', 'error');
+        }
+      }
+    } finally {
+      setPushLoading(false);
     }
   };
   
@@ -384,25 +406,44 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
         )}
 
         {/* OneSignal Push Notifications Opt-in Section */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex flex-col">
-          <h3 className="text-xs font-bold text-primary-dark uppercase tracking-wider mb-1 flex items-center gap-1.5">
-            <span>🔔</span> Push Notifications
-          </h3>
-          <p className="text-[11px] text-text-muted mb-4 leading-normal">
-            Get notified instantly when your data is delivered, cashback is earned, or we have a special offer for you.
-          </p>
-          {pushEnabled ? (
-            <div className="flex items-center gap-2 text-emerald-600 text-xs font-bold select-none">
-              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-              Push Notifications Enabled
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 pr-4">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                🔔 Push Notifications
+                {pushEnabled && (
+                  <span className="text-[10px] font-bold bg-green-100 text-brand-success px-2 py-0.5 rounded-full">
+                    ON
+                  </span>
+                )}
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5 text-left">
+                {pushEnabled
+                  ? 'You will receive alerts for data delivery, cashback, and promotions.'
+                  : 'Enable to get alerts for data delivery, cashback, and exclusive offers.'}
+              </p>
             </div>
-          ) : (
+
+            {/* Toggle switch */}
             <button
-              onClick={handleEnablePush}
-              className="w-full py-2.5 bg-primary-blue text-white font-bold rounded-xl text-xs hover:bg-primary-blue/90 active:scale-[0.98] transition cursor-pointer"
+              onClick={handleTogglePush}
+              disabled={pushLoading}
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-200 cursor-pointer shrink-0 border-none ${
+                pushEnabled ? 'bg-emerald-500' : 'bg-slate-300'
+              } ${pushLoading ? 'opacity-50' : ''}`}
             >
-              Enable Push Notifications
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-200 ${
+                  pushEnabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
             </button>
+          </div>
+
+          {!pushEnabled && (
+            <p className="text-[10px] text-slate-400 mt-3 bg-slate-50 rounded-xl p-2.5 leading-relaxed text-left">
+              ℹ️ If you denied permission in your browser, go to your browser settings → Site Settings → Notifications → Allow for gigupnigeria.com
+            </p>
           )}
         </div>
 

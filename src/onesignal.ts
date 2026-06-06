@@ -83,3 +83,28 @@ export async function updateOneSignalTag(key: string, value: string): Promise<vo
     console.warn('OneSignal tag update failed:', err);
   }
 }
+
+/**
+ * Disable push notifications for the current user.
+ * Opts out of push on this device.
+ */
+export async function disablePushNotifications(): Promise<void> {
+  try {
+    const OneSignal = await waitForOneSignal();
+    await OneSignal.User.PushSubscription.optOut();
+  } catch (err) {
+    console.warn('OneSignal opt-out failed:', err);
+  }
+}
+
+/**
+ * Re-enable push notifications.
+ */
+export async function enablePushNotifications(): Promise<void> {
+  try {
+    const OneSignal = await waitForOneSignal();
+    await OneSignal.User.PushSubscription.optIn();
+  } catch (err) {
+    console.warn('OneSignal opt-in failed:', err);
+  }
+}

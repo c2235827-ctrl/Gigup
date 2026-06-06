@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Home as HomeIcon, Signal, Wallet as WalletIcon, User as UserIcon, AlertCircle, Download, Smartphone, Share, Bell, X } from 'lucide-react';
 import { ApiService, subscribeToUserNotifications, startSession, endSession, BASE_URL } from './api';
 import { User, WalletTransaction, DataOrder, Notification } from './types';
-import { identifyUserInOneSignal, logoutOneSignal } from './onesignal';
+import { identifyUserInOneSignal, logoutOneSignal, requestPushPermission } from './onesignal';
 
 // Screen File imports
 import Splash from './components/Splash';
@@ -174,6 +174,11 @@ export default function App() {
           if (cached) {
             setUser(cached);
             beginSession();
+
+            // Request push for existing users who haven't granted yet
+            setTimeout(() => {
+              requestPushPermission();
+            }, 4000); // longer delay — after splash completes
           }
           localStorage.setItem('gigup_last_activity', now.toString());
           // Refresh profile in background
@@ -389,6 +394,11 @@ export default function App() {
     setCurrentScreen('home');
     refreshUserData();
     showToast('Logged in successfully! 🔓', 'success');
+
+    // Auto-request push permission on login
+    setTimeout(() => {
+      requestPushPermission();
+    }, 2500); // slight delay so home screen renders first
   };
 
   const handleRegistrationSuccess = (newlySignedUser: User) => {
@@ -403,6 +413,11 @@ export default function App() {
     setCurrentScreen('home');
     refreshUserData();
     showToast('Account created successfully! 🎉', 'success');
+
+    // Auto-request push permission on registration
+    setTimeout(() => {
+      requestPushPermission();
+    }, 2500);
   };
 
   const handleLogout = async () => {
