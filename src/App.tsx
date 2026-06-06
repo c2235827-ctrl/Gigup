@@ -659,7 +659,7 @@ export default function App() {
         {shouldShowBottomNavigation && (
           <div 
             id="bottom-tab-navigation-bar" 
-            className="h-auto min-h-16 bg-white border-t border-gray-150 flex justify-around items-center px-4 pt-2 shrink-0 z-40 select-none pb-safe"
+            className="h-16 bg-white border-t border-gray-150 flex justify-around items-center px-4 shrink-0 z-40 select-none"
           >
             {/* Tab 1: Home */}
             <button
