@@ -25,7 +25,6 @@ html, body, #root {
   margin: 0;
   padding: 0;
   width: 100%;
-  height: 100%;
   height: 100dvh; /* Dynamic viewport height to prevent keyboard squishing issues on iOS/Android */
   overflow: hidden; /* Lock viewport from webpage scrolling */
   position: fixed; /* Stop rubber band background page bounces in iOS/webkit */

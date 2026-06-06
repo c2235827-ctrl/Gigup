@@ -13,7 +13,7 @@ export default function ReceiptView({ onClose, params, showToast, onNavigate }: 
 
   if (!params) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center text-primary-dark">
+      <div className="h-full bg-slate-50 flex flex-col items-center justify-center p-6 text-center text-primary-dark">
         <AlertCircle className="w-12 h-12 text-red-500 mb-3" />
         <h4 className="font-extrabold text-lg">Receipt Data Error</h4>
         <p className="text-text-muted text-xs mt-1">Unable to load the transaction receipt details.</p>
@@ -65,7 +65,7 @@ export default function ReceiptView({ onClose, params, showToast, onNavigate }: 
   const netTheme = getNetworkColor(network);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col text-primary-dark select-none pb-safe">
+    <div className="h-full bg-slate-50 flex flex-col text-primary-dark select-none">
       {/* Pristine Full Page Header */}
       <header className="h-14 bg-white border-b border-gray-150/80 flex items-center justify-between px-5 shrink-0 z-40">
         <button
