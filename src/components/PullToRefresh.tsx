@@ -200,7 +200,7 @@ export default function PullToRefresh({ onRefresh, children, className = '' }: P
 
       {/* 2. Visual card offset slider */}
       <motion.div
-        className="w-full h-full flex flex-col"
+        className="w-full min-h-full flex flex-col"
         animate={{
           y: pullOffset,
         }}
