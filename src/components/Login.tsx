@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Zap, Eye, EyeOff, Lock, Phone, HelpCircle, Scale, Shield } from 'lucide-react';
 import { ApiService } from '../api';
@@ -12,15 +12,6 @@ interface LoginProps {
 }
 
 export default function Login({ onLoginSuccess, onNavigate, showToast }: LoginProps) {
-  useEffect(() => {
-    if (ApiService.isLoggedIn()) {
-      const cached = ApiService.getCachedUser();
-      if (cached) {
-        onLoginSuccess(cached);
-      }
-    }
-  }, []);
-
   const [phone, setPhone] = useState('');
   const [pin, setPin] = useState('');
   const [showPin, setShowPin] = useState(false);
