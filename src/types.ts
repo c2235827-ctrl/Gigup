@@ -19,7 +19,7 @@ export interface User {
   signup_bonus_claimed?: boolean;
   created_at?: string;
   ntfy_topic?: string;
-  bonus_balance?: number;
+  bonus_balance: number;
 }
 
 export interface DataPlan {

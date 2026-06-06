@@ -489,9 +489,7 @@ export default function App() {
   };
 
   const handleOnscreenNavigation = (screenName: string, extras?: any) => {
-    if (extras) {
-      setExtraNavigationParams(extras);
-    }
+    setExtraNavigationParams(extras ?? null); // clear if no extras passed
     setCurrentScreen(screenName);
   };
 
@@ -604,6 +602,7 @@ export default function App() {
             onRefreshData={refreshUserData}
             onTriggerInstall={handlePwaInstall}
             isStandalone={isStandalone}
+            initialScrollTo={extraNavigationParams?.scrollTo}
           />
         ) : null;
 

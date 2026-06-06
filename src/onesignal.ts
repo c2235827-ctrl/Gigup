@@ -1,9 +1,5 @@
 declare const window: any;
 
-function isSupported(): boolean {
-  return typeof window !== 'undefined' && window.location.origin === 'https://gigupnigeria.com';
-}
-
 function waitForOneSignal(): Promise<any> {
   return new Promise((resolve) => {
     if (window.OneSignal) {
@@ -24,7 +20,6 @@ export async function identifyUserInOneSignal(user: {
   full_name: string;
   phone: string;
 }): Promise<void> {
-  if (!isSupported()) return;
   try {
     const OneSignal = await waitForOneSignal();
     await OneSignal.login(user.id);
@@ -43,7 +38,6 @@ export async function identifyUserInOneSignal(user: {
  * Call after logout.
  */
 export async function logoutOneSignal(): Promise<void> {
-  if (!isSupported()) return;
   try {
     const OneSignal = await waitForOneSignal();
     await OneSignal.logout();
@@ -56,7 +50,6 @@ export async function logoutOneSignal(): Promise<void> {
  * Request push permission. Call only from a user action — never on app load.
  */
 export async function requestPushPermission(): Promise<boolean> {
-  if (!isSupported()) return false;
   try {
     const OneSignal = await waitForOneSignal();
     const permission = await OneSignal.Notifications.requestPermission();
@@ -71,7 +64,6 @@ export async function requestPushPermission(): Promise<boolean> {
  * Check if push permission is already granted.
  */
 export async function isPushPermissionGranted(): Promise<boolean> {
-  if (!isSupported()) return false;
   try {
     const OneSignal = await waitForOneSignal();
     return OneSignal.Notifications.permission;
@@ -84,7 +76,6 @@ export async function isPushPermissionGranted(): Promise<boolean> {
  * Update a tag — call after purchase or other key events.
  */
 export async function updateOneSignalTag(key: string, value: string): Promise<void> {
-  if (!isSupported()) return;
   try {
     const OneSignal = await waitForOneSignal();
     await OneSignal.User.addTag(key, value);

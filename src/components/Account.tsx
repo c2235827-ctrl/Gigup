@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ShieldAlert, Copy, Check, Share2, HelpCircle, LogOut, Trash2, Bell, History, KeyRound, ChevronRight, CheckCircle, Mail, MessageSquare, Sparkles, ArrowDownLeft, ArrowUpRight, Smartphone, Download } from 'lucide-react';
 import { ApiService } from '../api';
 import { User, WalletTransaction } from '../types';
@@ -15,16 +15,27 @@ interface AccountProps {
   onRefreshData?: () => Promise<void>;
   onTriggerInstall?: () => void;
   isStandalone?: boolean;
+  initialScrollTo?: string;
 }
 
-export default function Account({ user, transactions = [], onNavigate, onLogout, showToast, onRefreshData, onTriggerInstall, isStandalone = false }: AccountProps) {
+export default function Account({ user, transactions = [], onNavigate, onLogout, showToast, onRefreshData, onTriggerInstall, isStandalone = false, initialScrollTo }: AccountProps) {
   const [copiedCode, setCopiedCode] = useState(false);
   
   const [pushEnabled, setPushEnabled] = useState(false);
 
+  const referralSectionRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     isPushPermissionGranted().then(setPushEnabled);
   }, []);
+
+  useEffect(() => {
+    if (initialScrollTo === 'referral' && referralSectionRef.current) {
+      setTimeout(() => {
+        referralSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+    }
+  }, [initialScrollTo]);
 
   const handleEnablePush = async () => {
     const granted = await requestPushPermission();
@@ -229,7 +240,7 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
       </div>
 
       {/* Referral Gradient Card */}
-      <div className="p-5 shrink-0">
+      <div ref={referralSectionRef} id="referral-section" className="p-5 shrink-0">
         <div className="bg-gradient-to-br from-primary-blue to-[#1d4ed8] rounded-3xl p-5 text-white shadow-md relative overflow-hidden">
           <div className="absolute -right-6 -top-6 w-24 h-24 bg-white/10 rounded-full blur-lg pointer-events-none"></div>
           
