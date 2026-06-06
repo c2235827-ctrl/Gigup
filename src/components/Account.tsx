@@ -220,7 +220,7 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
           showToast('Account balances synced successfully ⚡', 'success');
         }
       }}
-      className="bg-bg-light pb-24"
+      className="bg-bg-light pb-8"
     >
       
       {/* Profile Header section */}

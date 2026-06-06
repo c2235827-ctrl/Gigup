@@ -91,7 +91,7 @@ export default function Wallet({ user, transactions, onNavigate, onRefreshData, 
   };
 
   return (
-    <PullToRefresh onRefresh={onRefreshData} className="bg-bg-light pb-24">
+    <PullToRefresh onRefresh={onRefreshData} className="bg-bg-light pb-8">
       {!user.signup_bonus_claimed && (
         <div className="px-5 pt-5">
           <div style={{

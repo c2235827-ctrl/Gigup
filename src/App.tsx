@@ -645,7 +645,7 @@ export default function App() {
     <div className="app-container">
       <div id="phone-simulation-frame" className="phone-frame select-none">
         {/* Core dynamic screen viewport container */}
-        <div className="flex-grow w-full overflow-hidden relative">
+        <div className="flex-1 min-h-0 w-full overflow-hidden relative">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentScreen}
