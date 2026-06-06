@@ -240,7 +240,7 @@ export default function App() {
 
   // Run synchronization telemetry on login active
   useEffect(() => {
-    if (user && currentScreen !== 'splash' && currentScreen !== 'callback') {
+    if (user && ['home', 'wallet', 'account'].includes(currentScreen)) {
       refreshUserData();
     }
   }, [user?.id, currentScreen]);
@@ -345,7 +345,11 @@ export default function App() {
       const startTime = sessionStartRef.current;
       if (!token || !sessionId || !startTime) return;
       const duration = Math.floor((Date.now() - startTime) / 1000);
-      const blob = new Blob([JSON.stringify({ session_id: sessionId, duration_seconds: duration })], {
+      const blob = new Blob([JSON.stringify({
+        session_id: sessionId,
+        duration_seconds: duration,
+        token: token
+      })], {
         type: 'application/json'
       });
       navigator.sendBeacon(
@@ -592,6 +596,7 @@ export default function App() {
             onNavigate={handleOnscreenNavigation} 
             onRefreshData={refreshUserData}
             showToast={showToast} 
+            initialTab="history"
           />
         ) : null;
       case 'callback':
@@ -838,7 +843,7 @@ export default function App() {
         {toast && (
           <div 
             id="global-toast-notification" 
-            className="absolute bottom-20 inset-x-5 z-50 flex justify-center animate-bounce"
+            className="absolute bottom-24 inset-x-5 z-50 flex justify-center animate-bounce"
           >
             <div className={`px-5 py-3.5 rounded-2xl shadow-xl flex items-center gap-2.5 max-w-sm text-xs font-semibold leading-tight text-white border ${
               toast.type === 'success' 

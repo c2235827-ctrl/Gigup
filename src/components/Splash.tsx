@@ -51,10 +51,11 @@ export default function Splash({ onComplete }: SplashProps) {
     >
       {/* Background Image - Anchored to show the top portion where the subject's face is */}
       <img 
-        src="https://images.unsplash.com/photo-1642165835095-528b68f00663?q=80&w=770&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8WFyYW5kc3B=ftufbW9y=="
+        src="https://images.unsplash.com/photo-1642165835095-528b68f00663?w=800&q=80&auto=format&fit=crop"
         alt="Splash Background" 
         className="absolute inset-0 w-full h-full object-cover object-[center_15%] select-none pointer-events-none"
         referrerPolicy="no-referrer"
+        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
       />
       
       {/* 30% Opacity Dark Blue Overlay */}
@@ -101,7 +102,7 @@ export default function Splash({ onComplete }: SplashProps) {
       </div>
 
       {/* Impressive Progress System */}
-      <div className="z-10 absolute bottom-18 w-[55%] max-w-[190px] bg-black/45 border border-white/10 p-3 rounded-2xl backdrop-blur-md shadow-2xl flex flex-col items-center">
+      <div className="z-10 absolute bottom-24 w-[55%] max-w-[190px] bg-black/45 border border-white/10 p-3 rounded-2xl backdrop-blur-md shadow-2xl flex flex-col items-center">
         {/* Progress header with percentage */}
         <div className="w-full flex justify-between items-center mb-1.5">
           <span className="text-[7.5px] text-primary-blue font-black tracking-widest uppercase">
@@ -132,13 +133,13 @@ export default function Splash({ onComplete }: SplashProps) {
       {/* Skip Button */}
       <button
         onClick={onComplete}
-        className="z-10 absolute bottom-6 text-[11px] font-bold text-white/70 hover:text-white uppercase tracking-widest bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-full border border-white/20 backdrop-blur-xs transition cursor-pointer select-none"
+        className="z-10 absolute bottom-10 text-[11px] font-bold text-white/70 hover:text-white uppercase tracking-widest bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-full border border-white/20 backdrop-blur-xs transition cursor-pointer select-none"
       >
         Skip Loading →
       </button>
 
       {/* PWA Credit */}
-      <span className="z-10 absolute bottom-2 text-[8px] text-white/40 font-bold tracking-wider drop-shadow-sm">
+      <span className="z-10 absolute bottom-3 text-[8px] text-white/40 font-bold tracking-wider drop-shadow-sm">
         LAGOS, NG • SAFE VTU WALLET
       </span>
     </div>

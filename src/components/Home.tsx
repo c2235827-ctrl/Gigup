@@ -25,7 +25,7 @@ export default function Home({
   isStandalone = false,
   unreadNotificationsCount
 }: HomeProps) {
-  const bonusBalance = user.bonus_balance || 0;
+  const bonusBalance = user.bonus_balance ?? 0;
   const totalAvailable = (user.wallet_balance || 0) + bonusBalance;
   const showLowBalanceWarning = totalAvailable < 200; // less than ₦200 combined
 

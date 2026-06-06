@@ -124,7 +124,7 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
     }
 
     // Check balance
-    const totalAvailable = user.wallet_balance + (user.bonus_balance || 0);
+    const totalAvailable = user.wallet_balance + (user.bonus_balance ?? 0);
     if (totalAvailable < selectedPlan.price) {
       playFailureSound();
       const generatedOrderId = 'DA' + Math.random().toString(16).substring(2, 10).toUpperCase();
@@ -251,7 +251,7 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
     AIRTEL: 'bg-red-600 border-red-700'
   };
 
-  const hasBalance = selectedPlan ? (user.wallet_balance + (user.bonus_balance || 0)) >= selectedPlan.price : true;
+  const hasBalance = selectedPlan ? (user.wallet_balance + (user.bonus_balance ?? 0)) >= selectedPlan.price : true;
 
   return (
     <div className="flex flex-col h-full bg-bg-light relative select-none">
@@ -400,8 +400,8 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
         <div className="flex items-center gap-1.5 min-w-0">
           <Wallet className="w-5 h-5 text-primary-blue shrink-0" />
           <div className="flex flex-col">
-            <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">{user.bonus_balance && user.bonus_balance > 0 ? 'Total Available' : 'Balance'}</span>
-            <span className="font-extrabold text-primary-dark font-mono text-sm leading-tight text-left">₦{(user.wallet_balance + (user.bonus_balance || 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+            <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">{(user.bonus_balance ?? 0) > 0 ? 'Total Available' : 'Balance'}</span>
+            <span className="font-extrabold text-primary-dark font-mono text-sm leading-tight text-left">₦{(user.wallet_balance + (user.bonus_balance ?? 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
           </div>
         </div>
 

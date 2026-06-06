@@ -11,10 +11,11 @@ interface WalletProps {
   onNavigate: (screen: string) => void;
   onRefreshData: () => Promise<void>;
   showToast: (msg: string, type: 'success' | 'error' | 'info') => void;
+  initialTab?: 'topup' | 'history';
 }
 
-export default function Wallet({ user, transactions, onNavigate, onRefreshData, showToast }: WalletProps) {
-  const [activeSubTab, setActiveSubTab] = useState<'topup' | 'history'>('topup');
+export default function Wallet({ user, transactions, onNavigate, onRefreshData, showToast, initialTab = 'topup' }: WalletProps) {
+  const [activeSubTab, setActiveSubTab] = useState<'topup' | 'history'>(initialTab);
   const [amount, setAmount] = useState<string>('2000');
   const [loadingTopup, setLoadingTopup] = useState(false);
   

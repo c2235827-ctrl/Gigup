@@ -17,20 +17,6 @@
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/15749/15749415.png" />
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
-      // Gracefully prevent OneSignal origin/domain mismatch errors from crashing the app or flagging as unhandled in dev/preview environments
-      window.addEventListener('error', function(event) {
-        if (event.message && (event.message.includes('gigupnigeria.com') || event.message.includes('OneSignal') || event.message.includes('used on'))) {
-          event.preventDefault();
-          return true;
-        }
-      }, true);
-      window.addEventListener('unhandledrejection', function(event) {
-        const msg = event.reason && (event.reason.message || event.reason.toString() || '');
-        if (msg && (msg.includes('gigupnigeria.com') || msg.includes('OneSignal') || msg.includes('used on'))) {
-          event.preventDefault();
-        }
-      }, true);
-
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       OneSignalDeferred.push(async function(OneSignal) {
         try {
@@ -45,7 +31,7 @@
             },
           });
         } catch (err) {
-          console.warn('OneSignal initialization skipped or failed:', err);
+          console.warn('[OneSignal] Init failed:', err);
         }
       });
     </script>
