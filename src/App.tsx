@@ -82,8 +82,6 @@ export default function App() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isStandalone, setIsStandalone] = useState<boolean>(false);
 
-  // PWA update notification state
-  const [updateAvailable, setUpdateAvailable] = useState<boolean>(false);
   const [showPwaInstallModal, setShowPwaInstallModal] = useState<boolean>(false);
   const [showPwaBanner, setShowPwaBanner] = useState<boolean>(false);
 
@@ -100,31 +98,6 @@ export default function App() {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/service-worker.js').then((registration) => {
           console.log('[PWA] Service Worker registered scope:', registration.scope);
-
-          // Check for updates every 60 seconds
-          const intervalId = setInterval(() => {
-            registration.update();
-          }, 60 * 1000);
-
-          // Listen for new service worker waiting
-          registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing;
-            if (!newWorker) return;
-
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                // New version available — show update banner
-                window.dispatchEvent(new CustomEvent('gigup-update-available'));
-              }
-            });
-          });
-
-          // If there is already a waiting service worker, dispatch event immediately
-          if (registration.waiting) {
-            window.dispatchEvent(new CustomEvent('gigup-update-available'));
-          }
-
-          return () => clearInterval(intervalId);
         }).catch((err) => {
           console.warn('[PWA] Service Worker registration failed:', err);
         });
@@ -664,29 +637,7 @@ export default function App() {
     }
   };
 
-  // Listen for the custom "gigup-update-available" event
-  useEffect(() => {
-    const handleUpdateChange = () => {
-      setUpdateAvailable(true);
-    };
-    window.addEventListener('gigup-update-available', handleUpdateChange);
-    return () => {
-      window.removeEventListener('gigup-update-available', handleUpdateChange);
-    };
-  }, []);
 
-  const handleUpdate = () => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then((registration) => {
-        if (registration.waiting) {
-          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-        }
-      });
-    }
-    setTimeout(() => {
-      window.location.reload();
-    }, 100);
-  };
 
   // Determine if we should show the bottom phone navigation bar
   const shouldShowBottomNavigation = 
@@ -696,27 +647,6 @@ export default function App() {
   return (
     <div className="app-container">
       <div id="phone-simulation-frame" className="phone-frame select-none">
-        
-        {/* PWA App Update Notification Banner */}
-        {updateAvailable && (
-          <div
-            onClick={handleUpdate}
-            className="w-full bg-primary-blue text-white px-5 py-3 flex items-center justify-between cursor-pointer shrink-0 z-50"
-            style={{ boxShadow: '0 2px 12px rgba(59,126,248,0.4)' }}
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-lg">🔄</span>
-              <div>
-                <div className="font-bold text-xs">Update Available</div>
-                <div className="text-[10px] opacity-85">Tap to get the latest version of GigUp</div>
-              </div>
-            </div>
-            <div className="bg-white text-primary-blue px-3 py-1.5 rounded-full font-bold text-[11px] whitespace-nowrap">
-              Update Now
-            </div>
-          </div>
-        )}
-
         {/* Core dynamic screen viewport container */}
         <div className="flex-grow w-full overflow-hidden relative">
           <AnimatePresence mode="wait">
