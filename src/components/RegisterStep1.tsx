@@ -27,42 +27,46 @@ export function CaptchaDisplay({ code, onRefresh }: CaptchaDisplayProps) {
     // Clear
     ctx.clearRect(0, 0, width, height);
 
-    // Background
-    ctx.fillStyle = '#0D1F3D';
+    // Dark background
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, width, height);
 
-    // Noise lines
-    for (let i = 0; i < 6; i++) {
-      ctx.strokeStyle = `rgba(59,126,248,${Math.random() * 0.4 + 0.1})`;
-      ctx.lineWidth = 1;
+    // Heavy strikethrough lines (like the image)
+    for (let i = 0; i < 4; i++) {
+      ctx.strokeStyle = `rgba(0,0,0,${Math.random() * 0.5 + 0.3})`;
+      ctx.lineWidth = Math.random() * 2 + 1;
       ctx.beginPath();
-      ctx.moveTo(Math.random() * width, Math.random() * height);
-      ctx.lineTo(Math.random() * width, Math.random() * height);
+      ctx.moveTo(0, height * Math.random());
+      ctx.bezierCurveTo(
+        width * 0.3, height * Math.random(),
+        width * 0.7, height * Math.random(),
+        width, height * Math.random()
+      );
       ctx.stroke();
     }
 
     // Noise dots
-    for (let i = 0; i < 30; i++) {
-      ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.3})`;
+    for (let i = 0; i < 40; i++) {
+      ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.2})`;
       ctx.beginPath();
-      ctx.arc(Math.random() * width, Math.random() * height, 1, 0, Math.PI * 2);
+      ctx.arc(Math.random() * width, Math.random() * height, Math.random() * 2, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    // Draw each character with variation
-    const colors = ['#3B7EF8', '#60A5FA', '#FFFFFF', '#93C5FD', '#3B7EF8', '#BFDBFE'];
+    // Draw characters — bold, black, heavily distorted like image
     const charWidth = width / (code.length + 1);
-
     code.split('').forEach((char, i) => {
       ctx.save();
-      const x = charWidth * (i + 0.9);
-      const y = height / 2 + (Math.random() * 8 - 4);
+      const x = charWidth * (i + 0.7) + (Math.random() * 6 - 3);
+      const y = height / 2 + (Math.random() * 12 - 6);
       ctx.translate(x, y);
-      ctx.rotate((Math.random() - 0.5) * 0.4);
-      ctx.font = `bold ${24 + Math.random() * 6}px monospace`;
-      ctx.fillStyle = colors[i % colors.length];
-      ctx.shadowColor = colors[i % colors.length];
-      ctx.shadowBlur = 4;
+      ctx.rotate((Math.random() - 0.5) * 0.5);
+      // Slight skew
+      ctx.transform(1, Math.random() * 0.3 - 0.15, Math.random() * 0.2 - 0.1, 1, 0, 0);
+      ctx.font = `bold ${28 + Math.random() * 8}px monospace`;
+      ctx.fillStyle = '#000000';
+      ctx.shadowColor = 'rgba(0,0,0,0.3)';
+      ctx.shadowBlur = 2;
       ctx.fillText(char, 0, 0);
       ctx.restore();
     });
@@ -72,18 +76,19 @@ export function CaptchaDisplay({ code, onRefresh }: CaptchaDisplayProps) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }} className="my-4">
       <p style={{ fontSize: '13px', color: '#8A96A3', textAlign: 'center' }} className="font-semibold text-text-muted">
-        Enter the code shown in the box below
+        🔐 Enter the security code below to verify you're human
       </p>
       <div style={{
         borderRadius: '12px',
         overflow: 'hidden',
-        border: '2px solid rgba(59,126,248,0.3)',
-        boxShadow: '0 0 20px rgba(59,126,248,0.2)',
+        border: '2px solid #e2e8f0',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        backgroundColor: '#ffffff',
       }}>
         <canvas
           ref={canvasRef}
-          width={220}
-          height={64}
+          width={240}
+          height={72}
           style={{ display: 'block' }}
         />
       </div>
@@ -104,7 +109,7 @@ export function CaptchaDisplay({ code, onRefresh }: CaptchaDisplayProps) {
         }}
         className="hover:underline"
       >
-        🔄 Can't read it? Get a new code
+        🔄 Can't read it? Refresh code
       </button>
     </div>
   );
