@@ -636,8 +636,8 @@ export default function Home({
 
       {/* ═══ POPUP 4: WELCOME (only if wallet_balance is 0) ═══ */}
       {userFlags !== null &&
-       userFlags.welcome_popup_dismissed === false &&
-       (user.wallet_balance ?? 0) === 0 && (
+       !userFlags.welcome_popup_dismissed &&
+       Number(user.wallet_balance || 0) === 0 && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center p-4">
           <motion.div
             initial={{ y: 300, opacity: 0 }}
@@ -656,7 +656,7 @@ export default function Home({
             </div>
             <h3 className="text-lg font-black text-slate-900 mb-2">Welcome to GigUp! 🛰️</h3>
             <p className="text-sm text-slate-600 mb-3">
-              You have <strong className="text-blue-600">₦{(user.bonus_balance ?? 0).toLocaleString()} bonus</strong> ready to use!
+              You have <strong className="text-blue-600">₦{Number(user.bonus_balance || 0).toLocaleString()} bonus</strong> ready to use!
               Fund with <strong>₦2,000</strong> and get <strong>1GB FREE data</strong> on top.
             </p>
             <div className="bg-amber-50 rounded-xl p-3 mb-4 border border-amber-200">
@@ -682,9 +682,9 @@ export default function Home({
 
       {/* ═══ POPUP 5: BONUS DROP-OFF (when bonus < ₦100 and > 0) ═══ */}
       {userFlags !== null &&
-       userFlags.bonus_dropoff_popup_dismissed === false &&
-       (user.bonus_balance ?? 0) > 0 &&
-       (user.bonus_balance ?? 0) < 100 && (
+       !userFlags.bonus_dropoff_popup_dismissed &&
+       Number(user.bonus_balance || 0) > 0 &&
+       Number(user.bonus_balance || 0) < 100 && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center p-4">
           <motion.div
             initial={{ y: 300, opacity: 0 }}
@@ -703,7 +703,7 @@ export default function Home({
             </div>
             <h3 className="text-lg font-black text-slate-900 mb-2">Bonus almost finished!</h3>
             <p className="text-sm text-slate-600 mb-3">
-              You've earned <strong className="text-green-600">₦{Number(user.cashback_balance ?? 0).toLocaleString()} cashback</strong> already — that's yours!
+              You've earned <strong className="text-green-600">₦{Number(user.cashback_balance || 0).toLocaleString()} cashback</strong> already — that's yours!
             </p>
             <div className="bg-blue-50 rounded-xl p-3 mb-4 border border-blue-200">
               <p className="text-xs font-bold text-blue-700">
@@ -728,8 +728,8 @@ export default function Home({
 
       {/* ═══ POPUP 6: REFERRAL NUDGE ═══ */}
       {userFlags !== null &&
-       userFlags.referral_nudge_sent === true &&
-       userFlags.referral_nudge_popup_dismissed === false && (
+       userFlags.referral_nudge_sent &&
+       !userFlags.referral_nudge_popup_dismissed && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center p-4">
           <motion.div
             initial={{ y: 300, opacity: 0 }}

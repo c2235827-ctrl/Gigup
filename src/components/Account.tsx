@@ -335,23 +335,6 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
       {/* Account Navigation Menus list */}
       <div className="px-5 space-y-2.5">
         
-        {/* Row 1: Transaction History */}
-        <button
-          onClick={() => onNavigate('wallet_history')}
-          className="w-full bg-white rounded-2xl p-4 border border-gray-100 flex items-center justify-between text-left shadow-sm active:bg-gray-50 transition cursor-pointer"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-text-muted shrink-0">
-              <History className="w-4 h-4 text-primary-dark" />
-            </div>
-            <div>
-              <span className="text-xs font-bold text-primary-dark block leading-none">Billing Ledger History</span>
-              <span className="text-[10px] text-text-muted mt-1 block">Inspect card statement, cashback and credit lines</span>
-            </div>
-          </div>
-          <ChevronRight className="w-4 h-4 text-text-muted shrink-0" />
-        </button>
-
         {/* Row 1.5: Cashback History */}
         <button
           id="cashback-history-trigger-btn"
@@ -365,23 +348,6 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
             <div>
               <span className="text-xs font-bold text-primary-dark block leading-none">Cashback History Ledger</span>
               <span className="text-[10px] text-text-muted mt-1 block">Verify all 10% instant refunds and rewards stats</span>
-            </div>
-          </div>
-          <ChevronRight className="w-4 h-4 text-text-muted shrink-0" />
-        </button>
-
-        {/* Row 2: Notifications */}
-        <button
-          onClick={() => onNavigate('notifications')}
-          className="w-full bg-white rounded-2xl p-4 border border-gray-100 flex items-center justify-between text-left shadow-sm active:bg-gray-50 transition cursor-pointer"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-text-muted shrink-0">
-              <Bell className="w-4 h-4 text-primary-dark" />
-            </div>
-            <div>
-              <span className="text-xs font-bold text-primary-dark block leading-none">Inbox Notifications</span>
-              <span className="text-[10px] text-text-muted mt-1 block">Check cash releases, SMS alerts, system bonuses</span>
             </div>
           </div>
           <ChevronRight className="w-4 h-4 text-text-muted shrink-0" />
