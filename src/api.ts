@@ -206,6 +206,9 @@ export async function trackStreak(token: string): Promise<{
   streak: number;
   reward_earned: number;
   reward_day: number;
+  streak_broken: boolean;
+  recovery_eligible: boolean;
+  recovery_bonus: number;
   streak_record: UserStreak;
   double_cashback_active: boolean;
   double_cashback_expires_at: string | null;

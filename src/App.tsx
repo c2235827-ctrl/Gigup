@@ -50,6 +50,9 @@ export default function App() {
   const [doubleCashbackActive, setDoubleCashbackActive] = useState(false);
   const [doubleCashbackExpires, setDoubleCashbackExpires] = useState<string | null>(null);
 
+  const [streakBroken, setStreakBroken] = useState(false);
+  const [recoveryBonus, setRecoveryBonus] = useState(0);
+
   const initEngagement = async () => {
     const token = localStorage.getItem('gigup_token');
     if (!token) return;
@@ -61,6 +64,13 @@ export default function App() {
       setDoubleCashbackExpires(result.double_cashback_expires_at);
       if (result.reward_earned > 0) {
         setStreakReward({ amount: result.reward_earned, day: result.reward_day });
+      }
+      if (result.streak_broken && !result.recovery_eligible) {
+        setStreakBroken(true);
+      }
+      if (result.recovery_eligible && result.recovery_bonus > 0) {
+        setRecoveryBonus(result.recovery_bonus);
+        setStreakBroken(false);
       }
     }
   };
@@ -194,12 +204,12 @@ export default function App() {
           const cached = ApiService.getCachedUser();
           if (cached) {
             setUser(cached);
+            initEngagement();
             beginSession();
 
             // Request push for existing users who haven't granted yet
             setTimeout(() => {
               requestPushPermission();
-              initEngagement();
             }, 4000); // longer delay — after splash completes
           }
           localStorage.setItem('gigup_last_activity', now.toString());
@@ -407,6 +417,7 @@ export default function App() {
   const handleLoginSuccess = (signedInUser: User) => {
     localStorage.setItem('gigup_last_activity', Date.now().toString());
     setUser(signedInUser);
+    initEngagement();
     beginSession();
     identifyUserInOneSignal({
       id: signedInUser.id,
@@ -420,13 +431,13 @@ export default function App() {
     // Auto-request push permission on login
     setTimeout(() => {
       requestPushPermission();
-      initEngagement();
     }, 2500); // slight delay so home screen renders first
   };
 
   const handleRegistrationSuccess = (newlySignedUser: User) => {
     localStorage.setItem('gigup_last_activity', Date.now().toString());
     setUser(newlySignedUser);
+    initEngagement();
     beginSession();
     identifyUserInOneSignal({
       id: newlySignedUser.id,
@@ -440,7 +451,6 @@ export default function App() {
     // Auto-request push permission on registration
     setTimeout(() => {
       requestPushPermission();
-      initEngagement();
     }, 2500); // slight delay so home screen renders first
   };
 
@@ -604,6 +614,10 @@ export default function App() {
             }}
             onStreakRewardClose={() => setStreakReward(null)}
             streakReward={streakReward}
+            streakBroken={streakBroken}
+            recoveryBonus={recoveryBonus}
+            onStreakBrokenClose={() => setStreakBroken(false)}
+            onRecoveryClose={() => setRecoveryBonus(0)}
           />
         ) : null;
       case 'buy_data':

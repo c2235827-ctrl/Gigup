@@ -317,10 +317,10 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
           <h3 className="font-black text-base mb-3">🎁 Referral Rewards</h3>
           <div className="space-y-2">
             {[
-              { range: '1–3 referrals', reward: '₦300 each', active: true },
-              { range: '4–10 referrals', reward: '₦500 each', active: false },
-              { range: '11–20 referrals', reward: '₦750 each', active: false },
-              { range: '21+ referrals', reward: '₦1,000 each 🔥', active: false },
+              { range: '1–3 referrals', reward: '₦700 each', active: true },
+              { range: '4–10 referrals', reward: '₦900 each', active: false },
+              { range: '11–20 referrals', reward: '₦1,150 each', active: false },
+              { range: '21+ referrals', reward: '₦1,400 each 🔥', active: false },
             ].map((tier, i) => (
               <div key={i} className={`flex justify-between items-center py-2 border-b border-white/10 last:border-0 ${tier.active ? 'opacity-100' : 'opacity-60'}`}>
                 <span className="text-xs text-white/80">{tier.range}</span>
