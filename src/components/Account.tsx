@@ -311,6 +311,25 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
             </button>
           </div>
         </div>
+
+        {/* Tiered Referral Rewards */}
+        <div className="bg-gradient-to-br from-primary-dark to-primary-blue rounded-2xl p-5 text-white mt-4">
+          <h3 className="font-black text-base mb-3">🎁 Referral Rewards</h3>
+          <div className="space-y-2">
+            {[
+              { range: '1–3 referrals', reward: '₦300 each', active: true },
+              { range: '4–10 referrals', reward: '₦500 each', active: false },
+              { range: '11–20 referrals', reward: '₦750 each', active: false },
+              { range: '21+ referrals', reward: '₦1,000 each 🔥', active: false },
+            ].map((tier, i) => (
+              <div key={i} className={`flex justify-between items-center py-2 border-b border-white/10 last:border-0 ${tier.active ? 'opacity-100' : 'opacity-60'}`}>
+                <span className="text-xs text-white/80">{tier.range}</span>
+                <span className={`text-xs font-black ${tier.active ? 'text-amber-400' : 'text-white'}`}>{tier.reward}</span>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-white/60 mt-3">Cash credited directly to your wallet 💰</p>
+        </div>
       </div>
 
       {/* Account Navigation Menus list */}

@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Home as HomeIcon, Signal, Wallet as WalletIcon, User as UserIcon, AlertCircle, Download, Smartphone, Share, Bell, X } from 'lucide-react';
-import { ApiService, subscribeToUserNotifications, startSession, endSession, BASE_URL } from './api';
-import { User, WalletTransaction, DataOrder, Notification } from './types';
+import { ApiService, subscribeToUserNotifications, startSession, endSession, BASE_URL, trackStreak, getUserFlags, dismissFlag } from './api';
+import { User, WalletTransaction, DataOrder, Notification, UserFlags, UserStreak } from './types';
 import { identifyUserInOneSignal, logoutOneSignal, requestPushPermission } from './onesignal';
 
 // Screen File imports
@@ -43,6 +43,27 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const sessionIdRef = useRef<string | null>(null);
   const sessionStartRef = useRef<number | null>(null);
+
+  const [userFlags, setUserFlags] = useState<UserFlags | null>(null);
+  const [userStreak, setUserStreak] = useState<number>(0);
+  const [streakReward, setStreakReward] = useState<{ amount: number; day: number } | null>(null);
+  const [doubleCashbackActive, setDoubleCashbackActive] = useState(false);
+  const [doubleCashbackExpires, setDoubleCashbackExpires] = useState<string | null>(null);
+
+  const initEngagement = async () => {
+    const token = localStorage.getItem('gigup_token');
+    if (!token) return;
+    const result = await trackStreak(token);
+    if (result) {
+      setUserStreak(result.streak);
+      setUserFlags(result.flags);
+      setDoubleCashbackActive(result.double_cashback_active);
+      setDoubleCashbackExpires(result.double_cashback_expires_at);
+      if (result.reward_earned > 0) {
+        setStreakReward({ amount: result.reward_earned, day: result.reward_day });
+      }
+    }
+  };
 
   const beginSession = async () => {
     const token = localStorage.getItem('gigup_token');
@@ -178,6 +199,7 @@ export default function App() {
             // Request push for existing users who haven't granted yet
             setTimeout(() => {
               requestPushPermission();
+              initEngagement();
             }, 4000); // longer delay — after splash completes
           }
           localStorage.setItem('gigup_last_activity', now.toString());
@@ -398,6 +420,7 @@ export default function App() {
     // Auto-request push permission on login
     setTimeout(() => {
       requestPushPermission();
+      initEngagement();
     }, 2500); // slight delay so home screen renders first
   };
 
@@ -417,7 +440,8 @@ export default function App() {
     // Auto-request push permission on registration
     setTimeout(() => {
       requestPushPermission();
-    }, 2500);
+      initEngagement();
+    }, 2500); // slight delay so home screen renders first
   };
 
   const handleLogout = async () => {
@@ -557,6 +581,29 @@ export default function App() {
             onTriggerInstall={handlePwaInstall}
             isStandalone={isStandalone}
             unreadNotificationsCount={notifications.length > 0 ? notifications.filter(n => !n.is_read).length : (user?.unread_notifications || 0)}
+            userStreak={userStreak}
+            userFlags={userFlags}
+            doubleCashbackActive={doubleCashbackActive}
+            doubleCashbackExpires={doubleCashbackExpires}
+            onDismissFlag={(action) => {
+              const token = localStorage.getItem('gigup_token');
+              if (token) dismissFlag(token, action);
+              setUserFlags(prev => prev ? { ...prev,
+                welcome_popup_dismissed: action === 'dismiss_welcome' ? true : prev.welcome_popup_dismissed,
+                bonus_dropoff_popup_dismissed: action === 'dismiss_bonus' ? true : prev.bonus_dropoff_popup_dismissed,
+                referral_nudge_popup_dismissed: action === 'dismiss_referral' ? true : prev.referral_nudge_popup_dismissed,
+              } : prev);
+            }}
+            onActivateDoubleCashback={() => {
+              const token = localStorage.getItem('gigup_token');
+              if (token) dismissFlag(token, 'activate_double_cashback');
+              setDoubleCashbackActive(true);
+              const expires = new Date();
+              expires.setHours(expires.getHours() + 24);
+              setDoubleCashbackExpires(expires.toISOString());
+            }}
+            onStreakRewardClose={() => setStreakReward(null)}
+            streakReward={streakReward}
           />
         ) : null;
       case 'buy_data':

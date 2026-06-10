@@ -1,4 +1,4 @@
-import { User, DataPlan, WalletTransaction, DataOrder, Notification as CustomNotification } from './types';
+import { User, DataPlan, WalletTransaction, DataOrder, Notification as CustomNotification, UserStreak, UserFlags, MonthlyReport } from './types';
 
 const API_BASE_URL = 'https://ndcztauwnkycknrbbmix.supabase.co/functions/v1';
 export const BASE_URL = API_BASE_URL;
@@ -200,6 +200,57 @@ export async function endSession(token: string, session_id: string, duration_sec
       body: JSON.stringify({ session_id, duration_seconds }),
     });
   } catch { /* silent */ }
+}
+
+export async function trackStreak(token: string): Promise<{
+  streak: number;
+  reward_earned: number;
+  reward_day: number;
+  streak_record: UserStreak;
+  double_cashback_active: boolean;
+  double_cashback_expires_at: string | null;
+  flags: UserFlags;
+} | null> {
+  try {
+    const res = await fetch(`${BASE_URL}/track-streak`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    });
+    const data = await res.json();
+    return data.success ? data : null;
+  } catch { return null; }
+}
+
+export async function getUserFlags(token: string): Promise<UserFlags | null> {
+  try {
+    const res = await fetch(`${BASE_URL}/user-flags`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'get' }),
+    });
+    const data = await res.json();
+    return data.flags ?? null;
+  } catch { return null; }
+}
+
+export async function dismissFlag(token: string, action: 'dismiss_welcome' | 'dismiss_bonus' | 'dismiss_referral' | 'activate_double_cashback'): Promise<void> {
+  try {
+    await fetch(`${BASE_URL}/user-flags`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action }),
+    });
+  } catch { /* silent */ }
+}
+
+export async function getMonthlyReport(token: string): Promise<MonthlyReport | null> {
+  try {
+    const res = await fetch(`${BASE_URL}/get-monthly-report`, {
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    });
+    const data = await res.json();
+    return data.report ?? null;
+  } catch { return null; }
 }
 
 

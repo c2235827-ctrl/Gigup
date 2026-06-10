@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Wallet as WalletIcon, PlusCircle, History, ArrowDownLeft, ArrowUpRight, CheckCircle, Smartphone, SlidersHorizontal, Sparkles } from 'lucide-react';
-import { ApiService } from '../api';
-import { User, WalletTransaction } from '../types';
+import { Wallet as WalletIcon, PlusCircle, History, ArrowDownLeft, ArrowUpRight, CheckCircle, Smartphone, SlidersHorizontal, Sparkles, ChevronRight, X } from 'lucide-react';
+import { ApiService, getMonthlyReport } from '../api';
+import { User, WalletTransaction, MonthlyReport } from '../types';
 import PullToRefresh from './PullToRefresh';
 import { playSuccessSound, playFailureSound } from '../utils/audio';
 
@@ -28,6 +28,26 @@ export default function Wallet({ user, transactions, onNavigate, onRefreshData, 
   const [accountNumber, setAccountNumber] = useState('');
   const [accountName, setAccountName] = useState('');
   const [withdrawing, setWithdrawing] = useState(false);
+
+  // Monthly Report States
+  const [reportData, setReportData] = useState<MonthlyReport | null>(null);
+  const [showReport, setShowReport] = useState(false);
+  const [isLoadingReport, setIsLoadingReport] = useState(false);
+
+  const handleViewReport = async () => {
+    setIsLoadingReport(true);
+    const token = localStorage.getItem('gigup_token');
+    if (token) {
+        const data = await getMonthlyReport(token);
+        if (data) {
+            setReportData(data);
+            setShowReport(true);
+        } else {
+            showToast('No report available yet.', 'info');
+        }
+    }
+    setIsLoadingReport(false);
+  };
 
   // Quick select chip buttons
   const quickChips = [2000, 3000, 5000, 10000];
@@ -211,6 +231,19 @@ export default function Wallet({ user, transactions, onNavigate, onRefreshData, 
                   <span>Bonus can only be used for data purchases</span>
                 </div>
               )}
+
+              {/* View Monthly Report Button */}
+              <button
+                onClick={handleViewReport}
+                disabled={isLoadingReport}
+                className="w-full mt-3 bg-gradient-to-r from-[#EFF6FF] to-[#E0E7FF] text-[#1E3A8A] font-bold py-3.5 rounded-2xl flex justify-between items-center px-4 active:scale-95 transition disabled:opacity-50"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">📊</span>
+                  <span className="text-sm">{isLoadingReport ? 'Loading Report...' : 'Monthly Savings Report'}</span>
+                </div>
+                <ChevronRight className="w-5 h-5 opacity-70" />
+              </button>
             </div>
 
             <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm space-y-5">
@@ -637,6 +670,75 @@ export default function Wallet({ user, transactions, onNavigate, onRefreshData, 
         </div>
       </div>
     )}
+
+      {/* Monthly Report Modal */}
+      {showReport && reportData && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/60 backdrop-blur-sm sm:justify-center sm:p-5">
+          <div className="bg-white rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 w-full max-w-md mx-auto shadow-2xl animate-in slide-in-from-bottom-full duration-300 relative max-h-[90vh] overflow-y-auto">
+             <button 
+               onClick={() => setShowReport(false)}
+               className="absolute top-5 right-5 bg-gray-100 p-2 rounded-full hover:bg-gray-200 transition"
+             >
+               <X className="w-5 h-5 text-gray-600" />
+             </button>
+             
+             <div className="text-center mb-6 mt-2">
+               <span className="text-4xl inline-block mb-3 bg-blue-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto shadow-inner text-primary-blue">📈</span>
+               <h3 className="text-2xl font-black text-primary-dark">Your {reportData.month} Review</h3>
+               <p className="text-sm font-medium text-text-muted mt-1 uppercase tracking-widest">{reportData.user_name}</p>
+             </div>
+
+             <div className="space-y-3">
+               {/* Impact Card */}
+               <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 p-5 rounded-3xl text-white shadow-lg relative overflow-hidden">
+                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+                 <span className="text-xs font-bold uppercase tracking-widest opacity-80 mb-2 block">Total Value Generated</span>
+                 <div className="flex items-end gap-2 relative z-10">
+                   <h4 className="text-4xl font-black font-mono tracking-tight leading-none">₦{(reportData.cashback_balance + reportData.retail_savings).toLocaleString('en-US', { minimumFractionDigits: 0 })}</h4>
+                 </div>
+                 <p className="text-[10px] mt-2 opacity-90 leading-tight">This month, you successfully reclaimed wholesale profit margins.</p>
+               </div>
+
+               {/* Breakdown Grid */}
+               <div className="grid grid-cols-2 gap-3 mt-2">
+                 <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4">
+                   <span className="text-[10px] uppercase font-bold text-gray-500 mb-1 flex items-center gap-1"><Sparkles className="w-3 h-3 text-amber-500" /> Cashback Earned</span>
+                   <span className="text-lg font-black text-amber-600 font-mono">₦{reportData.total_cashback_earned.toLocaleString('en-US', { minimumFractionDigits: 0 })}</span>
+                 </div>
+                 <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4">
+                   <span className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Retail Savings</span>
+                   <span className="text-lg font-black text-primary-blue font-mono">₦{reportData.retail_savings.toLocaleString('en-US', { minimumFractionDigits: 0 })}</span>
+                 </div>
+               </div>
+
+               {/* Stats Rows */}
+               <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-4 space-y-3 mt-2">
+                 <div className="flex justify-between items-center border-b border-gray-50 pb-2">
+                   <span className="text-xs font-semibold text-gray-600">Total Orders</span>
+                   <span className="text-sm font-black text-primary-dark">{reportData.total_orders} <span className="text-[10px] font-normal text-gray-400">transactions</span></span>
+                 </div>
+                 <div className="flex justify-between items-center border-b border-gray-50 pb-2">
+                   <span className="text-xs font-semibold text-gray-600">Data Spend</span>
+                   <span className="text-sm font-black text-primary-dark font-mono">₦{reportData.total_spent.toLocaleString('en-US')}</span>
+                 </div>
+                 <div className="flex justify-between items-center pb-1">
+                   <span className="text-xs font-semibold text-gray-600">Spending Change</span>
+                   <span className={`text-sm font-black font-mono ${reportData.spending_change > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                     {reportData.spending_change > 0 ? '+' : ''}{reportData.spending_change}%
+                   </span>
+                 </div>
+               </div>
+             </div>
+             
+             <div className="mt-6 border-t border-gray-100 pt-5">
+               <button onClick={() => setShowReport(false)} className="w-full bg-primary-dark hover:bg-slate-800 text-white font-bold py-3.5 rounded-xl shadow-md transition active:scale-95">
+                 Close Report
+               </button>
+             </div>
+          </div>
+        </div>
+      )}
+
     </PullToRefresh>
   );
 }

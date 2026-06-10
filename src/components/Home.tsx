@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Bell, RefreshCw, Plus, History, Signal, Gift, Sparkles, ChevronRight, ArrowUpRight, Smartphone, Compass, AlertTriangle, X, Info, Phone, Mail, Check } from 'lucide-react';
-import { User, DataOrder, DataPlan } from '../types';
+import { User, DataOrder, DataPlan, UserFlags } from '../types';
 import PullToRefresh from './PullToRefresh';
 import { ApiService } from '../api';
 
@@ -13,6 +13,14 @@ interface HomeProps {
   onTriggerInstall?: () => void;
   isStandalone?: boolean;
   unreadNotificationsCount?: number;
+  userStreak: number;
+  userFlags: UserFlags | null;
+  doubleCashbackActive: boolean;
+  doubleCashbackExpires: string | null;
+  onDismissFlag: (action: 'dismiss_welcome' | 'dismiss_bonus' | 'dismiss_referral') => void;
+  onActivateDoubleCashback: () => void;
+  onStreakRewardClose: () => void;
+  streakReward: { amount: number; day: number } | null;
 }
 
 export default function Home({ 
@@ -23,7 +31,15 @@ export default function Home({
   showToast, 
   onTriggerInstall, 
   isStandalone = false,
-  unreadNotificationsCount
+  unreadNotificationsCount,
+  userStreak,
+  userFlags,
+  doubleCashbackActive,
+  doubleCashbackExpires,
+  onDismissFlag,
+  onActivateDoubleCashback,
+  onStreakRewardClose,
+  streakReward
 }: HomeProps) {
   const bonusBalance = user.bonus_balance ?? 0;
   const totalAvailable = (user.wallet_balance || 0) + bonusBalance;
@@ -190,6 +206,16 @@ export default function Home({
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11.5px] font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded-full select-none">
                   🎁 Includes ₦{bonusBalance.toLocaleString('en-US', { minimumFractionDigits: 0 })} welcome bonus
                 </span>
+              </div>
+            )}
+            
+            {userStreak > 0 && (
+              <div className="flex justify-end mt-1">
+                <div className="flex items-center gap-2 bg-gradient-to-r from-orange-50 to-amber-50 px-2 py-1 rounded-full border border-orange-100">
+                  <span className="text-sm shadow-sm opacity-90 drop-shadow">🔥</span>
+                  <span className="text-[11px] font-bold text-orange-600 tracking-tight">{userStreak}-Day Streak</span>
+                  {userStreak >= 7 && <span className="text-[9px] bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full font-black uppercase tracking-widest border border-orange-200/50 shadow-sm">Earning rewards!</span>}
+                </div>
               </div>
             )}
           </div>
@@ -402,6 +428,40 @@ export default function Home({
         </div>
       </div>
 
+      {/* Double Cashback Banner */}
+      {doubleCashbackActive && (
+        <div className="px-5 mt-4 shrink-0 transition-all duration-300">
+          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl p-4 flex items-center justify-between shadow-lg text-white">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl animate-pulse">💸</span>
+              <div className="flex flex-col">
+                <span className="text-xs font-bold uppercase tracking-wider text-purple-200">Flash Event</span>
+                <span className="text-sm font-extrabold">Double Cashback Active!</span>
+                {doubleCashbackExpires && <span className="text-[9px] opacity-80 font-mono mt-0.5">Ends: {new Date(doubleCashbackExpires).toLocaleString()}</span>}
+              </div>
+            </div>
+            <span className="font-mono font-black text-xl text-yellow-300">2X</span>
+          </div>
+        </div>
+      )}
+
+      {/* Savings Calculator Section */}
+      <div className="px-5 mt-6 shrink-0">
+        <h4 className="text-xs font-bold text-text-dark/40 uppercase tracking-widest pl-1 mb-3">How Much Are You Saving?</h4>
+        <div className="bg-white rounded-3xl p-5 border border-emerald-100 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-50 rounded-bl-full pointer-events-none"></div>
+          <div className="flex flex-col relative z-10">
+            <span className="text-[10px] uppercase font-bold text-emerald-600 mb-1">Your Total Savings</span>
+            <span className="text-2xl font-extrabold text-primary-dark font-mono tracking-tight leading-none">
+              ₦{((user.wallet_balance || 0) * 0.15 + (userStreak * 50)).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+            </span>
+            <p className="text-[10px] text-text-muted mt-2 max-w-[85%] leading-relaxed">
+              Calculated based on standard retail prices vs GigUp's wholesale rates plus your current streak bonuses.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Helper notice if pull refresh can be triggered manually */}
       <div className="px-5 mt-4 text-center">
         <button
@@ -504,6 +564,101 @@ export default function Home({
           </div>
         )}
       </div>
+
+      {/* Streak Milestone Popup */}
+      {streakReward && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-[2rem] p-6 w-full max-w-xs shadow-2xl flex flex-col items-center text-center animate-in zoom-in-95 duration-300">
+            <span className="text-5xl mb-4 drop-shadow-md">🏆</span>
+            <h3 className="text-xl font-extrabold text-primary-dark mb-1">Incredible!</h3>
+            <p className="text-sm font-semibold text-orange-600 bg-orange-50 px-3 py-1 rounded-full mb-3">
+              {streakReward.day}-Day Streak Reached!
+            </p>
+            <p className="text-xs text-text-muted mb-6 px-2">
+              Your dedication is paying off. We've added a special reward to your wallet.
+            </p>
+            <div className="bg-emerald-50 border border-emerald-100 text-emerald-700 font-mono font-black text-2xl py-3 px-6 rounded-2xl mb-6">
+              +₦{streakReward.amount}
+            </div>
+            <button
+              onClick={onStreakRewardClose}
+              className="w-full bg-primary-dark text-white font-bold py-3.5 rounded-xl active:scale-95 transition"
+            >
+              Claim Reward
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Welcome Popup */}
+      {userFlags && !userFlags.welcome_popup_dismissed && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-[2rem] p-6 w-full max-w-xs shadow-2xl flex flex-col items-center animate-in zoom-in-95 duration-300 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-100 rounded-bl-full pointer-events-none blur-3xl"></div>
+            <span className="text-5xl mb-4 relative z-10">👋</span>
+            <h3 className="text-xl font-extrabold text-primary-dark mb-2 text-center relative z-10">Welcome to GigUp!</h3>
+            <p className="text-[13px] text-text-muted text-center mb-6 relative z-10 leading-relaxed">
+              We're excited to have you. Explore wholesale data plans, enjoy daily streak bonuses, and turn your gig into a business!
+            </p>
+            <button
+              onClick={() => onDismissFlag('dismiss_welcome')}
+              className="w-full bg-primary-blue hover:bg-blue-600 text-white font-bold py-3.5 rounded-xl active:scale-95 transition relative z-10"
+            >
+              Let's Go!
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Bonus Drop-off Popup */}
+      {userFlags && !userFlags.bonus_dropoff_popup_dismissed && bonusBalance > 0 && totalAvailable < 1500 && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/60 backdrop-blur-sm">
+           <div className="bg-white rounded-[2rem] p-6 w-full max-w-xs shadow-2xl flex flex-col items-center text-center animate-in zoom-in-95 duration-300">
+             <span className="text-5xl mb-4">⏳</span>
+             <h3 className="text-xl font-extrabold text-primary-dark mb-2">Claim Your First 1GB!</h3>
+             <p className="text-[13px] text-text-muted mb-5 leading-relaxed">
+               You have <strong className="text-amber-600">₦{bonusBalance}</strong> in waiting. Top up your wallet to activate it and purchase your first heavily-discounted data package!
+             </p>
+             <button
+               onClick={() => { onDismissFlag('dismiss_bonus'); onNavigate('wallet'); }}
+               className="w-full bg-amber-500 hover:bg-amber-600 shadow-lg shadow-amber-500/20 text-white font-bold py-3.5 rounded-xl active:scale-95 transition mb-3"
+             >
+               Top Up Now
+             </button>
+             <button
+               onClick={() => onDismissFlag('dismiss_bonus')}
+               className="text-xs font-semibold text-text-muted/60 underline uppercase tracking-widest pt-1"
+             >
+               Maybe Later
+             </button>
+           </div>
+         </div>
+      )}
+
+      {/* Referral Nudge Popup */}
+      {userFlags && userFlags.referral_nudge_sent && !userFlags.referral_nudge_popup_dismissed && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/60 backdrop-blur-sm">
+           <div className="bg-white rounded-[2rem] p-6 w-full max-w-xs shadow-2xl flex flex-col items-center text-center animate-in zoom-in-95 duration-300">
+             <span className="text-5xl mb-4">🤝</span>
+             <h3 className="text-xl font-extrabold text-primary-dark mb-2">Invite & Earn!</h3>
+             <p className="text-[13px] text-text-muted mb-5 leading-relaxed">
+               Did you know? You can earn up to <strong className="text-primary-blue font-bold">₦1,000</strong> for every friend you refer to GigUp. Tap on the Account screen to get your link.
+             </p>
+             <button
+               onClick={() => { onDismissFlag('dismiss_referral'); onNavigate('account'); }}
+               className="w-full bg-primary-dark hover:bg-slate-800 shadow-xl text-white font-bold py-3.5 rounded-xl active:scale-95 transition mb-3"
+             >
+               View My Link
+             </button>
+             <button
+               onClick={() => onDismissFlag('dismiss_referral')}
+               className="text-xs font-semibold text-text-muted/60 underline uppercase tracking-widest pt-1"
+             >
+               Dismiss
+             </button>
+           </div>
+         </div>
+      )}
 
     </PullToRefresh>
   );
