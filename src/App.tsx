@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Home as HomeIcon, Signal, Wallet as WalletIcon, User as UserIcon, AlertCircle, Download, Smartphone, Share, Bell, X } from 'lucide-react';
+import { Home as HomeIcon, Signal, Wallet as WalletIcon, User as UserIcon, AlertCircle, Download, Smartphone, Share, Bell, X, Gift } from 'lucide-react';
 import { ApiService, subscribeToUserNotifications, startSession, endSession, BASE_URL, trackStreak, getUserFlags, dismissFlag } from './api';
 import { User, WalletTransaction, DataOrder, Notification, UserFlags, UserStreak } from './types';
 import { identifyUserInOneSignal, logoutOneSignal, requestPushPermission } from './onesignal';
@@ -17,6 +17,7 @@ import Account from './components/Account';
 import Notifications from './components/Notifications';
 import TopupCallback from './components/TopupCallback';
 import ReceiptView from './components/ReceiptView';
+import CheckinScreen from './components/CheckinScreen';
 
 interface ToastState {
   message: string;
@@ -637,6 +638,8 @@ export default function App() {
             showToast={showToast} 
           />
         ) : null;
+      case 'checkin':
+        return user ? <CheckinScreen user={user} showToast={showToast} onNavigate={handleOnscreenNavigation} /> : null;
       case 'wallet':
         return user ? (
           <Wallet 
@@ -722,7 +725,7 @@ export default function App() {
   // Determine if we should show the bottom phone navigation bar
   const shouldShowBottomNavigation = 
     !!user && 
-    ['home', 'buy_data', 'wallet', 'account', 'wallet_history'].includes(currentScreen);
+    ['home', 'buy_data', 'checkin', 'wallet', 'account', 'wallet_history'].includes(currentScreen);
 
   return (
     <div className="app-container">
@@ -771,7 +774,18 @@ export default function App() {
               <span className="text-[9px] font-bold mt-0.5">Buy Data</span>
             </button>
 
-            {/* Tab 3: Wallet */}
+            {/* Tab 3: Rewards (Checkin) */}
+            <button
+              onClick={() => handleOnscreenNavigation('checkin')}
+              className={`flex flex-col items-center justify-center w-12 h-12 rounded-full cursor-pointer transition ${
+                currentScreen === 'checkin' ? 'text-primary-blue bg-primary-blue/5' : 'text-primary-dark/65 hover:text-primary-dark'
+              }`}
+            >
+              <Gift className="w-[21px] h-[21px]" />
+              <span className="text-[9px] font-bold mt-0.5">Rewards</span>
+            </button>
+
+            {/* Tab 4: Wallet */}
             <button
               onClick={() => handleOnscreenNavigation('wallet')}
               className={`flex flex-col items-center justify-center w-12 h-12 rounded-full cursor-pointer transition ${
@@ -782,7 +796,7 @@ export default function App() {
               <span className="text-[9px] font-bold mt-0.5">Wallet</span>
             </button>
 
-            {/* Tab 4: Account */}
+            {/* Tab 5: Account */}
             <button
               onClick={() => handleOnscreenNavigation('account')}
               className={`flex flex-col items-center justify-center w-12 h-12 rounded-full cursor-pointer transition ${

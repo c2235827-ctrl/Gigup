@@ -1,4 +1,4 @@
-import { User, DataPlan, WalletTransaction, DataOrder, Notification as CustomNotification, UserStreak, UserFlags, MonthlyReport } from './types';
+import { User, DataPlan, WalletTransaction, DataOrder, Notification as CustomNotification, UserStreak, UserFlags, MonthlyReport, CheckinStatus } from './types';
 
 const API_BASE_URL = 'https://ndcztauwnkycknrbbmix.supabase.co/functions/v1';
 export const BASE_URL = API_BASE_URL;
@@ -253,6 +253,40 @@ export async function getMonthlyReport(token: string): Promise<MonthlyReport | n
     });
     const data = await res.json();
     return data.report ?? null;
+  } catch { return null; }
+}
+
+export async function getCheckinStatus(token: string): Promise<CheckinStatus | null> {
+  try {
+    const res = await fetch(`${BASE_URL}/checkin`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'get_status' }),
+    });
+    const data = await res.json();
+    return data.success ? data : null;
+  } catch { return null; }
+}
+
+export async function doCheckin(token: string): Promise<any | null> {
+  try {
+    const res = await fetch(`${BASE_URL}/checkin`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'checkin' }),
+    });
+    return await res.json();
+  } catch { return null; }
+}
+
+export async function redeemVoucher(token: string, points: number): Promise<any | null> {
+  try {
+    const res = await fetch(`${BASE_URL}/checkin`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'redeem', points }),
+    });
+    return await res.json();
   } catch { return null; }
 }
 

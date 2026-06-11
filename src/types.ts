@@ -93,3 +93,37 @@ export interface MonthlyReport {
   last_month_cashback: number;
   spending_change: number;
 }
+
+export interface CheckinDay {
+  day: string;
+  date: string;
+  is_today: boolean;
+  is_friday: boolean;
+  checked_in: boolean;
+}
+
+export interface UserPoints {
+  total_points: number;
+  cycle_points: number;
+  checkin_count_this_cycle: number;
+  last_checkin_date: string | null;
+}
+
+export interface Voucher {
+  id: string;
+  naira_value: number;
+  points_spent: number;
+  status: string;
+  expires_at: string;
+}
+
+export interface CheckinStatus {
+  points: UserPoints;
+  vouchers: Voucher[];
+  cycle: {
+    days: CheckinDay[];
+    cycle_ends_in_days: number;
+    checked_in_count: number;
+  };
+  already_checked_in_today: boolean;
+}

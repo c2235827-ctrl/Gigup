@@ -634,10 +634,10 @@ export default function Home({
         </div>
       )}
 
-      {/* ═══ POPUP 4: WELCOME (only if wallet_balance is 0) ═══ */}
+      {/* ═══ POPUP 4: WELCOME (only if wallet_balance is <= 500) ═══ */}
       {userFlags !== null &&
        !userFlags.welcome_popup_dismissed &&
-       Number(user.wallet_balance || 0) === 0 && (
+       Number(user.wallet_balance || 0) <= 500 && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center p-4">
           <motion.div
             initial={{ y: 300, opacity: 0 }}
