@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Star, Gift, RefreshCw } from 'lucide-react';
+import { Star, Gift, RefreshCw, CheckCircle, Ticket, Trophy, Clock, Flame, Info, Check } from 'lucide-react';
 import { getCheckinStatus, doCheckin, redeemVoucher } from '../api';
 import { CheckinStatus, CheckinDay } from '../types';
 
@@ -44,7 +44,7 @@ export default function CheckinScreen({ user, showToast, onNavigate }: CheckinSc
     const result = await doCheckin(token);
     if (result?.checkin_result?.success) {
       setCheckinSuccess(true);
-      showToast('✅ Checked in! +10 points earned', 'success');
+      showToast('Checked in! +10 points earned', 'success');
       await load();
       setTimeout(() => setCheckinSuccess(false), 3000);
     } else if (result?.checkin_result?.already_checked_in) {
@@ -59,7 +59,7 @@ export default function CheckinScreen({ user, showToast, onNavigate }: CheckinSc
     setIsRedeeming(true);
     const result = await redeemVoucher(token, points);
     if (result?.success) {
-      showToast(`🎁 Voucher claimed! ₦${result.voucher_value} discount ready`, 'success');
+      showToast(`Voucher claimed! ₦${result.voucher_value} discount ready`, 'success');
       setShowRedeemModal(false);
       await load();
     } else {
@@ -88,7 +88,10 @@ export default function CheckinScreen({ user, showToast, onNavigate }: CheckinSc
       {/* Header */}
       <div className="bg-gradient-to-br from-emerald-400 to-teal-500 px-5 pt-12 pb-8 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-        <h1 className="text-white font-black text-xl mb-1">🎁 Daily Rewards</h1>
+        <div className="flex items-center gap-2 mb-1">
+          <Gift className="w-6 h-6 text-white" />
+          <h1 className="text-white font-black text-xl">Daily Rewards</h1>
+        </div>
         <p className="text-emerald-100 text-sm">Check in every day, earn points, get discounts!</p>
         <div className="mt-4 bg-white/20 rounded-2xl p-4 flex items-center justify-between">
           <div>
@@ -111,7 +114,7 @@ export default function CheckinScreen({ user, showToast, onNavigate }: CheckinSc
             animate={{ scale: 1, opacity: 1 }}
             className="bg-green-50 border border-green-200 rounded-2xl p-4 text-center"
           >
-            <p className="text-2xl mb-1">✅</p>
+            <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-1" />
             <p className="font-black text-green-700">Checked in! +10 points</p>
           </motion.div>
         )}
@@ -199,13 +202,19 @@ export default function CheckinScreen({ user, showToast, onNavigate }: CheckinSc
             whileTap={{ scale: 0.97 }}
             onClick={handleCheckin}
             disabled={isCheckingIn || alreadyCheckedIn}
-            className={`w-full mt-5 py-4 font-black text-base rounded-2xl transition-all cursor-pointer ${
+            className={`w-full mt-5 py-4 font-black flex items-center justify-center gap-2 text-base rounded-2xl transition-all cursor-pointer ${
               alreadyCheckedIn
                 ? 'bg-slate-100 text-slate-400'
                 : 'bg-gradient-to-r from-teal-400 to-emerald-500 text-white shadow-lg shadow-teal-200'
             }`}
           >
-            {isCheckingIn ? '⏳ Checking in...' : alreadyCheckedIn ? '✅ Checked in today!' : '✅ Check-in Now'}
+            {isCheckingIn ? (
+              <><Clock className="w-5 h-5 animate-pulse" /> Checking in...</>
+            ) : alreadyCheckedIn ? (
+              <><CheckCircle className="w-5 h-5" /> Checked in today!</>
+            ) : (
+               <><Check className="w-5 h-5" /> Check-in Now</>
+            )}
           </motion.button>
 
           {/* How to earn more */}
@@ -227,7 +236,9 @@ export default function CheckinScreen({ user, showToast, onNavigate }: CheckinSc
         {/* Active Vouchers */}
         {activeVouchers.length > 0 && (
           <div>
-            <h3 className="text-sm font-black text-slate-900 mb-3">🎟️ Your Vouchers</h3>
+            <h3 className="text-sm font-black text-slate-900 mb-3 flex items-center gap-1">
+              <Ticket className="w-4 h-4 text-emerald-600" /> Your Vouchers
+            </h3>
             <div className="space-y-3">
               {activeVouchers.map((v: any) => (
                 <div key={v.id} className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-2xl p-4 flex items-center justify-between">
@@ -255,7 +266,9 @@ export default function CheckinScreen({ user, showToast, onNavigate }: CheckinSc
         {/* Redeem Points */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-black text-slate-900">🎁 Redeem Points</h3>
+            <h3 className="font-black text-slate-900 flex items-center gap-1.5">
+              <Trophy className="w-5 h-5 text-teal-600" /> Redeem Points
+            </h3>
             <span className="text-sm font-black text-teal-600">{totalPoints} pts available</span>
           </div>
           <div className="space-y-2">
@@ -284,10 +297,11 @@ export default function CheckinScreen({ user, showToast, onNavigate }: CheckinSc
         </div>
 
         {/* Points history note */}
-        <div className="bg-primary-dark rounded-2xl p-4 text-center">
+        <div className="bg-primary-dark rounded-2xl p-4 text-center flex flex-col items-center">
+          <Info className="w-5 h-5 text-slate-400 mb-2" />
           <p className="text-white/80 text-xs leading-relaxed">
-            💡 Complete 7-day check-in cycle to earn a <strong className="text-amber-400">Friday Freebie bonus</strong>!
-            Buy data daily for extra points. Refer friends for 50 pts each! 🔥
+            Complete 7-day check-in cycle to earn a <strong className="text-amber-400">Friday Freebie bonus</strong>!
+            Buy data daily for extra points. Refer friends for 50 pts each! 
           </p>
         </div>
 

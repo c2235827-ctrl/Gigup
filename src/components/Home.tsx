@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Bell, RefreshCw, Plus, History, Signal, Gift, Sparkles, ChevronRight, ArrowUpRight, Smartphone, Compass, AlertTriangle, X, Info, Phone, Mail, Check } from 'lucide-react';
+import { Bell, RefreshCw, Plus, History, Signal, Gift, Sparkles, ChevronRight, ArrowUpRight, Smartphone, Compass, AlertTriangle, X, Info, Phone, Mail, Check, Wallet as WalletIcon } from 'lucide-react';
 import { User, DataOrder, DataPlan, UserFlags } from '../types';
 import PullToRefresh from './PullToRefresh';
 import { ApiService } from '../api';
@@ -646,7 +646,7 @@ export default function Home({
             className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl mb-2"
           >
             <div className="flex justify-between items-start mb-4">
-              <span className="text-3xl">🎁</span>
+              <Gift className="w-8 h-8 text-blue-600" />
               <button
                 onClick={() => onDismissFlag('dismiss_welcome')}
                 className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-lg cursor-pointer"
@@ -654,7 +654,7 @@ export default function Home({
                 ✕
               </button>
             </div>
-            <h3 className="text-lg font-black text-slate-900 mb-2">Welcome to GigUp! 🛰️</h3>
+            <h3 className="text-lg font-black text-slate-900 mb-2">Welcome to GigUp!</h3>
             <p className="text-sm text-slate-600 mb-3">
               You have <strong className="text-blue-600">₦{Number(user.bonus_balance || 0).toLocaleString()} bonus</strong> ready to use!
               Fund with <strong>₦2,000</strong> and get <strong>1GB FREE data</strong> on top.
@@ -666,9 +666,9 @@ export default function Home({
             </div>
             <button
               onClick={() => { onDismissFlag('dismiss_welcome'); onNavigate('wallet'); }}
-              className="w-full py-3.5 bg-blue-600 text-white font-bold rounded-2xl text-sm mb-2 cursor-pointer"
+              className="w-full py-3.5 bg-blue-600 text-white font-bold rounded-2xl text-sm flex items-center justify-center gap-2 mb-2 cursor-pointer"
             >
-              Fund Wallet Now 💳
+              <WalletIcon className="w-4 h-4" /> Fund Wallet Now
             </button>
             <button
               onClick={() => onDismissFlag('dismiss_welcome')}

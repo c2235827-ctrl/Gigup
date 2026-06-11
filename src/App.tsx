@@ -60,13 +60,16 @@ export default function App() {
     const result = await trackStreak(token);
     if (result) {
       setUserStreak(result.streak ?? 0);
-      setUserFlags(result.flags || {
-        welcome_popup_dismissed: false,
-        bonus_dropoff_popup_dismissed: false,
-        referral_nudge_popup_dismissed: false,
-        double_cashback_active: false,
-        double_cashback_expires_at: null,
-        referral_nudge_sent: false
+      setUserFlags({
+        ...(result.flags || {
+          welcome_popup_dismissed: false,
+          bonus_dropoff_popup_dismissed: false,
+          referral_nudge_popup_dismissed: false,
+          double_cashback_active: false,
+          double_cashback_expires_at: null,
+          referral_nudge_sent: false
+        }),
+        welcome_popup_dismissed: false // Always reset per session
       });
       setDoubleCashbackActive(result.double_cashback_active);
       setDoubleCashbackExpires(result.double_cashback_expires_at);
@@ -605,7 +608,7 @@ export default function App() {
             doubleCashbackExpires={doubleCashbackExpires}
             onDismissFlag={(action) => {
               const token = localStorage.getItem('gigup_token');
-              if (token) dismissFlag(token, action);
+              if (token && action !== 'dismiss_welcome') dismissFlag(token, action);
               setUserFlags(prev => prev ? { ...prev,
                 welcome_popup_dismissed: action === 'dismiss_welcome' ? true : prev.welcome_popup_dismissed,
                 bonus_dropoff_popup_dismissed: action === 'dismiss_bonus' ? true : prev.bonus_dropoff_popup_dismissed,
