@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Home as HomeIcon, Signal, Wallet as WalletIcon, User as UserIcon, AlertCircle, Download, Smartphone, Share, Bell, X, Gift } from 'lucide-react';
+import { Analytics } from '@vercel/analytics/react';
 import { ApiService, subscribeToUserNotifications, startSession, endSession, BASE_URL, trackStreak, getUserFlags, dismissFlag } from './api';
 import { User, WalletTransaction, DataOrder, Notification, UserFlags, UserStreak } from './types';
 import { identifyUserInOneSignal, logoutOneSignal, requestPushPermission } from './onesignal';
@@ -961,6 +962,7 @@ export default function App() {
 
 
       </div>
+      <Analytics />
     </div>
   );
 }
