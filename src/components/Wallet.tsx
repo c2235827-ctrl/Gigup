@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Wallet as WalletIcon, PlusCircle, History, ArrowDownLeft, ArrowUpRight, CheckCircle, Smartphone, SlidersHorizontal, Sparkles, ChevronRight, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Wallet as WalletIcon, PlusCircle, History, ArrowDownLeft, ArrowUpRight, CheckCircle, Smartphone, SlidersHorizontal, Sparkles, ChevronRight, X, Zap } from 'lucide-react';
 import { ApiService, getMonthlyReport } from '../api';
 import { User, WalletTransaction, MonthlyReport } from '../types';
 import PullToRefresh from './PullToRefresh';
@@ -15,9 +15,39 @@ interface WalletProps {
 }
 
 export default function Wallet({ user, transactions, onNavigate, onRefreshData, showToast, initialTab = 'topup' }: WalletProps) {
+  const isFirstTopup = user.first_topup_done === false;
+  const minTopupValue = user.min_topup ?? (isFirstTopup ? 1000 : 2000);
+  
   const [activeSubTab, setActiveSubTab] = useState<'topup' | 'history'>(initialTab);
-  const [amount, setAmount] = useState<string>('2000');
+  const [amount, setAmount] = useState<string>(minTopupValue.toString());
   const [loadingTopup, setLoadingTopup] = useState(false);
+  const [countdown, setCountdown] = useState<string>('');
+
+  useEffect(() => {
+    if (!user.double_cashback_active || !user.double_cashback_expires_at) return;
+    
+    const expiresAt = new Date(user.double_cashback_expires_at).getTime();
+    
+    const updateCountdown = () => {
+      const now = Date.now();
+      const diff = expiresAt - now;
+      if (diff <= 0) {
+        setCountdown('');
+        return;
+      }
+      
+      const hh = Math.floor((diff / (1000 * 60 * 60)) % 24).toString().padStart(2, '0');
+      const mm = Math.floor((diff / 1000 / 60) % 60).toString().padStart(2, '0');
+      const ss = Math.floor((diff / 1000) % 60).toString().padStart(2, '0');
+      setCountdown(`${hh}:${mm}:${ss}`);
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, [user.double_cashback_active, user.double_cashback_expires_at]);
+
+
   
   // Transaction Filter State
   const [filterType, setFilterType] = useState<'all' | 'cashback' | 'topups' | 'purchases' | 'withdrawals'>('all');
@@ -50,7 +80,7 @@ export default function Wallet({ user, transactions, onNavigate, onRefreshData, 
   };
 
   // Quick select chip buttons
-  const quickChips = [2000, 3000, 5000, 10000];
+  const quickChips = isFirstTopup ? [1000, 2000, 5000, 10000] : [2000, 3000, 5000, 10000];
 
   const handleAmountInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawVal = e.target.value.replace(/\D/g, '');
@@ -59,8 +89,8 @@ export default function Wallet({ user, transactions, onNavigate, onRefreshData, 
 
   const handleTopup = async () => {
     const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount) || parsedAmount < 2000) {
-      showToast('Minimum wallet top-up is ₦2,000', 'error');
+    if (isNaN(parsedAmount) || parsedAmount < minTopupValue) {
+      showToast(isFirstTopup ? `Minimum is ₦${minTopupValue.toLocaleString()} for your first top-up` : `Minimum top-up is ₦${minTopupValue.toLocaleString()}`, 'error');
       return;
     }
 
@@ -112,6 +142,15 @@ export default function Wallet({ user, transactions, onNavigate, onRefreshData, 
 
   return (
     <PullToRefresh onRefresh={onRefreshData} className="bg-bg-light pb-8">
+      {countdown && (
+        <div className="bg-orange-500 text-white px-4 py-3 flex items-center gap-2 justify-center shadow-sm">
+          <Zap className="w-4 h-4 fill-white" />
+          <p className="text-xs font-bold text-center">
+            Double Cashback Active! Earn 20% on data. Ends in <span className="font-mono text-sm ml-1 bg-white/20 px-1.5 rounded">{countdown}</span>
+          </p>
+        </div>
+      )}
+
       {!user.signup_bonus_claimed && (
         <div className="px-5 pt-5">
           <div style={{
@@ -247,10 +286,18 @@ export default function Wallet({ user, transactions, onNavigate, onRefreshData, 
             </div>
 
             <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm space-y-5">
+            {isFirstTopup && (
+              <div className="bg-orange-50 border border-orange-200 rounded-2xl p-3">
+                <p className="text-xs text-orange-800 font-medium">
+                  🎉 <strong className="font-bold">First-time offer!</strong> Fund with as little as <strong className="font-bold">₦1,000</strong> and unlock <strong className="font-bold">Double Cashback (20%)</strong> for 24 hours!
+                </p>
+              </div>
+            )}
+
             <div className="space-y-1.5 px-1">
               <h5 className="text-xs font-bold text-primary-dark uppercase">Fund Ledger Balance</h5>
               <p className="text-[11px] text-text-muted leading-tight">
-                Deposit minimum ₦2,000 using Nigerian Debit Cards, USSD strings, or Bank Transfers.
+                Deposit minimum ₦{minTopupValue.toLocaleString()} using Nigerian Debit Cards, USSD strings, or Bank Transfers.
               </p>
             </div>
 
@@ -268,15 +315,15 @@ export default function Wallet({ user, transactions, onNavigate, onRefreshData, 
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
-                  placeholder="2,000"
+                  placeholder={minTopupValue.toLocaleString()}
                   value={amount}
                   onChange={handleAmountInput}
                   className="w-full bg-bg-light border border-gray-200 text-primary-dark font-mono font-extrabold rounded-2xl pl-9 pr-4 py-3.5 text-lg placeholder-gray-400 focus:bg-white focus:border-primary-blue focus:outline-none transition-all"
                 />
               </div>
-              {amount !== '' && parseFloat(amount) < 2000 && (
+              {amount !== '' && parseFloat(amount) < minTopupValue && (
                 <p className="text-[10px] text-brand-danger font-semibold px-1">
-                  ⚠️ Minimum wallet funding amount is ₦2,000
+                  ⚠️ {isFirstTopup ? "Minimum is ₦1,000 for your first top-up" : "Minimum top-up is ₦2,000"}
                 </p>
               )}
             </div>

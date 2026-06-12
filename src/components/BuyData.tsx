@@ -338,7 +338,7 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
           <div className="flex justify-between items-center px-1">
             <h5 className="text-xs font-bold text-text-dark/40 uppercase tracking-widest">Select {activeNetwork} Plan</h5>
             <span className="text-[11px] text-brand-cashback font-bold flex items-center gap-1 animate-pulse">
-              <Sparkles className="w-3.5 h-3.5" /> 10% Cash Reward on Checked Plan
+              <Sparkles className="w-3.5 h-3.5" /> {user.double_cashback_active ? '20%' : '10%'} Cash Reward on Checked Plan
             </span>
           </div>
 
@@ -351,7 +351,8 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
             <div className="space-y-2.5">
               {plans.map((plan) => {
                 const isSelected = selectedPlan?.id === plan.id;
-                const cashbackVal = Math.round(plan.price * 0.10);
+                const cashbackMultiplier = user.double_cashback_active ? 0.20 : 0.10;
+                const cashbackVal = Math.round(plan.price * cashbackMultiplier);
                 return (
                   <div
                     key={plan.id}

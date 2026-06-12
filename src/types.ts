@@ -20,6 +20,10 @@ export interface User {
   created_at?: string;
   ntfy_topic?: string;
   bonus_balance: number;
+  first_topup_done?: boolean;
+  min_topup?: number;
+  double_cashback_active?: boolean;
+  double_cashback_expires_at?: string | null;
 }
 
 export interface DataPlan {

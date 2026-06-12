@@ -428,7 +428,7 @@ export default function Home({
             </span>
             <h4 className="text-xs sm:text-sm font-extrabold leading-tight">🎁 New here? Fund your wallet to get FREE 1GB data!</h4>
             <p className="text-[10px] text-white/80 leading-snug">
-              Plus earn 10% cashback on every purchase.
+              {doubleCashbackActive ? "Plus earn 20% double cashback on every purchase." : "Plus earn 10% cashback on every purchase."}
             </p>
           </div>
 
