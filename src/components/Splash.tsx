@@ -10,7 +10,7 @@ export default function Splash({ onComplete }: SplashProps) {
 
   useEffect(() => {
     const startTime = Date.now();
-    const duration = 25000; // 25 seconds
+    const duration = 3000; // 3 seconds
 
     const interval = setInterval(() => {
       const elapsed = Date.now() - startTime;

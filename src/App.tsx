@@ -176,6 +176,11 @@ export default function App() {
     const amount = params.get('amount') || '';
     const currentPath = window.location.pathname;
 
+    const paymentStarted = sessionStorage.getItem('gigup_payment_started') === 'true';
+    if (paymentStarted) {
+      sessionStorage.removeItem('gigup_payment_started');
+    }
+
     if (txRef || currentPath.includes('/topup/callback')) {
       setCallbackParams({
         txRef: txRef || 'gigup-topup-manual',
@@ -190,7 +195,7 @@ export default function App() {
         window.history.replaceState(null, '', window.location.pathname);
       }
       
-      const shouldSkipSplash = status === 'cancelled' || status === 'canceled';
+      const shouldSkipSplash = status === 'cancelled' || status === 'canceled' || paymentStarted;
       setCurrentScreen(shouldSkipSplash ? 'home' : 'splash');
       
       if (ApiService.isLoggedIn()) {
@@ -558,7 +563,7 @@ export default function App() {
         return (
           <Splash 
             onComplete={() => {
-              setCurrentScreen('login');
+              setCurrentScreen(user ? 'home' : 'login');
             }} 
           />
         );

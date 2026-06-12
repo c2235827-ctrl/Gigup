@@ -105,6 +105,7 @@ export default function Wallet({ user, transactions, onNavigate, onRefreshData, 
         
         // Escape iframe sandbox if inside an iframe to prevent X-Frame-Options: SAMEORIGIN block
         const isIframe = window.self !== window.top;
+        sessionStorage.setItem('gigup_payment_started', 'true');
         if (isIframe) {
           showToast('Top-Up initiated. Opening secure payment portal in a new tab...', 'success');
           const newTab = window.open(res.payment_link, '_blank');
