@@ -109,7 +109,24 @@ export default function App() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   // Navigation states
-  const [currentScreen, setCurrentScreen] = useState<string>('splash');
+  const [currentScreen, setCurrentScreen] = useState<string>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const txRef = params.get('tx_ref');
+    const status = params.get('status');
+    const paymentStarted = sessionStorage.getItem('gigup_payment_started') === 'true';
+    const currentPath = window.location.pathname;
+
+    if (txRef || currentPath.includes('/topup/callback')) {
+      return 'callback';
+    }
+
+    if (status === 'cancelled' || status === 'canceled' || paymentStarted) {
+      const token = localStorage.getItem('gigup_token');
+      return (token && token.length > 0) ? 'home' : 'login';
+    }
+
+    return 'splash';
+  });
   const [extraNavigationParams, setExtraNavigationParams] = useState<any>(null);
   const [callbackParams, setCallbackParams] = useState<{ txRef: string; amount: string } | null>(null);
 
@@ -210,7 +227,7 @@ export default function App() {
           localStorage.removeItem('gigup_last_activity');
           setTimeout(() => {
             showToast('Session expired: Auto-logged out after 3 minutes 🔒', 'info');
-          }, shouldSkipSplash ? 10 : 3200); // Dispense toast
+          }, shouldSkipSplash ? 10 : 20200); // Dispense toast
           setCurrentScreen('login');
         } else {
           const cached = ApiService.getCachedUser();
@@ -222,7 +239,7 @@ export default function App() {
             // Request push for existing users who haven't granted yet
             setTimeout(() => {
               requestPushPermission();
-            }, shouldSkipSplash ? 500 : 4000); 
+            }, shouldSkipSplash ? 500 : 21000); 
           } else {
             setCurrentScreen('login');
           }
