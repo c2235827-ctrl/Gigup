@@ -15,7 +15,7 @@ interface WalletProps {
 }
 
 export default function Wallet({ user, transactions, onNavigate, onRefreshData, showToast, initialTab = 'topup' }: WalletProps) {
-  const isFirstTopup = user.first_topup_done === false;
+  const isFirstTopup = user.first_topup_done === false || user.min_topup === 1000 || (user.first_topup_done === undefined && (user.wallet_balance || 0) === 0);
   const minTopupValue = user.min_topup ?? (isFirstTopup ? 1000 : 2000);
   
   const [activeSubTab, setActiveSubTab] = useState<'topup' | 'history'>(initialTab);
@@ -364,7 +364,7 @@ export default function Wallet({ user, transactions, onNavigate, onRefreshData, 
             <button
               id="wallet-top-up-submit"
               onClick={handleTopup}
-              disabled={loadingTopup || amount === '' || parseFloat(amount) < 2000}
+              disabled={loadingTopup || amount === '' || parseFloat(amount) < minTopupValue}
               className="w-full bg-primary-blue hover:bg-primary-blue/90 disabled:bg-primary-blue/40 text-white rounded-full py-4 text-xs font-bold tracking-wider shadow-lg shadow-primary-blue/15 transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
             >
               {loadingTopup ? (

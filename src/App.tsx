@@ -144,20 +144,6 @@ export default function App() {
           console.warn('[PWA] Service Worker registration failed:', err);
         });
       });
-
-      // Track if the page was already controlled when loaded to avoid reload loops during initial activation/claiming
-      const wasControlled = !!navigator.serviceWorker.controller;
-      let refreshing = false;
-
-      // When new SW takes control, reload the page
-      const handleControllerChange = () => {
-        if (refreshing) return;
-        if (wasControlled) {
-          refreshing = true;
-          window.location.reload();
-        }
-      };
-      navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
     }
 
     // Capture standard PWA installation trigger
@@ -186,6 +172,7 @@ export default function App() {
     // Capture Flutterwave payment processor callback parameter matches
     const params = new URLSearchParams(window.location.search);
     const txRef = params.get('tx_ref');
+    const status = params.get('status');
     const amount = params.get('amount') || '';
     const currentPath = window.location.pathname;
 
@@ -194,10 +181,18 @@ export default function App() {
         txRef: txRef || 'gigup-topup-manual',
         amount
       });
+      // clear URL cleanly
+      window.history.replaceState(null, '', window.location.pathname);
       setCurrentScreen('callback');
     } else {
-      // Check auth and let splash handle transition
-      setCurrentScreen('splash');
+      // If we returned from a cancelled payment checkout, skip the splash screen
+      if (status === 'cancelled' || status === 'canceled') {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+      
+      const shouldSkipSplash = status === 'cancelled' || status === 'canceled';
+      setCurrentScreen(shouldSkipSplash ? 'home' : 'splash');
+      
       if (ApiService.isLoggedIn()) {
         const lastActivity = localStorage.getItem('gigup_last_activity');
         const now = Date.now();
@@ -210,7 +205,8 @@ export default function App() {
           localStorage.removeItem('gigup_last_activity');
           setTimeout(() => {
             showToast('Session expired: Auto-logged out after 3 minutes 🔒', 'info');
-          }, 3200); // Dispense toast after splash completes
+          }, shouldSkipSplash ? 10 : 3200); // Dispense toast
+          setCurrentScreen('login');
         } else {
           const cached = ApiService.getCachedUser();
           if (cached) {
@@ -221,7 +217,9 @@ export default function App() {
             // Request push for existing users who haven't granted yet
             setTimeout(() => {
               requestPushPermission();
-            }, 4000); // longer delay — after splash completes
+            }, shouldSkipSplash ? 500 : 4000); 
+          } else {
+            setCurrentScreen('login');
           }
           localStorage.setItem('gigup_last_activity', now.toString());
           // Refresh profile in background
@@ -231,7 +229,12 @@ export default function App() {
               // Token expired — logout
               ApiService.logout();
               setUser(null);
+              setCurrentScreen('login');
             });
+        }
+      } else {
+        if (shouldSkipSplash) {
+             setCurrentScreen('login');
         }
       }
     }
