@@ -253,9 +253,25 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
 
   const hasBalance = selectedPlan ? (user.wallet_balance + (user.bonus_balance ?? 0)) >= selectedPlan.price : true;
 
+  const showWelcomeVoucher = (user.bonus_balance && user.bonus_balance > 0) || (user.welcome_voucher_activated_at && !user.welcome_voucher_expired);
+
   return (
     <div className="flex flex-col h-full bg-bg-light relative select-none">
       
+      {showWelcomeVoucher && (
+        <div className="bg-gradient-to-r from-amber-50 to-yellow-50 px-5 py-4 border-b border-amber-200 text-amber-900 shadow-sm shrink-0">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-black text-sm mb-0.5">🎟️ Welcome Voucher Active</p>
+              <p className="text-[10px] text-amber-700 font-medium">Enjoy up to ₦{(user.bonus_balance || 0).toLocaleString()} discount on data purchases.</p>
+            </div>
+            <div className="bg-amber-400 text-white font-black text-xs px-2 py-1 rounded-lg shadow-sm">
+              60% OFF
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Network Select Tabs */}
       <div className="bg-primary-dark pt-5 pb-5 px-5 text-white shrink-0">
         <h4 className="text-xs font-bold text-white/50 uppercase tracking-widest mb-3 pl-1">Network Selector</h4>

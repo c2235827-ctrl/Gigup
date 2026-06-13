@@ -24,6 +24,8 @@ export interface User {
   min_topup?: number;
   double_cashback_active?: boolean;
   double_cashback_expires_at?: string | null;
+  welcome_voucher_activated_at?: string | null;
+  welcome_voucher_expired?: boolean;
 }
 
 export interface DataPlan {
