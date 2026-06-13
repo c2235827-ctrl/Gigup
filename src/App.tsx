@@ -228,7 +228,7 @@ export default function App() {
           setTimeout(() => {
             showToast('Session expired: Auto-logged out after 3 minutes 🔒', 'info');
           }, shouldSkipSplash ? 10 : 20200); // Dispense toast
-          setCurrentScreen('login');
+          if (shouldSkipSplash) setCurrentScreen('login');
         } else {
           const cached = ApiService.getCachedUser();
           if (cached) {
@@ -241,7 +241,7 @@ export default function App() {
               requestPushPermission();
             }, shouldSkipSplash ? 500 : 21000); 
           } else {
-            setCurrentScreen('login');
+            if (shouldSkipSplash) setCurrentScreen('login');
           }
           localStorage.setItem('gigup_last_activity', now.toString());
           // Refresh profile in background
@@ -251,7 +251,7 @@ export default function App() {
               // Token expired — logout
               ApiService.logout();
               setUser(null);
-              setCurrentScreen('login');
+              if (shouldSkipSplash) setCurrentScreen('login');
             });
         }
       } else {
