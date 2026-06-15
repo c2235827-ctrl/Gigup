@@ -14,6 +14,7 @@ interface BuyDataProps {
   showToast: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
 
+
 function detectNetwork(phoneNumber: string): 'MTN' | 'GLO' | 'AIRTEL' | null {
   if (!phoneNumber) return null;
   let digits = phoneNumber.replace(/\D/g, '');

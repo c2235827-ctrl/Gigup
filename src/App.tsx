@@ -116,6 +116,13 @@ export default function App() {
     const paymentStarted = sessionStorage.getItem('gigup_payment_started') === 'true';
     const currentPath = window.location.pathname;
 
+    // Persist referral code from QR/link so it survives navigation to the
+    // registration screen, even if the user lands on splash/onboarding first.
+    const refCode = params.get('ref');
+    if (refCode) {
+      localStorage.setItem('gigup_pending_referral_code', refCode.toUpperCase().trim());
+    }
+
     if (txRef || currentPath.includes('/topup/callback')) {
       return 'callback';
     }
@@ -192,6 +199,11 @@ export default function App() {
     const status = params.get('status');
     const amount = params.get('amount') || '';
     const currentPath = window.location.pathname;
+
+    const refCode = params.get('ref');
+    if (refCode) {
+      localStorage.setItem('gigup_pending_referral_code', refCode.toUpperCase().trim());
+    }
 
     const paymentStarted = sessionStorage.getItem('gigup_payment_started') === 'true';
     if (paymentStarted) {

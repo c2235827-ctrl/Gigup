@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Lock, User as UserIcon, Eye, EyeOff, ArrowLeft, Heart, Sparkles } from 'lucide-react';
 import { ApiService } from '../api';
 import { User } from '../types';
@@ -22,6 +22,16 @@ export default function RegisterStep2({ phone, code, onRegisterSuccess, onPrevSt
   const [loading, setLoading] = useState(false);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [createdUser, setCreatedUser] = useState<User | null>(null);
+  const [autoAppliedRef, setAutoAppliedRef] = useState(false);
+
+  useEffect(() => {
+    const pending = localStorage.getItem('gigup_pending_referral_code');
+    if (pending) {
+      setReferralCode(pending);
+      setShowRefField(true);
+      setAutoAppliedRef(true);
+    }
+  }, []);
 
   const handlePinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawVal = e.target.value.replace(/\D/g, '');
@@ -63,6 +73,7 @@ export default function RegisterStep2({ phone, code, onRegisterSuccess, onPrevSt
       });
 
       if (res.success) {
+        localStorage.removeItem('gigup_pending_referral_code');
         setCreatedUser(res.user);
         setShowSuccessOverlay(true);
         showToast('Account created successfully!', 'success');
@@ -225,23 +236,35 @@ export default function RegisterStep2({ phone, code, onRegisterSuccess, onPrevSt
             ) : (
               <div className="bg-bg-light rounded-2xl p-4 border border-dashed border-gray-200">
                 <div className="flex justify-between items-center mb-1.5">
-                  <label className="text-xs font-semibold text-primary-blue uppercase tracking-wider">
-                    Referral Code (Optional)
+                  <label className="text-xs font-semibold text-primary-blue uppercase tracking-wider flex items-center gap-2">
+                    Referral Code
+                    {autoAppliedRef && (
+                      <span className="bg-green-100 text-green-700 text-[9px] px-1.5 py-0.5 rounded flex items-center">
+                        ✓ AUTO-APPLIED
+                      </span>
+                    )}
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => { setShowRefField(false); setReferralCode(''); }}
-                    className="text-[10px] text-text-muted hover:text-primary-dark font-bold uppercase hover:underline cursor-pointer bg-transparent border-none"
-                  >
-                    Hide
-                  </button>
+                  {!autoAppliedRef && (
+                    <button
+                      type="button"
+                      onClick={() => { setShowRefField(false); setReferralCode(''); }}
+                      className="text-[10px] text-text-muted hover:text-primary-dark font-bold uppercase hover:underline cursor-pointer bg-transparent border-none"
+                    >
+                      Hide
+                    </button>
+                  )}
                 </div>
                 <input
                   type="text"
                   placeholder="e.g. ABC123"
                   maxLength={10}
                   value={referralCode}
-                  onChange={(e) => setReferralCode(e.target.value)}
+                  onChange={(e) => {
+                    setReferralCode(e.target.value);
+                    if (e.target.value !== localStorage.getItem('gigup_pending_referral_code')) {
+                      setAutoAppliedRef(false);
+                    }
+                  }}
                   className="w-full bg-white border border-gray-200 text-primary-dark font-mono font-bold uppercase rounded-xl px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:border-primary-blue"
                 />
                 <p className="text-[10px] text-text-muted mt-1">
