@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 
 interface SplashProps {
@@ -6,39 +5,21 @@ interface SplashProps {
 }
 
 export default function Splash({ onComplete }: SplashProps) {
-  const [progress, setProgress] = useState(0);
-
-  useEffect(() => {
-    const startTime = Date.now();
-    const duration = 20000; // 20 seconds
-
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      const currentProgress = Math.min((elapsed / duration) * 100, 100);
-      setProgress(currentProgress);
-
-      if (elapsed >= duration) {
-        clearInterval(interval);
-        onComplete();
-      }
-    }, 50);
-
-    return () => clearInterval(interval);
-  }, [onComplete]);
-
   return (
     <div
       id="splash-screen"
       className="flex flex-col items-center justify-end h-full w-full bg-primary-dark text-white select-none relative overflow-hidden"
     >
-      {/* Background Image */}
-      <img
-        src="https://images.unsplash.com/photo-1642165835095-528b68f00663?w=800&q=80&auto=format&fit=crop"
-        alt="Splash Background"
-        className="absolute inset-0 w-full h-full object-cover object-[center_15%] select-none pointer-events-none"
-        referrerPolicy="no-referrer"
-        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-      />
+      {/* Background Video */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden bg-black flex justify-center items-center">
+        <iframe
+          src="https://www.youtube.com/embed/NvsNQR1OOOI?autoplay=1&mute=1&loop=1&playlist=NvsNQR1OOOI&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&vq=hd1080&end=41"
+          title="Splash Video"
+          allow="autoplay; encrypted-media"
+          className="absolute inset-0 w-[300%] h-[300%] sm:w-[200%] sm:h-[200%] md:w-[150%] md:h-[150%] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+          style={{ border: 'none' }}
+        />
+      </div>
 
       {/* Dark overlay */}
       <div className="absolute inset-0 bg-[#0c1b33]/30 z-1 pointer-events-none" />
@@ -82,56 +63,12 @@ export default function Splash({ onComplete }: SplashProps) {
         </motion.p>
       </div>
 
-      {/* Satellite Progress Track */}
-      <div className="z-10 w-[80%] max-w-[320px] mb-6">
-        {/* Percentage */}
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-[9px] text-white/50 font-mono tracking-widest uppercase">Loading</span>
-          <span className="text-[10px] font-black font-mono text-primary-blue">
-            {Math.round(progress)}%
-          </span>
-        </div>
-
-        {/* Track */}
-        <div className="w-full relative h-8 flex items-center">
-          {/* Background track line */}
-          <div className="absolute left-0 right-0 h-px bg-white/15 rounded-full" />
-
-          {/* Progress fill line */}
-          <div
-            className="absolute left-0 h-px bg-primary-blue/60 rounded-full transition-all duration-75 ease-out"
-            style={{ width: `${progress}%` }}
-          />
-
-          {/* 🛰️ Satellite — travels left to right */}
-          <motion.div
-            className="absolute text-2xl select-none"
-            style={{
-              left: `calc(${Math.min(progress, 95)}% - 14px)`,
-              transition: 'left 0.1s ease-out',
-            }}
-            animate={{
-              rotate: [0, 12, -12, 8, -8, 0],
-            }}
-            transition={{
-              rotate: {
-                duration: 1.4,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              },
-            }}
-          >
-            🛰️
-          </motion.div>
-        </div>
-      </div>
-
       {/* Skip Button */}
       <button
         onClick={onComplete}
-        className="z-10 text-[11px] font-bold text-white/70 hover:text-white uppercase tracking-widest bg-white/10 hover:bg-white/20 px-5 py-2 rounded-full border border-white/20 backdrop-blur-xs transition cursor-pointer select-none mb-3"
+        className="z-10 text-[11px] font-bold text-white/70 hover:text-white uppercase tracking-widest bg-white/10 hover:bg-white/20 px-5 py-2 rounded-full border border-white/20 backdrop-blur-xs transition cursor-pointer select-none mb-4"
       >
-        SKIP LOADING →
+        SKIP VIDEO →
       </button>
 
       {/* Credit */}
