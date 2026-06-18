@@ -24,21 +24,6 @@ export default function Splash({ onComplete }: SplashProps) {
       {/* Dark overlay */}
       <div className="absolute inset-0 bg-[#0c1b33]/30 z-1 pointer-events-none" />
 
-      {/* Top Left Logo */}
-      <motion.div
-        initial={{ scale: 0.5, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.8, ease: 'easeOut' }}
-        className="absolute top-10 left-6 z-10"
-      >
-        <img
-          src="https://cdn-icons-png.flaticon.com/512/15749/15749415.png"
-          alt="GigUp Logo"
-          className="w-12 h-12 bg-white/15 backdrop-blur-md rounded-2xl p-2 border border-white/20 shadow-lg shadow-primary-blue/30"
-          referrerPolicy="no-referrer"
-        />
-      </motion.div>
-
       {/* Ambient glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-primary-blue/5 rounded-full blur-3xl pointer-events-none" />
 
