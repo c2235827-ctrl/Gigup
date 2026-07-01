@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ShieldAlert, Copy, Check, Share2, HelpCircle, LogOut, Trash2, Bell, History, KeyRound, ChevronRight, CheckCircle, Mail, MessageSquare, Sparkles, ArrowDownLeft, ArrowUpRight, Smartphone, Download } from 'lucide-react';
-import { ApiService } from '../api';
+import { ApiService, BASE_URL } from '../api';
 import { User, WalletTransaction } from '../types';
 import PullToRefresh from './PullToRefresh';
 import { FAQ_DATA, TERMS_OF_SERVICE, PRIVACY_POLICY } from '../data/legalData';
@@ -309,6 +309,35 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
             >
               <Share2 className="w-4 h-4" />
             </button>
+          </div>
+        </div>
+
+        <div className="mt-4 bg-slate-50 rounded-2xl p-4 border border-slate-100">
+          <p className="text-xs font-bold text-slate-700 mb-2">📡 Preferred Network for Free Data Reward</p>
+          <p className="text-[10px] text-slate-500 mb-3">When you hit 30 referrals, 1GB/day will be sent to this network</p>
+          <div className="grid grid-cols-3 gap-2">
+            {(['mtn', 'glo', 'airtel'] as const).map(net => (
+              <button
+                key={net}
+                onClick={async () => {
+                  const token = localStorage.getItem('gigup_token');
+                  if (!token) return;
+                  await fetch(`${BASE_URL}/user-flags`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'set_preferred_network', network: net }),
+                  });
+                  showToast(`Preferred network set to ${net.toUpperCase()}`, 'success');
+                }}
+                className={`py-2 rounded-xl text-xs font-bold uppercase cursor-pointer border transition ${
+                  user.preferred_network === net
+                    ? net === 'mtn' ? 'bg-yellow-400 text-white border-yellow-400'
+                    : net === 'glo' ? 'bg-green-500 text-white border-green-500'
+                    : 'bg-red-500 text-white border-red-500'
+                    : 'bg-white text-slate-600 border-slate-200'
+                }`}
+              >{net}</button>
+            ))}
           </div>
         </div>
 

@@ -544,9 +544,11 @@ export default function Home({
                       )}
                     </span>
                     <span className={`status-badge text-[8px] px-2 py-0.5 uppercase font-extrabold tracking-wider ${
-                      order.status === 'success' 
-                        ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
-                        : 'bg-red-50 text-red-500 border border-red-100'
+                      order.status === 'success'
+                        ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                        : order.status === 'pending'
+                          ? 'bg-amber-50 text-amber-600 border border-amber-100'
+                          : 'bg-red-50 text-red-500 border border-red-100'
                     }`}>
                       {order.status}
                     </span>
@@ -746,17 +748,16 @@ export default function Home({
                 ✕
               </button>
             </div>
-            <h3 className="text-lg font-black text-slate-900 mb-2">Earn ₦700 per referral!</h3>
+            <h3 className="text-lg font-black text-slate-900 mb-2">Earn ₦5,000 for 30 referrals!</h3>
             <p className="text-sm text-slate-600 mb-3">
-              Every friend who signs up earns you <strong className="text-green-600">₦700 cash</strong> in your wallet.
+              Refer <strong>30 friends</strong> who each buy data on GigUp and earn <strong className="text-green-600">₦5,000 cash</strong> plus <strong>1GB free data daily for 30 days!</strong>
             </p>
             <div className="bg-green-50 rounded-xl p-3 mb-4 border border-green-200">
               <p className="text-xs text-green-700 font-bold">
-                📈 Refer more = earn more:<br/>
-                1-3 friends = ₦700 each<br/>
-                4-10 friends = ₦900 each<br/>
-                11-20 friends = ₦1,150 each<br/>
-                21+ friends = ₦1,400 each 🔥
+                📈 How it works:<br/>
+                → Friends must sign up with your code<br/>
+                → They must buy data at least once<br/>
+                → Hit 30 qualified referrals = ₦5,000 + 1GB/day for 30 days 🔥
               </p>
             </div>
             <button

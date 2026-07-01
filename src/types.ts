@@ -26,6 +26,7 @@ export interface User {
   double_cashback_expires_at?: string | null;
   welcome_voucher_activated_at?: string | null;
   welcome_voucher_expired?: boolean;
+  preferred_network?: string | null;
 }
 
 export interface DataPlan {

@@ -60,17 +60,7 @@ export default function App() {
     const result = await trackStreak(token);
     if (result) {
       setUserStreak(result.streak ?? 0);
-      setUserFlags({
-        ...(result.flags || {
-          welcome_popup_dismissed: false,
-          bonus_dropoff_popup_dismissed: false,
-          referral_nudge_popup_dismissed: false,
-          double_cashback_active: false,
-          double_cashback_expires_at: null,
-          referral_nudge_sent: false
-        }),
-        welcome_popup_dismissed: false // Always reset per session
-      });
+      setUserFlags(result.flags ?? null);
       setDoubleCashbackActive(result.double_cashback_active);
       setDoubleCashbackExpires(result.double_cashback_expires_at);
       if (result.reward_earned > 0) {
