@@ -21,9 +21,10 @@ interface AccountProps {
   onTriggerInstall?: () => void;
   isStandalone?: boolean;
   initialScrollTo?: string;
+  onOpenRating: () => void;
 }
 
-export default function Account({ user, transactions = [], onNavigate, onLogout, showToast, onRefreshData, onTriggerInstall, isStandalone = false, initialScrollTo }: AccountProps) {
+export default function Account({ user, transactions = [], onNavigate, onLogout, showToast, onRefreshData, onTriggerInstall, isStandalone = false, initialScrollTo, onOpenRating }: AccountProps) {
   const [copiedCode, setCopiedCode] = useState(false);
   
   const [pushEnabled, setPushEnabled] = useState(false);
@@ -476,6 +477,17 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
             </div>
           </div>
           <ChevronRight className="w-4 h-4 text-text-muted shrink-0" />
+        </button>
+
+        <button
+          onClick={onOpenRating}
+          className="w-full flex items-center justify-between px-4 py-4 bg-white rounded-2xl border border-slate-100 mb-2 cursor-pointer"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-xl">⭐</span>
+            <span className="text-sm font-bold text-slate-700">Rate GigUp</span>
+          </div>
+          <span className="text-slate-300">›</span>
         </button>
 
         {/* Row 5: Logout */}

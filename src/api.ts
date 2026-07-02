@@ -1,4 +1,4 @@
-import { User, DataPlan, WalletTransaction, DataOrder, Notification as CustomNotification, UserStreak, UserFlags, MonthlyReport, CheckinStatus } from './types';
+import { User, DataPlan, WalletTransaction, DataOrder, Notification as CustomNotification, UserStreak, UserFlags, MonthlyReport, CheckinStatus, SurveyData } from './types';
 
 const API_BASE_URL = 'https://ndcztauwnkycknrbbmix.supabase.co/functions/v1';
 export const BASE_URL = API_BASE_URL;
@@ -288,6 +288,56 @@ export async function redeemVoucher(token: string, points: number): Promise<any 
     });
     return await res.json();
   } catch { return null; }
+}
+
+export async function getWeeklySurvey(token: string): Promise<SurveyData | null> {
+  try {
+    const res = await fetch(`${BASE_URL}/weekly-survey`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'get' }),
+    });
+    const data = await res.json();
+    return data.success ? data : null;
+  } catch { return null; }
+}
+
+export async function submitSurveyAnswers(
+  token: string,
+  surveyPromptId: string,
+  answers: { question_id: string; answer_text: string }[]
+): Promise<boolean> {
+  try {
+    const res = await fetch(`${BASE_URL}/weekly-survey`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'submit', survey_prompt_id: surveyPromptId, answers }),
+    });
+    const data = await res.json();
+    return !!data.success;
+  } catch { return false; }
+}
+
+export async function dismissSurvey(token: string, surveyPromptId: string): Promise<void> {
+  try {
+    await fetch(`${BASE_URL}/weekly-survey`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'dismiss', survey_prompt_id: surveyPromptId }),
+    });
+  } catch { /* silent */ }
+}
+
+export async function submitAppRating(token: string, stars: number, comment?: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${BASE_URL}/weekly-survey`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'rate', stars, comment: comment ?? null }),
+    });
+    const data = await res.json();
+    return !!data.success;
+  } catch { return false; }
 }
 
 

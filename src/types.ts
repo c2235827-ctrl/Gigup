@@ -134,3 +134,17 @@ export interface CheckinStatus {
   };
   already_checked_in_today: boolean;
 }
+
+export interface SurveyQuestion {
+  id: string;
+  question_text: string;
+  question_type: 'text' | 'multiple_choice' | 'rating';
+  options: string[] | null;
+}
+
+export interface SurveyData {
+  show_survey: boolean;
+  survey_prompt_id?: string;
+  questions?: SurveyQuestion[];
+}
+

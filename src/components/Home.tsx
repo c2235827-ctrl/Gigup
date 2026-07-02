@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Bell, RefreshCw, Plus, History, Signal, Gift, Sparkles, ChevronRight, ArrowUpRight, Smartphone, Compass, AlertTriangle, X, Info, Phone, Mail, Check, Wallet as WalletIcon } from 'lucide-react';
-import { User, DataOrder, DataPlan, UserFlags } from '../types';
+import { User, DataOrder, DataPlan, UserFlags, SurveyData, SurveyQuestion } from '../types';
 import PullToRefresh from './PullToRefresh';
-import { ApiService } from '../api';
+import { ApiService, submitSurveyAnswers, dismissSurvey, submitAppRating } from '../api';
 
 interface HomeProps {
   user: User;
@@ -26,6 +26,12 @@ interface HomeProps {
   recoveryBonus: number;
   onStreakBrokenClose: () => void;
   onRecoveryClose: () => void;
+  surveyData: SurveyData | null;
+  showSurveyModal: boolean;
+  onCloseSurvey: () => void;
+  onOpenRating: () => void;
+  showRatingModal: boolean;
+  onCloseRating: () => void;
 }
 
 export default function Home({ 
@@ -48,7 +54,13 @@ export default function Home({
   streakBroken,
   recoveryBonus,
   onStreakBrokenClose,
-  onRecoveryClose
+  onRecoveryClose,
+  surveyData,
+  showSurveyModal,
+  onCloseSurvey,
+  onOpenRating,
+  showRatingModal,
+  onCloseRating
 }: HomeProps) {
   const bonusBalance = user.bonus_balance ?? 0;
   const totalAvailable = (user.wallet_balance || 0) + bonusBalance;
@@ -776,6 +788,243 @@ export default function Home({
         </div>
       )}
 
+      {/* ═══ WEEKLY SURVEY MODAL ═══ */}
+      {showSurveyModal === true && surveyData?.show_survey === true && surveyData.questions && (
+        <SurveyModal
+          surveyPromptId={surveyData.survey_prompt_id!}
+          questions={surveyData.questions}
+          onClose={onCloseSurvey}
+        />
+      )}
+
+      {/* ═══ WEEKLY APP RATING MODAL ═══ */}
+      {showRatingModal === true && (
+        <RatingModal onClose={onCloseRating} />
+      )}
+
     </PullToRefresh>
+  );
+}
+
+function SurveyModal({
+  surveyPromptId,
+  questions,
+  onClose,
+}: {
+  surveyPromptId: string;
+  questions: SurveyQuestion[];
+  onClose: () => void;
+}) {
+  const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [textInput, setTextInput] = useState('');
+
+  const currentQuestion = questions[step];
+  const isLastStep = step === questions.length - 1;
+
+  const handleAnswer = (value: string) => {
+    setAnswers(prev => ({ ...prev, [currentQuestion.id]: value }));
+    setTextInput('');
+    if (isLastStep) {
+      handleSubmit({ ...answers, [currentQuestion.id]: value });
+    } else {
+      setStep(prev => prev + 1);
+    }
+  };
+
+  const handleSubmit = async (finalAnswers: Record<string, string>) => {
+    setSubmitting(true);
+    const token = localStorage.getItem('gigup_token');
+    if (token) {
+      const payload = Object.entries(finalAnswers).map(([question_id, answer_text]) => ({
+        question_id,
+        answer_text,
+      }));
+      await submitSurveyAnswers(token, surveyPromptId, payload);
+    }
+    setSubmitting(false);
+    onClose();
+  };
+
+  const handleDismiss = () => {
+    const token = localStorage.getItem('gigup_token');
+    if (token) dismissSurvey(token, surveyPromptId);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center p-4">
+      <motion.div
+        initial={{ y: 300, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: 'spring', damping: 25 }}
+        className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl mb-2"
+      >
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <span className="text-3xl">📋</span>
+            <p className="text-[10px] text-slate-400 font-bold mt-1">
+              Question {step + 1} of {questions.length}
+            </p>
+          </div>
+          <button
+            onClick={handleDismiss}
+            className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-lg cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Progress bar */}
+        <div className="h-1.5 bg-slate-100 rounded-full mb-5 overflow-hidden">
+          <div
+            className="h-full bg-blue-600 rounded-full transition-all duration-300"
+            style={{ width: `${((step + 1) / questions.length) * 100}%` }}
+          />
+        </div>
+
+        <h3 className="text-base font-black text-slate-900 mb-4">
+          {currentQuestion.question_text}
+        </h3>
+
+        {currentQuestion.question_type === 'multiple_choice' && currentQuestion.options && (
+          <div className="space-y-2">
+            {currentQuestion.options.map((option) => (
+              <button
+                key={option}
+                onClick={() => handleAnswer(option)}
+                disabled={submitting}
+                className="w-full text-left px-4 py-3 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-700 cursor-pointer transition"
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {currentQuestion.question_type === 'text' && (
+          <div>
+            <textarea
+              value={textInput}
+              onChange={(e) => setTextInput(e.target.value)}
+              placeholder="Type your answer..."
+              rows={3}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm resize-none mb-3"
+            />
+            <button
+              onClick={() => handleAnswer(textInput)}
+              disabled={submitting || !textInput.trim()}
+              className="w-full py-3.5 bg-blue-600 text-white font-bold rounded-2xl text-sm cursor-pointer disabled:opacity-40"
+            >
+              {submitting ? 'Submitting...' : isLastStep ? 'Submit' : 'Next'}
+            </button>
+          </div>
+        )}
+
+        {currentQuestion.question_type === 'rating' && (
+          <div>
+            <div className="flex justify-center gap-2 mb-5">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  onClick={() => handleAnswer(String(star))}
+                  disabled={submitting}
+                  className="text-3xl cursor-pointer transition-transform hover:scale-110"
+                >
+                  ⭐
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <button
+          onClick={handleDismiss}
+          className="w-full py-2 text-slate-400 text-xs font-medium mt-3 cursor-pointer"
+        >
+          Skip for now
+        </button>
+      </motion.div>
+    </div>
+  );
+}
+
+function RatingModal({ onClose }: { onClose: () => void }) {
+  const [stars, setStars] = useState(0);
+  const [hoveredStar, setHoveredStar] = useState(0);
+  const [comment, setComment] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = async () => {
+    if (stars === 0) return;
+    setSubmitting(true);
+    const token = localStorage.getItem('gigup_token');
+    if (token) {
+      await submitAppRating(token, stars, comment.trim() || undefined);
+    }
+    setSubmitting(false);
+    setSubmitted(true);
+    setTimeout(onClose, 1500);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-6">
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center relative"
+      >
+        {submitted ? (
+          <>
+            <div className="text-5xl mb-3">🙏</div>
+            <h3 className="text-lg font-black text-slate-900">Thanks for your feedback!</h3>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-lg cursor-pointer"
+            >
+              ✕
+            </button>
+            <div className="text-4xl mb-2">⭐</div>
+            <h3 className="text-lg font-black text-slate-900 mb-1">Rate GigUp This Week</h3>
+            <p className="text-xs text-slate-500 mb-5">How has your experience been?</p>
+
+            <div className="flex justify-center gap-2 mb-5">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  onClick={() => setStars(star)}
+                  onMouseEnter={() => setHoveredStar(star)}
+                  onMouseLeave={() => setHoveredStar(0)}
+                  className="text-3xl cursor-pointer transition-transform hover:scale-110"
+                >
+                  {star <= (hoveredStar || stars) ? '⭐' : '☆'}
+                </button>
+              ))}
+            </div>
+
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Any comments? (optional)"
+              rows={2}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm resize-none mb-4"
+            />
+
+            <button
+              onClick={handleSubmit}
+              disabled={stars === 0 || submitting}
+              className="w-full py-3.5 bg-blue-600 text-white font-bold rounded-2xl text-sm cursor-pointer disabled:opacity-40"
+            >
+              {submitting ? 'Submitting...' : 'Submit Rating'}
+            </button>
+          </>
+        )}
+      </motion.div>
+    </div>
   );
 }

@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Home as HomeIcon, Signal, Wallet as WalletIcon, User as UserIcon, AlertCircle, Download, Smartphone, Share, Bell, X, Gift } from 'lucide-react';
-import { ApiService, subscribeToUserNotifications, startSession, endSession, BASE_URL, trackStreak, getUserFlags, dismissFlag } from './api';
-import { User, WalletTransaction, DataOrder, Notification, UserFlags, UserStreak } from './types';
+import { ApiService, subscribeToUserNotifications, startSession, endSession, BASE_URL, trackStreak, getUserFlags, dismissFlag, getWeeklySurvey } from './api';
+import { User, WalletTransaction, DataOrder, Notification, UserFlags, UserStreak, SurveyData } from './types';
 import { identifyUserInOneSignal, logoutOneSignal, requestPushPermission } from './onesignal';
 
 // Screen File imports
@@ -54,6 +54,10 @@ export default function App() {
   const [streakBroken, setStreakBroken] = useState(false);
   const [recoveryBonus, setRecoveryBonus] = useState(0);
 
+  const [surveyData, setSurveyData] = useState<SurveyData | null>(null);
+  const [showSurveyModal, setShowSurveyModal] = useState(false);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+
   const initEngagement = async () => {
     const token = localStorage.getItem('gigup_token');
     if (!token) return;
@@ -73,6 +77,11 @@ export default function App() {
         setRecoveryBonus(result.recovery_bonus);
         setStreakBroken(false);
       }
+    }
+    const survey = await getWeeklySurvey(token);
+    if (survey?.show_survey) {
+      setSurveyData(survey);
+      setShowSurveyModal(true);
     }
   };
 
@@ -656,6 +665,12 @@ export default function App() {
             recoveryBonus={recoveryBonus}
             onStreakBrokenClose={() => setStreakBroken(false)}
             onRecoveryClose={() => setRecoveryBonus(0)}
+            surveyData={surveyData}
+            showSurveyModal={showSurveyModal}
+            onCloseSurvey={() => setShowSurveyModal(false)}
+            onOpenRating={() => setShowRatingModal(true)}
+            showRatingModal={showRatingModal}
+            onCloseRating={() => setShowRatingModal(false)}
           />
         ) : null;
       case 'buy_data':
@@ -692,6 +707,7 @@ export default function App() {
             onTriggerInstall={handlePwaInstall}
             isStandalone={isStandalone}
             initialScrollTo={extraNavigationParams?.scrollTo}
+            onOpenRating={() => setShowRatingModal(true)}
           />
         ) : null;
 
