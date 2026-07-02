@@ -4,6 +4,8 @@ import { ApiService, BASE_URL } from '../api';
 import { User, WalletTransaction } from '../types';
 import PullToRefresh from './PullToRefresh';
 import { FAQ_DATA, TERMS_OF_SERVICE, PRIVACY_POLICY } from '../data/legalData';
+import { motion } from 'motion/react';
+import RatingModal from './RatingModal';
 import {
   requestPushPermission,
   isPushPermissionGranted,
@@ -43,6 +45,36 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
       }, 300);
     }
   }, [initialScrollTo]);
+
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [showReviewsModal, setShowReviewsModal] = useState(false);
+  const [reviewsData, setReviewsData] = useState<{
+    average_rating: number;
+    total_ratings: number;
+    reviews: { id: string; stars: number; comment: string; created_at: string; display_name: string }[];
+  } | null>(null);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+
+  const loadPublicReviews = async () => {
+    setLoadingReviews(true);
+    const token = localStorage.getItem('gigup_token');
+    try {
+      const res = await fetch(`${BASE_URL}/weekly-survey`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'list_public', limit: 30 }),
+      });
+      const data = await res.json();
+      if (data.success) setReviewsData(data);
+    } catch { /* silent */ }
+    setLoadingReviews(false);
+  };
+
+  useEffect(() => {
+    if (showReviewsModal) {
+      loadPublicReviews();
+    }
+  }, [showReviewsModal]);
 
   const handleTogglePush = async () => {
     setPushLoading(true);
@@ -480,12 +512,23 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
         </button>
 
         <button
-          onClick={onOpenRating}
+          onClick={() => setShowRatingModal(true)}
           className="w-full flex items-center justify-between px-4 py-4 bg-white rounded-2xl border border-slate-100 mb-2 cursor-pointer"
         >
           <div className="flex items-center gap-3">
             <span className="text-xl">⭐</span>
             <span className="text-sm font-bold text-slate-700">Rate GigUp</span>
+          </div>
+          <span className="text-slate-300">›</span>
+        </button>
+
+        <button
+          onClick={() => setShowReviewsModal(true)}
+          className="w-full flex items-center justify-between px-4 py-4 bg-white rounded-2xl border border-slate-100 mb-2 cursor-pointer"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-xl">💬</span>
+            <span className="text-sm font-bold text-slate-700">See What Others Are Saying</span>
           </div>
           <span className="text-slate-300">›</span>
         </button>
@@ -1039,6 +1082,64 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
               GOT IT
             </button>
           </div>
+        </div>
+      )}
+
+      {showRatingModal && (
+        <RatingModal 
+          onClose={() => setShowRatingModal(false)} 
+          onSuccess={() => {
+            loadPublicReviews();
+          }}
+        />
+      )}
+
+      {showReviewsModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center p-4">
+          <motion.div
+            initial={{ y: 300, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ type: 'spring', damping: 25 }}
+            className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl mb-2 max-h-[80vh] flex flex-col"
+          >
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="text-lg font-black text-slate-900">What Users Say</h3>
+                {reviewsData && (
+                  <p className="text-sm text-amber-500 font-bold mt-1">
+                    ⭐ {reviewsData.average_rating} · {reviewsData.total_ratings} ratings
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => setShowReviewsModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-lg cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 space-y-3">
+              {loadingReviews && <p className="text-center text-slate-400 text-sm py-8">Loading reviews...</p>}
+
+              {!loadingReviews && reviewsData?.reviews.length === 0 && (
+                <p className="text-center text-slate-400 text-sm py-8">No reviews yet. Be the first!</p>
+              )}
+
+              {reviewsData?.reviews.map((r) => (
+                <div key={r.id} className="bg-slate-50 rounded-2xl p-4">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-sm font-bold text-slate-800">{r.display_name || 'Anonymous'}</span>
+                    <span className="text-amber-500 text-xs">{'⭐'.repeat(Math.max(0, Math.min(5, Math.floor(r.stars || 0))))}</span>
+                  </div>
+                  {r.comment && <p className="text-sm text-slate-600">{r.comment}</p>}
+                  <p className="text-[10px] text-slate-400 mt-1.5">
+                    {new Date(r.created_at).toLocaleDateString('en-NG', { month: 'short', day: 'numeric' })}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
         </div>
       )}
 
