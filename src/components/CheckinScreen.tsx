@@ -263,6 +263,23 @@ export default function CheckinScreen({ user, showToast, onNavigate }: CheckinSc
           </div>
         )}
 
+        {/* Referral entry point */}
+        <button
+          onClick={() => onNavigate('referral')}
+          className="w-full bg-white rounded-2xl p-4 flex items-center justify-between shadow-sm cursor-pointer border border-slate-100 hover:border-slate-200 transition active:scale-[0.99]"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 bg-amber-50 rounded-full flex items-center justify-center">
+              <span className="text-xl">🎁</span>
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-bold text-slate-800">Refer & Earn</p>
+              <p className="text-[11px] text-slate-400">Invite friends, earn rewards</p>
+            </div>
+          </div>
+          <span className="text-slate-300 text-xl">›</span>
+        </button>
+
         {/* Redeem Points */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
           <div className="flex items-center justify-between mb-4">

@@ -402,15 +402,15 @@ export default function Home({
             <span className="text-[10px] font-bold text-gray-700">Airtel Data</span>
           </button>
 
-          {/* Referral Option */}
+          {/* Print Card Option */}
           <button
-            onClick={() => onNavigate('account', { scrollTo: 'referral' })}
-            className="bg-white rounded-2xl p-3 border border-gray-100 flex flex-col items-center justify-center shadow-sm cursor-pointer hover:border-amber-200 transition text-center"
+            onClick={() => onNavigate('recharge_card')}
+            className="bg-white rounded-2xl p-3 border border-gray-100 flex flex-col items-center justify-center shadow-sm cursor-pointer hover:border-indigo-200 transition text-center"
           >
-            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center mb-1.5">
-              <Gift className="w-5 h-5 text-amber-600" />
+            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center mb-1.5">
+              <span className="text-xl">🖨️</span>
             </div>
-            <span className="text-[10px] font-bold text-gray-700">Referral</span>
+            <span className="text-[10px] font-bold text-gray-700">Print Card</span>
           </button>
         </div>
       </div>

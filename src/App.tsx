@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Home as HomeIcon, Signal, Wallet as WalletIcon, User as UserIcon, AlertCircle, Download, Smartphone, Share, Bell, X, Gift } from 'lucide-react';
+import { Home as HomeIcon, Signal, Wallet as WalletIcon, User as UserIcon, AlertCircle, Download, Smartphone, Share, Bell, X, Gift, CreditCard } from 'lucide-react';
 import { ApiService, subscribeToUserNotifications, startSession, endSession, BASE_URL, trackStreak, getUserFlags, dismissFlag, getWeeklySurvey } from './api';
 import { User, WalletTransaction, DataOrder, Notification, UserFlags, UserStreak, SurveyData } from './types';
 import { identifyUserInOneSignal, logoutOneSignal, requestPushPermission } from './onesignal';
@@ -18,6 +18,7 @@ import Notifications from './components/Notifications';
 import TopupCallback from './components/TopupCallback';
 import ReceiptView from './components/ReceiptView';
 import CheckinScreen from './components/CheckinScreen';
+import RechargeCard from './components/RechargeCard';
 
 interface ToastState {
   message: string;
@@ -562,6 +563,11 @@ export default function App() {
   };
 
   const handleOnscreenNavigation = (screenName: string, extras?: any) => {
+    if (screenName === 'referral') {
+      setExtraNavigationParams({ scrollTo: 'referral' });
+      setCurrentScreen('account');
+      return;
+    }
     setExtraNavigationParams(extras ?? null); // clear if no extras passed
     setCurrentScreen(screenName);
   };
@@ -683,6 +689,14 @@ export default function App() {
             showToast={showToast} 
           />
         ) : null;
+      case 'recharge_card':
+        return user ? (
+          <RechargeCard 
+            user={user} 
+            onNavigate={handleOnscreenNavigation} 
+            showToast={showToast} 
+          />
+        ) : null;
       case 'checkin':
         return user ? <CheckinScreen user={user} showToast={showToast} onNavigate={handleOnscreenNavigation} /> : null;
       case 'wallet':
@@ -771,7 +785,7 @@ export default function App() {
   // Determine if we should show the bottom phone navigation bar
   const shouldShowBottomNavigation = 
     !!user && 
-    ['home', 'buy_data', 'checkin', 'wallet', 'account', 'wallet_history'].includes(currentScreen);
+    ['home', 'buy_data', 'recharge_card', 'checkin', 'wallet', 'account', 'wallet_history'].includes(currentScreen);
 
   return (
     <div className="app-container">
