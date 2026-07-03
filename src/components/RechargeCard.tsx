@@ -268,7 +268,7 @@ export default function RechargeCard({ user, onNavigate, showToast }: RechargeCa
               className="w-5 h-5 object-contain filter brightness-110 saturate-100"
               referrerPolicy="no-referrer"
             />
-            <h1 className="text-base font-black tracking-tight">Recharge Cards</h1>
+            <h1 className="text-base font-black tracking-tight">Print Recharge Cards</h1>
           </div>
           <div className="bg-slate-800 border border-slate-700 rounded-full px-3 py-1 flex items-center gap-1.5">
             <span className="text-[9px] text-slate-400 font-bold uppercase">Balance</span>
