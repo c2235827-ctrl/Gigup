@@ -295,10 +295,10 @@ export default function RechargeCard({ user, onNavigate, showToast }: RechargeCa
       </div>
 
       {/* Main Container */}
-      <div className="flex-grow overflow-y-auto pb-[100px]">
+      <div className="flex-grow overflow-hidden relative">
         <PullToRefresh onRefresh={handleRefresh}>
           {activeTab === 'order' ? (
-            <div className="p-4 space-y-4">
+            <div className="p-4 space-y-4 pb-32">
               
               {/* Step 1: Network Selector */}
               <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 space-y-3">
@@ -508,7 +508,7 @@ export default function RechargeCard({ user, onNavigate, showToast }: RechargeCa
             </div>
           ) : (
             /* History Tab */
-            <div className="p-4 space-y-4">
+            <div className="p-4 space-y-4 pb-32">
               
               {/* Filters */}
               <div className="flex gap-2 pb-1 overflow-x-auto scrollbar-none">
