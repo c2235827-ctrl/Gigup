@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { CreditCard, Printer, Plus, Minus, Copy, Share2, CheckCircle, History, Sparkles, X, ChevronRight } from 'lucide-react';
+import { CreditCard, Plus, Minus, Copy, Share2, CheckCircle, History, Sparkles, X, ChevronRight } from 'lucide-react';
 import { User } from '../types';
 import PullToRefresh from './PullToRefresh';
 
@@ -262,7 +262,12 @@ export default function RechargeCard({ user, onNavigate, showToast }: RechargeCa
       <div className="bg-slate-900 pt-5 pb-4 px-5 text-white shrink-0 shadow-md">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Printer className="w-5 h-5 text-amber-400" />
+            <img
+              src="https://cdn-icons-png.flaticon.com/512/15774/15774758.png"
+              alt="POS Terminal Icon"
+              className="w-5 h-5 object-contain filter brightness-110 saturate-100"
+              referrerPolicy="no-referrer"
+            />
             <h1 className="text-base font-black tracking-tight">Recharge Cards</h1>
           </div>
           <div className="bg-slate-800 border border-slate-700 rounded-full px-3 py-1 flex items-center gap-1.5">
@@ -497,7 +502,12 @@ export default function RechargeCard({ user, onNavigate, showToast }: RechargeCa
                   onClick={handlePurchase}
                   className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl text-xs font-extrabold tracking-wider shadow-lg shadow-blue-500/15 cursor-pointer active:scale-[0.99] transition-all flex items-center justify-center gap-2"
                 >
-                  <Printer className="w-4 h-4" />
+                  <img
+                    src="https://cdn-icons-png.flaticon.com/512/15774/15774758.png"
+                    alt="POS Terminal Icon"
+                    className="w-4 h-4 object-contain brightness-0 invert"
+                    referrerPolicy="no-referrer"
+                  />
                   <span>PRINT RECHARGE CARDS</span>
                 </button>
                 <p className="text-[10px] text-slate-400 text-center leading-none">

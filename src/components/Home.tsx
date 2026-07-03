@@ -407,8 +407,13 @@ export default function Home({
             onClick={() => onNavigate('recharge_card')}
             className="bg-white rounded-2xl p-3 border border-gray-100 flex flex-col items-center justify-center shadow-sm cursor-pointer hover:border-indigo-200 transition text-center"
           >
-            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center mb-1.5">
-              <span className="text-xl">🖨️</span>
+            <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center mb-1.5 overflow-hidden">
+              <img
+                src="https://cdn-icons-png.flaticon.com/512/15774/15774758.png"
+                alt="POS Terminal Icon"
+                className="w-6 h-6 object-contain"
+                referrerPolicy="no-referrer"
+              />
             </div>
             <span className="text-[10px] font-bold text-gray-700">Print Card</span>
           </button>
