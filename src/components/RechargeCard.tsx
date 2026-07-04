@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CreditCard, Plus, Minus, Copy, Share2, CheckCircle, History, Sparkles, X, ChevronRight } from 'lucide-react';
+import jsPDF from 'jspdf';
 import { User } from '../types';
 import PullToRefresh from './PullToRefresh';
 import { ApiService } from '../api';
+import RechargeCardTicket from './RechargeCardTicket';
 
 interface RechargeCardProps {
   user: User;
@@ -33,8 +35,64 @@ const NETWORK_META: Record<string, { logo: string; color: string; bg: string }> 
   MTN: { logo: 'MTN', color: 'bg-yellow-400 text-slate-900 border-yellow-500', bg: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
   GLO: { logo: 'GLO', color: 'bg-green-600 text-white border-green-700', bg: 'bg-green-100 text-green-700 border-green-200' },
   AIRTEL: { logo: 'Airtel', color: 'bg-red-600 text-white border-red-700', bg: 'bg-red-100 text-red-700 border-red-200' },
-  '9MOBILE': { logo: '9mobile', color: 'bg-teal-800 text-white border-teal-900', bg: 'bg-teal-100 text-teal-700 border-teal-200' }
+  '9MOBILE': { logo: '9mobile', color: 'bg-purple-600 text-white border-purple-700', bg: 'bg-purple-100 text-purple-700 border-purple-200' }
 };
+
+// Simple visual PinInput helper component
+function LocalPinInput({ value, onChange }: { value: string; onChange: (val: string) => void }) {
+  const pinDigits = value.split('').concat(Array(4).fill('')).slice(0, 4);
+  const refs = [
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null)
+  ];
+
+  const handleDigitChange = (index: number, val: string) => {
+    const rawVal = val.replace(/\D/g, '');
+    if (!rawVal) {
+      const nextDigits = [...pinDigits];
+      nextDigits[index] = '';
+      onChange(nextDigits.filter(x => x !== '').join(''));
+      return;
+    }
+
+    const digit = rawVal[rawVal.length - 1];
+    const nextDigits = [...pinDigits];
+    nextDigits[index] = digit;
+    const combined = nextDigits.slice(0, 4).join('');
+    onChange(combined);
+
+    if (index < 3 && digit) {
+      refs[index + 1].current?.focus();
+    }
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !pinDigits[index] && index > 0) {
+      refs[index - 1].current?.focus();
+    }
+  };
+
+  return (
+    <div className="flex justify-center gap-3.5 py-2">
+      {pinDigits.map((digit, idx) => (
+        <input
+          key={idx}
+          ref={refs[idx]}
+          type="password"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={1}
+          value={digit}
+          onChange={(e) => handleDigitChange(idx, e.target.value)}
+          onKeyDown={(e) => handleKeyDown(idx, e)}
+          className="w-12 h-12 text-center bg-slate-50 border-2 border-slate-200 text-slate-800 text-xl font-extrabold font-mono rounded-xl focus:bg-white focus:border-blue-600 focus:outline-none transition-all shadow-inner"
+        />
+      ))}
+    </div>
+  );
+}
 
 export default function RechargeCard({ user, onNavigate, showToast, onRefreshData }: RechargeCardProps) {
   const [activeTab, setActiveTab] = useState<'order' | 'history'>('order');
@@ -59,7 +117,7 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
     eligible: false,
   });
 
-  const [subscribingPlan, setSubscribingPlan] = useState<'weekly' | 'monthly' | null>(null);
+  const [subscribing, setSubscribing] = useState<boolean>(false);
 
   // Available options
   const [options, setOptions] = useState<{
@@ -90,14 +148,10 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
     loading: boolean;
   } | null>(null);
 
-  // PIN Confirmation State
-  const [pinDigits, setPinDigits] = useState<string[]>(['', '', '', '']);
-  const pinRefs = [
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-  ];
+  // PIN Confirmation Modal state
+  const [showPinConfirmModal, setShowPinConfirmModal] = useState<boolean>(false);
+  const [pin, setPin] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // History states
   const [historyOrders, setHistoryOrders] = useState<any[]>([]);
@@ -109,7 +163,6 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
   const [showOrderModal, setShowOrderModal] = useState<boolean>(false);
 
   // Purchase/Shortfall states
-  const [purchasing, setPurchasing] = useState<boolean>(false);
   const [shortfallAmount, setShortfallAmount] = useState<number | null>(null);
   const [loadingDetailId, setLoadingDetailId] = useState<string | null>(null);
 
@@ -221,7 +274,7 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
 
   // Handle plan subscription
   const handleSubscribe = async (planType: 'weekly' | 'monthly') => {
-    setSubscribingPlan(planType);
+    setSubscribing(true);
     try {
       const res = await ApiService.subscribeToRechargeCardPlan(planType);
       if (res.success) {
@@ -234,9 +287,13 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
         showToast('Subscription failed. Please try again.', 'error');
       }
     } catch (err: any) {
+      if (err.required && err.current_balance !== undefined) {
+        const calculatedShortfall = Math.max(0, err.required - err.current_balance);
+        setShortfallAmount(calculatedShortfall);
+      }
       showToast(err.message || 'Subscription failed', 'error');
     } finally {
-      setSubscribingPlan(null);
+      setSubscribing(false);
     }
   };
 
@@ -260,55 +317,14 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
     }
   };
 
-  // Handle Pin Digits Input
-  const handlePinChange = (index: number, val: string) => {
-    const rawVal = val.replace(/\D/g, '');
-    if (!rawVal) {
-      const newDigits = [...pinDigits];
-      newDigits[index] = '';
-      setPinDigits(newDigits);
-      return;
-    }
-
-    const digit = rawVal[rawVal.length - 1];
-    const newDigits = [...pinDigits];
-    newDigits[index] = digit;
-    setPinDigits(newDigits);
-
-    // Focus next
-    if (index < 3) {
-      pinRefs[index + 1].current?.focus();
-    }
-  };
-
-  const handlePinKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !pinDigits[index] && index > 0) {
-      pinRefs[index - 1].current?.focus();
-    }
-  };
-
-  const handleResetForm = () => {
-    setPinDigits(['', '', '', '']);
-    setBrandName('');
-    setQuantity(1);
-    setActiveOrder(null);
-    setShowOrderModal(false);
-  };
-
-  // Submit/Purchase Action
-  const handlePurchase = async () => {
-    const enteredPin = pinDigits.join('');
-    if (enteredPin.length < 4) {
+  // Submit/Purchase Action inside Modal
+  const handleConfirmPurchase = async () => {
+    if (pin.length < 4) {
       showToast('Please enter your 4-digit PIN to confirm purchase.', 'error');
       return;
     }
 
-    if (subStatus.eligible === false && subStatus.reason === 'daily_limit_reached') {
-      showToast('Daily batch limit reached. Resets tomorrow.', 'error');
-      return;
-    }
-
-    setPurchasing(true);
+    setIsSubmitting(true);
     setShortfallAmount(null);
     try {
       const res = await ApiService.purchaseRechargeCards({
@@ -316,10 +332,13 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
         amount: selectedDenom,
         quantity,
         brand_name: brandName.trim() || undefined,
-        transaction_pin: enteredPin
+        transaction_pin: pin
       });
 
       if (res.success) {
+        setShowPinConfirmModal(false);
+        setPin('');
+
         if (res.status === 'success' || res.status === 'partial') {
           const formattedOrder: RechargeOrder = {
             id: res.order_id || res.reference,
@@ -338,9 +357,6 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
           setShowOrderModal(true);
           showToast(`Successfully generated ${res.quantity_delivered} recharge cards!`, 'success');
 
-          // Reset PIN and details
-          setPinDigits(['', '', '', '']);
-
           // Refresh balance
           if (onRefreshData) {
             await onRefreshData();
@@ -353,13 +369,14 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
           // Refresh history list
           fetchHistory();
         } else if (res.status === 'failed_refunded') {
-          showToast('Order failed and was refunded to your wallet.', 'error');
-          setPinDigits(['', '', '', '']);
+          showToast('Order failed and was fully refunded to your wallet.', 'error');
           if (onRefreshData) await onRefreshData();
           fetchHistory();
         }
       }
     } catch (err: any) {
+      setShowPinConfirmModal(false);
+      setPin('');
       const errMsg = err.message || '';
       if (errMsg.toLowerCase().includes('insufficient wallet balance') || errMsg.toLowerCase().includes('shortfall') || errMsg.toLowerCase().includes('need')) {
         const calculatedShortfall = Math.max(0, currentTotalCost - user.wallet_balance);
@@ -367,7 +384,7 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
       }
       showToast(errMsg || 'Purchase failed', 'error');
     } finally {
-      setPurchasing(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -398,48 +415,64 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
     }
   };
 
-  // Copy PINs and Serials to clipboard
-  const handleCopyCards = (order: RechargeOrder) => {
+  // Copy PINs and Serials to clipboard matching physical format
+  const handleCopyAll = (order: RechargeOrder) => {
     if (!order.cards || order.cards.length === 0) return;
 
-    let text = `⚡ ${order.network} Recharge Cards (₦${order.denomination})\n`;
-    text += `Brand: ${order.brandName}\n`;
-    text += `Qty: ${order.quantity} · Total: ₦${order.totalCost}\n`;
-    text += `Ref: ${order.id}\n`;
-    text += `Date: ${new Date(order.date).toLocaleDateString()}\n`;
-    text += `=========================\n`;
-
-    order.cards.forEach((card, index) => {
-      text += `Card ${index + 1}:\n`;
-      text += `PIN:    ${card.pin}\n`;
-      text += `Serial: ${card.serial}\n`;
-      text += `-------------------------\n`;
-    });
-
-    text += `Powered by GigUp`;
+    const text = order.cards.map((card) =>
+      `${order.brandName || 'GigUp'}${order.id ? `; ${order.id}` : ''}\n` +
+      `S/N: ${card.serial}\n` +
+      `${card.pin.replace(/(.{4})/g, '$1-').replace(/-$/, '')}\n` +
+      `Dial *311*${card.pin}#\n` +
+      `Date: ${new Date(order.date).toLocaleString('en-NG')}`
+    ).join('\n\n---\n\n');
 
     navigator.clipboard.writeText(text);
-    showToast('All recharge cards copied to clipboard! 📋', 'success');
+    showToast('All cards copied to clipboard 📋', 'success');
   };
 
-  // Share formatted PIN list via WhatsApp / Copy helper
-  const handleShareWhatsApp = (order: RechargeOrder) => {
+  // PDF Download matching format
+  const handleDownloadPDF = (order: RechargeOrder) => {
     if (!order.cards || order.cards.length === 0) return;
+    
+    const doc = new jsPDF();
+    let y = 20;
 
-    let text = `⚡ ${order.network} Recharge Cards (₦${order.denomination})\n`;
-    text += `Brand: ${order.brandName}\n`;
-    text += `Qty: ${order.quantity} · Total: ₦${order.totalCost}\n`;
-    text += `Ref: ${order.id}\n`;
-    text += `=========================\n`;
+    order.cards.forEach((card) => {
+      if (y > 260) {
+        doc.addPage();
+        y = 20;
+      }
 
-    order.cards.forEach((card, index) => {
-      text += `PIN: ${card.pin} | SN: ${card.serial}\n`;
+      doc.setFontSize(10);
+      doc.setFont('times', 'bold');
+      doc.text(`${order.brandName || 'GigUp'}${order.id ? `; ${order.id}` : ''}`, 15, y);
+      doc.text(`N${order.denomination}`, 170, y);
+
+      doc.setFont('times', 'normal');
+      doc.setFontSize(9);
+      doc.text(`S/N: ${card.serial}`, 15, y + 8);
+
+      doc.setFont('times', 'bold');
+      doc.setFontSize(13);
+      const formattedPin = card.pin.replace(/(.{4})/g, '$1-').replace(/-$/, '');
+      doc.text(formattedPin, 15, y + 16);
+
+      doc.setFont('times', 'italic');
+      doc.setFontSize(9);
+      doc.text(`Dial *311*${card.pin}#`, 15, y + 23);
+
+      doc.setFont('times', 'normal');
+      doc.text(`Date: ${new Date(order.date).toLocaleString('en-NG')}`, 15, y + 29);
+
+      doc.setDrawColor(200, 200, 200);
+      doc.line(15, y + 34, 195, y + 34);
+
+      y += 42;
     });
 
-    text += `\nPowered by GigUp`;
-
-    navigator.clipboard.writeText(text);
-    showToast('Formatted list copied to clipboard! Ready to share on WhatsApp.', 'success');
+    doc.save(`GigUp-RechargeCards-${order.id}.pdf`);
+    showToast('PDF exported successfully! 📄', 'success');
   };
 
   const handleRefresh = async () => {
@@ -524,7 +557,7 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
                 className="w-5 h-5 object-contain filter brightness-110 saturate-100"
                 referrerPolicy="no-referrer"
               />
-              <h1 className="text-base font-black tracking-tight">Print Recharge Cards</h1>
+              <h1 className="text-base font-black tracking-tight text-left">Print Recharge Cards</h1>
             </div>
             <button
               onClick={() => onNavigate('home')}
@@ -536,14 +569,14 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
         </div>
 
         {/* Content */}
-        <div className="p-5 flex-grow flex flex-col justify-between max-w-md mx-auto w-full space-y-6 pb-12 animate-fade-in">
+        <div className="p-5 flex-grow flex flex-col justify-between max-w-md mx-auto w-full space-y-6 pb-12 animate-fade-in text-left">
           <div className="space-y-4">
             <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto text-3xl shadow-sm border border-blue-100">
               🖨️
             </div>
             <div className="text-center space-y-2">
-              <h2 className="text-lg font-black text-slate-900 leading-tight">Activate Card Printing</h2>
-              <p className="text-xs text-slate-500 leading-relaxed max-w-xs mx-auto">
+              <h2 className="text-lg font-black text-slate-900 leading-tight">Choose a Plan to Start Printing</h2>
+              <p className="text-xs text-slate-500 leading-relaxed max-w-xs mx-auto text-center">
                 GigUp recharge card printing is a premium service. Activate a plan below to instantly generate, brand, and print PINs.
               </p>
             </div>
@@ -551,7 +584,7 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
             {/* Plans List */}
             <div className="space-y-4 pt-2">
               {/* Weekly Plan */}
-              <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-4 relative overflow-hidden hover:border-blue-100 transition">
+              <div className="bg-white rounded-3xl p-5 border-2 border-slate-200 shadow-sm space-y-4 relative overflow-hidden hover:border-blue-300 transition">
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-xs font-black text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-full uppercase tracking-wider">Weekly Pass</span>
@@ -561,24 +594,24 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
                 </div>
                 <div className="space-y-2 text-xs text-slate-600 font-semibold border-t border-slate-100 pt-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-emerald-500">✓</span>
+                    <span className="text-emerald-500 font-black">✓</span>
                     <span>5 batch orders per day</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-emerald-500">✓</span>
+                    <span className="text-emerald-500 font-black">✓</span>
                     <span>Up to {subStatus.max_cards_per_batch || 100} cards per batch</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-emerald-500">✓</span>
+                    <span className="text-emerald-500 font-black">✓</span>
                     <span>Custom merchant name branding</span>
                   </div>
                 </div>
                 <button
-                  disabled={subscribingPlan !== null}
+                  disabled={subscribing}
                   onClick={() => handleSubscribe('weekly')}
                   className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-400 text-white font-extrabold rounded-2xl text-xs cursor-pointer shadow-lg shadow-blue-500/10 transition active:scale-[0.99] flex items-center justify-center gap-2"
                 >
-                  {subscribingPlan === 'weekly' ? (
+                  {subscribing ? (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <span>Subscribe Weekly</span>
@@ -587,8 +620,8 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
               </div>
 
               {/* Monthly Plan */}
-              <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-4 relative overflow-hidden hover:border-purple-100 transition">
-                <div className="absolute top-0 right-0 bg-gradient-to-l from-purple-600 to-indigo-600 text-white text-[9px] font-black uppercase tracking-wider px-3 py-1 rounded-bl-xl shadow-sm">
+              <div className="bg-white rounded-3xl p-5 border-2 border-blue-300 shadow-sm space-y-4 relative overflow-hidden hover:border-blue-400 transition">
+                <div className="absolute top-0 right-0 bg-gradient-to-l from-green-500 to-emerald-500 text-white text-[9px] font-black uppercase tracking-wider px-3 py-1 rounded-bl-xl shadow-sm">
                   SAVE 24%
                 </div>
                 <div className="flex justify-between items-start">
@@ -600,24 +633,24 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
                 </div>
                 <div className="space-y-2 text-xs text-slate-600 font-semibold border-t border-slate-100 pt-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-emerald-500">✓</span>
+                    <span className="text-emerald-500 font-black">✓</span>
                     <span>20 batch orders per day</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-emerald-500">✓</span>
+                    <span className="text-emerald-500 font-black">✓</span>
                     <span>Up to {subStatus.max_cards_per_batch || 100} cards per batch</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-emerald-500">✓</span>
+                    <span className="text-emerald-500 font-black">✓</span>
                     <span>Custom merchant name branding</span>
                   </div>
                 </div>
                 <button
-                  disabled={subscribingPlan !== null}
+                  disabled={subscribing}
                   onClick={() => handleSubscribe('monthly')}
-                  className="w-full py-3 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-700 text-white font-extrabold rounded-2xl text-xs cursor-pointer shadow-lg shadow-slate-900/10 transition active:scale-[0.99] flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-400 text-white font-extrabold rounded-2xl text-xs cursor-pointer shadow-lg shadow-blue-500/10 transition active:scale-[0.99] flex items-center justify-center gap-2"
                 >
-                  {subscribingPlan === 'monthly' ? (
+                  {subscribing ? (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <span>Subscribe Monthly</span>
@@ -645,7 +678,7 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
                 className="w-5 h-5 object-contain filter brightness-110 saturate-100"
                 referrerPolicy="no-referrer"
               />
-              <h1 className="text-base font-black tracking-tight">Print Recharge Cards</h1>
+              <h1 className="text-base font-black tracking-tight text-left">Print Recharge Cards</h1>
             </div>
             <div className="bg-slate-800 border border-slate-700 rounded-full px-3 py-1">
               <span className="text-[10px] text-amber-400 font-black font-mono">₦{(user.wallet_balance || 0).toLocaleString()}</span>
@@ -661,7 +694,6 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
     );
   }
 
-  // Active Normal Screen
   const isDailyLimitReached = !subStatus.eligible && subStatus.reason === 'daily_limit_reached';
 
   return (
@@ -676,7 +708,7 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
               className="w-5 h-5 object-contain filter brightness-110 saturate-100"
               referrerPolicy="no-referrer"
             />
-            <h1 className="text-base font-black tracking-tight">Print Recharge Cards</h1>
+            <h1 className="text-base font-black tracking-tight text-left">Print Recharge Cards</h1>
           </div>
           <div className="bg-slate-800 border border-slate-700 rounded-full px-3 py-1 flex items-center gap-1.5">
             <span className="text-[9px] text-slate-400 font-bold uppercase">Balance</span>
@@ -715,35 +747,27 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
               
               {/* Daily limit / Subscription info banner */}
               {isDailyLimitReached ? (
-                <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex gap-3 text-red-700">
-                  <span className="text-xl">⚠️</span>
-                  <div className="text-left space-y-1">
-                    <p className="text-xs font-black">Daily print limit reached</p>
-                    <p className="text-[10px] text-red-500/80 leading-relaxed">
-                      You have used all {subStatus.batches_used_today || 5} batch orders for today. Limit resets tomorrow.
-                    </p>
-                  </div>
+                <div className="bg-amber-50 border border-amber-300 rounded-xl p-3 mb-4 text-left">
+                  <p className="text-xs font-bold text-amber-700">
+                    Daily limit reached ({subStatus.batches_used_today}/{subStatus.daily_batch_limit}). Resets tomorrow.
+                  </p>
                 </div>
               ) : subStatus.eligible ? (
-                <div className="bg-indigo-50/50 border border-indigo-100/50 text-indigo-700 rounded-2xl px-4 py-2.5 flex items-center justify-between text-[11px] font-bold">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs">💎</span>
-                    <span className="capitalize">{subStatus.plan_type} Pass Active</span>
-                  </div>
-                  <div className="text-indigo-500 font-mono">
-                    {subStatus.batches_remaining_today}/{subStatus.daily_batch_limit} batches left today
-                  </div>
+                <div className="flex items-center gap-2 mb-3 text-left">
+                  <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-3 py-1 rounded-full">
+                    {subStatus.plan_type} plan · {subStatus.batches_remaining_today}/{subStatus.daily_batch_limit} batches left today
+                  </span>
                 </div>
               ) : null}
 
               {/* Step 1: Network Selector */}
-              <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 space-y-3">
+              <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 space-y-3 text-left">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-extrabold text-slate-400 uppercase tracking-widest pl-1">
                     Step 1: Network Operator
                   </span>
                   {selectedNetwork && (
-                    <span className="text-[10px] font-black uppercase text-amber-500 bg-amber-50 border border-amber-100 px-2.5 py-0.5 rounded-full">
+                    <span className="text-[10px] font-black uppercase text-blue-500 bg-blue-50 border border-blue-100 px-2.5 py-0.5 rounded-full">
                       Selected: {selectedNetwork}
                     </span>
                   )}
@@ -777,7 +801,7 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
               </div>
 
               {/* Step 2: Denomination Selector */}
-              <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 space-y-3">
+              <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 space-y-3 text-left">
                 <span className="text-xs font-extrabold text-slate-400 uppercase tracking-widest pl-1 block">
                   Step 2: Denomination value
                 </span>
@@ -814,48 +838,43 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
               </div>
 
               {/* Step 3: Quantity Stepper */}
-              <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 space-y-3">
+              <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 space-y-3 text-left">
                 <span className="text-xs font-extrabold text-slate-400 uppercase tracking-widest pl-1 block">
                   Step 3: Print Volume / Quantity
                 </span>
                 
-                <div className="flex items-center justify-between bg-slate-50 rounded-2xl p-3 border border-slate-150">
+                <div className="flex items-center gap-4 justify-center bg-slate-50 rounded-2xl p-4 border border-slate-200">
                   <button
                     disabled={quantity <= 1}
-                    onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
-                    className="w-11 h-11 rounded-xl bg-white border border-slate-200 text-slate-700 flex items-center justify-center font-bold hover:bg-slate-100 active:scale-95 disabled:opacity-40 cursor-pointer transition shadow-xs"
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="w-11 h-11 rounded-full bg-white border border-slate-200 text-slate-700 flex items-center justify-center font-black text-lg cursor-pointer transition active:scale-95 disabled:opacity-40"
                   >
-                    <Minus className="w-5 h-5" />
+                    −
                   </button>
-                  <div className="text-center">
-                    <span className="text-2xl font-mono font-extrabold text-slate-800">
-                      {quantity}
-                    </span>
-                    <span className="text-[9px] text-slate-400 block font-bold uppercase mt-0.5">
-                      {quantity === 1 ? 'Recharge card' : 'Recharge cards'}
-                    </span>
-                  </div>
+                  <span className="text-2xl font-mono font-black w-14 text-center text-slate-800">
+                    {quantity}
+                  </span>
                   <button
                     disabled={quantity >= maxQty}
-                    onClick={() => setQuantity(prev => Math.min(maxQty, prev + 1))}
-                    className="w-11 h-11 rounded-xl bg-white border border-slate-200 text-slate-700 flex items-center justify-center font-bold hover:bg-slate-100 active:scale-95 disabled:opacity-40 cursor-pointer transition shadow-xs"
+                    onClick={() => setQuantity(Math.min(maxQty, quantity + 1))}
+                    className="w-11 h-11 rounded-full bg-white border border-slate-200 text-slate-700 flex items-center justify-center font-black text-lg cursor-pointer transition active:scale-95 disabled:opacity-40"
                   >
-                    <Plus className="w-5 h-5" />
+                    +
                   </button>
                 </div>
-                <div className="flex justify-between items-center bg-blue-50/50 border border-blue-100/50 rounded-xl p-3 text-xs">
-                  <span className="text-slate-600 font-semibold flex items-center gap-1.5">
-                    Batch Total:
-                    {quote?.loading && <div className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />}
-                  </span>
-                  <span className="text-blue-600 font-mono font-black text-sm">
-                    ₦{currentTotalCost.toLocaleString()}
-                  </span>
+
+                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-3 mt-3 text-left">
+                  <p className="text-sm font-black text-blue-700 flex items-center gap-1.5 justify-between">
+                    <span>Summary quote:</span>
+                    <span className="font-mono">
+                      {quantity} cards × ₦{currentPricePerCard} = ₦{currentTotalCost.toLocaleString()}
+                    </span>
+                  </p>
                 </div>
               </div>
 
-              {/* Step 4: Optional Brand Name */}
-              <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 space-y-3">
+              {/* Step 4: Brand Name (optional) */}
+              <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 space-y-3 text-left">
                 <span className="text-xs font-extrabold text-slate-400 uppercase tracking-widest pl-1 block">
                   Step 4: Card Customizer Branding
                 </span>
@@ -863,106 +882,39 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
                   <input
                     type="text"
                     maxLength={20}
-                    placeholder="e.g. My Shop — leave blank to use GigUp"
+                    placeholder="Brand name to print on cards (optional)"
                     value={brandName}
                     onChange={(e) => setBrandName(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-2xl px-4 py-3.5 text-sm placeholder-slate-400 focus:bg-white focus:border-blue-600 focus:outline-none transition-all"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold focus:bg-white focus:border-blue-600 focus:outline-none transition-all"
                   />
                   <p className="text-[10px] text-slate-400 mt-2 px-1">
-                    This name will be printed directly above the PIN voucher code. Max 20 chars.
+                    Leave blank to use "GigUp". This name will print directly above the PIN voucher.
                   </p>
                 </div>
               </div>
 
-              {/* Step 5: PIN Entry Box */}
-              <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 space-y-3">
-                <span className="text-xs font-extrabold text-slate-400 uppercase tracking-widest pl-1 block">
-                  Step 5: Authorization Security
-                </span>
-                <p className="text-[11px] text-slate-500 font-medium px-1">
-                  Enter your 4-digit PIN to confirm this wallet transaction.
-                </p>
-
-                <div className="flex justify-center gap-3.5 py-2">
-                  {pinDigits.map((digit, idx) => (
-                    <input
-                      key={idx}
-                      ref={pinRefs[idx]}
-                      type="password"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handlePinChange(idx, e.target.value)}
-                      onKeyDown={(e) => handlePinKeyDown(idx, e)}
-                      className="w-12 h-12 text-center bg-slate-50 border border-slate-200 text-slate-800 text-xl font-extrabold font-mono rounded-xl focus:bg-white focus:border-blue-600 focus:outline-none transition-all shadow-inner"
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Step 6: Summary + Action Button */}
-              <div className="bg-slate-900 rounded-3xl p-5 text-white border border-slate-800 shadow-xl space-y-4">
-                <div className="flex items-center gap-2 border-b border-white/10 pb-3">
-                  <Sparkles className="w-4 h-4 text-amber-400 fill-amber-400/20" />
-                  <span className="text-xs font-extrabold text-slate-300 uppercase tracking-wider">
-                    Transaction Order Summary
-                  </span>
-                </div>
-
-                <div className="space-y-2 text-xs font-semibold text-slate-300">
-                  <div className="flex justify-between">
-                    <span>Network Brand:</span>
-                    <span className="text-white font-black">{selectedNetwork}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Denomination:</span>
-                    <span className="text-white font-black">₦{selectedDenom}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Quantity Requested:</span>
-                    <span className="text-white font-black">{quantity} unit(s)</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Print Label Brand:</span>
-                    <span className="text-white font-black">{brandName.trim() || 'GigUp'}</span>
-                  </div>
-                  <div className="flex justify-between border-t border-white/10 pt-2 text-sm">
-                    <span className="text-amber-400 font-extrabold">Final Charge:</span>
-                    <span className="text-amber-400 font-mono font-black">
-                      ₦{currentTotalCost.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  disabled={purchasing || isDailyLimitReached}
-                  onClick={handlePurchase}
-                  className="w-full py-4 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 text-white rounded-2xl text-xs font-extrabold tracking-wider shadow-lg shadow-blue-500/15 cursor-pointer active:scale-[0.99] transition-all flex items-center justify-center gap-2"
-                >
-                  {purchasing ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <img
-                        src="https://cdn-icons-png.flaticon.com/512/15774/15774758.png"
-                        alt="POS Terminal Icon"
-                        className="w-4 h-4 object-contain brightness-0 invert"
-                        referrerPolicy="no-referrer"
-                      />
-                      <span>PRINT RECHARGE CARDS</span>
-                    </>
-                  )}
-                </button>
-                <p className="text-[10px] text-slate-400 text-center leading-none">
-                  Cards are generated instantly after payment
-                </p>
-              </div>
+              {/* Step 5: Review & Print Button */}
+              <button
+                disabled={isDailyLimitReached}
+                onClick={() => {
+                  setPin('');
+                  setShowPinConfirmModal(true);
+                }}
+                className="w-full py-4 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-300 text-white font-black rounded-2xl text-sm cursor-pointer disabled:opacity-50 transition active:scale-[0.99] flex items-center justify-center gap-2"
+              >
+                <img
+                  src="https://cdn-icons-png.flaticon.com/512/15774/15774758.png"
+                  alt="POS Terminal Icon"
+                  className="w-4 h-4 object-contain brightness-0 invert"
+                  referrerPolicy="no-referrer"
+                />
+                <span>Review & Print</span>
+              </button>
 
             </div>
           ) : (
             /* History Tab */
-            <div className="p-4 space-y-4 pb-32">
+            <div className="p-4 space-y-4 pb-32 text-left">
               
               {/* Filters */}
               <div className="flex gap-2 pb-1 overflow-x-auto scrollbar-none">
@@ -1057,6 +1009,63 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
         </PullToRefresh>
       </div>
 
+      {/* Review & PIN Confirmation Modal */}
+      {showPinConfirmModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-6">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-slate-100 text-slate-800 select-none text-left"
+          >
+            <h3 className="text-lg font-black text-slate-900 mb-3 text-left">Confirm Your Order</h3>
+            <div className="bg-slate-50 rounded-2xl p-4 mb-4 space-y-2 border border-slate-100">
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-500 font-bold">Network</span>
+                <span className="font-extrabold text-slate-800">{selectedNetwork}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-500 font-bold">Denomination</span>
+                <span className="font-extrabold text-slate-800">₦{selectedDenom} x {quantity}</span>
+              </div>
+              {brandName.trim() && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500 font-bold">Branding</span>
+                  <span className="font-extrabold text-blue-600">{brandName}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-sm border-t border-slate-200 pt-2">
+                <span className="text-slate-500 font-bold">Total Cost</span>
+                <span className="font-black text-blue-600 text-base font-mono">₦{currentTotalCost.toLocaleString()}</span>
+              </div>
+            </div>
+            
+            <p className="text-xs text-slate-500 mb-2 text-center font-bold">Enter your 4-digit PIN to confirm</p>
+            <LocalPinInput value={pin} onChange={setPin} />
+            
+            <button
+              onClick={handleConfirmPurchase}
+              disabled={pin.length !== 4 || isSubmitting}
+              className="w-full py-3.5 bg-blue-600 text-white font-extrabold rounded-2xl text-sm mt-4 cursor-pointer disabled:opacity-40 transition-all flex items-center justify-center gap-2"
+            >
+              {isSubmitting ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <span>Confirm & Print</span>
+              )}
+            </button>
+            <button
+              onClick={() => {
+                setShowPinConfirmModal(false);
+                setPin('');
+              }}
+              className="w-full py-2 text-slate-400 text-xs font-semibold mt-2 cursor-pointer text-center hover:text-slate-600"
+            >
+              Cancel
+            </button>
+          </motion.div>
+        </div>
+      )}
+
       {/* Generated Cards Result Modal overlay */}
       {showOrderModal && activeOrder && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center p-4">
@@ -1064,16 +1073,16 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
             initial={{ y: 300, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ type: 'spring', damping: 25 }}
-            className="bg-white rounded-3xl p-5 w-full max-w-sm shadow-2xl mb-2 max-h-[85vh] flex flex-col border border-slate-100"
+            className="bg-white rounded-3xl p-5 w-full max-w-sm shadow-2xl mb-2 max-h-[85vh] flex flex-col border border-slate-100 text-left"
           >
-            {/* Success checkmark banner */}
+            {/* Header */}
             <div className="flex justify-between items-start mb-3 shrink-0">
               <div className="flex items-center gap-2">
                 <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 text-lg">
                   🎉
                 </div>
                 <div className="text-left">
-                  <h3 className="text-base font-black text-slate-900 leading-none">Cards Generated</h3>
+                  <h3 className="text-base font-black text-slate-900 leading-none">Cards Ready!</h3>
                   <span className="text-[9px] font-bold text-slate-400 tracking-wide block mt-1 font-mono">
                     Ref: {activeOrder.id}
                   </span>
@@ -1084,104 +1093,68 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
                   setShowOrderModal(false);
                   setActiveOrder(null);
                 }}
-                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-sm cursor-pointer hover:bg-slate-200 transition"
+                className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-xs cursor-pointer hover:bg-slate-200 transition"
               >
                 ✕
               </button>
             </div>
 
-            {/* Receipt Summary card */}
-            <div className="bg-slate-50 rounded-2xl p-3 text-xs font-semibold text-slate-600 mb-4 shrink-0 border border-slate-100 grid grid-cols-2 gap-y-2 gap-x-1.5">
-              <div className="text-left">
-                <span className="text-[9px] font-bold text-slate-400 block uppercase">Network operator</span>
-                <span className="text-slate-800 font-black">{activeOrder.network}</span>
-              </div>
-              <div className="text-left">
+            {/* Quick summary stats row */}
+            <div className="grid grid-cols-2 gap-2 bg-slate-50 rounded-2xl p-3 mb-3 border border-slate-100 text-xs text-left shrink-0">
+              <div>
                 <span className="text-[9px] font-bold text-slate-400 block uppercase">Denomination</span>
                 <span className="text-slate-800 font-black">₦{activeOrder.denomination}</span>
               </div>
-              <div className="text-left">
-                <span className="text-[9px] font-bold text-slate-400 block uppercase">Quantity generated</span>
-                <span className="text-slate-800 font-black">{activeOrder.quantity} units</span>
-              </div>
-              <div className="text-left">
-                <span className="text-[9px] font-bold text-slate-400 block uppercase">Total Charged</span>
-                <span className="text-emerald-600 font-black font-mono">₦{activeOrder.totalCost.toLocaleString()}</span>
-              </div>
-              <div className="col-span-2 border-t border-slate-200/60 pt-2 flex items-center justify-between text-[10px]">
-                <span className="text-slate-400 uppercase font-bold text-left">Print Tag Name:</span>
-                <span className="text-blue-600 font-extrabold">{activeOrder.brandName}</span>
+              <div>
+                <span className="text-[9px] font-bold text-slate-400 block uppercase">Quantity</span>
+                <span className="text-slate-800 font-black">{activeOrder.quantity} card{activeOrder.quantity > 1 ? 's' : ''}</span>
               </div>
             </div>
 
-            {/* Cards Scroller list */}
-            <div className="flex-1 overflow-y-auto space-y-2.5 pr-0.5">
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block pl-1 text-left">
-                PIN & Serial Codes
-              </span>
-              {activeOrder.cards.length === 0 ? (
-                <p className="text-slate-400 text-xs text-center py-4 font-semibold">No voucher codes available for this batch</p>
-              ) : (
-                activeOrder.cards.map((card, idx) => (
-                  <div key={idx} className="bg-white border-2 border-dashed border-slate-200 rounded-2xl p-3.5 relative overflow-hidden shadow-xs hover:border-slate-300 transition">
-                    {/* Decorative cut-outs on sides */}
-                    <div className="absolute top-1/2 -left-2.5 w-4 h-4 bg-slate-50 border border-slate-200 rounded-full" />
-                    <div className="absolute top-1/2 -right-2.5 w-4 h-4 bg-slate-50 border border-slate-200 rounded-full" />
-                    
-                    <div className="flex justify-between items-center mb-2 px-1">
-                      <span className="text-[9px] text-slate-400 font-bold uppercase text-left">Card #{idx + 1}</span>
-                      <span className="text-[9px] bg-slate-100 text-slate-600 font-extrabold px-2 py-0.5 rounded-full border border-slate-150 uppercase tracking-wide">
-                        {activeOrder.network}
-                      </span>
-                    </div>
-
-                    <div className="space-y-1.5 font-mono text-xs px-1">
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-400 font-semibold text-[11px] text-left">PIN:</span>
-                        <span className="text-slate-800 font-extrabold tracking-wide text-[13px] font-mono select-all text-right">
-                          {card.pin}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center text-[10.5px]">
-                        <span className="text-slate-400 font-semibold text-left">Serial:</span>
-                        <span className="text-slate-500 font-medium font-mono text-right font-semibold">
-                          {card.serial}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
+            {/* Ticket Scroller List */}
+            <div className="flex-1 overflow-y-auto space-y-3 pr-0.5">
+              {activeOrder.cards.map((card, i) => (
+                <RechargeCardTicket
+                  key={i}
+                  brandName={activeOrder.brandName || 'GigUp'}
+                  network={activeOrder.network}
+                  faceValue={activeOrder.denomination}
+                  serial={card.serial}
+                  pin={card.pin}
+                  reference={activeOrder.id}
+                  createdAt={activeOrder.date}
+                />
+              ))}
             </div>
 
-            {/* Actions Footer */}
-            <div className="pt-4 mt-3 border-t border-slate-100 space-y-2 shrink-0">
+            {/* Actions Side-by-Side buttons */}
+            <div className="pt-3 border-t border-slate-100 mt-3 space-y-2 shrink-0 text-center">
               <div className="grid grid-cols-2 gap-2">
                 <button
-                  onClick={() => handleCopyCards(activeOrder)}
-                  className="py-3 bg-slate-950 hover:bg-slate-900 text-white rounded-2xl text-xs font-extrabold flex items-center justify-center gap-1.5 cursor-pointer"
+                  onClick={() => handleCopyAll(activeOrder)}
+                  className="py-3 bg-slate-100 text-slate-700 font-extrabold rounded-2xl text-xs cursor-pointer transition active:scale-95 flex items-center justify-center gap-1.5"
                 >
-                  <Copy className="w-4 h-4" />
-                  <span>Copy All</span>
+                  📋 Copy All
                 </button>
                 <button
-                  onClick={() => handleShareWhatsApp(activeOrder)}
-                  className="py-3 bg-green-600 hover:bg-green-500 text-white rounded-2xl text-xs font-extrabold flex items-center justify-center gap-1.5 cursor-pointer"
+                  onClick={() => handleDownloadPDF(activeOrder)}
+                  className="py-3 bg-blue-600 text-white font-extrabold rounded-2xl text-xs cursor-pointer transition active:scale-95 flex items-center justify-center gap-1.5"
                 >
-                  <Share2 className="w-4 h-4" />
-                  <span>WhatsApp</span>
+                  📄 Download PDF
                 </button>
               </div>
+              
               <button
                 onClick={() => {
                   setShowOrderModal(false);
                   setActiveOrder(null);
                 }}
-                className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-extrabold rounded-2xl text-xs cursor-pointer text-center"
+                className="w-full py-2.5 text-slate-400 hover:text-slate-600 text-xs font-semibold cursor-pointer"
               >
                 Done
               </button>
             </div>
+
           </motion.div>
         </div>
       )}
@@ -1189,11 +1162,11 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
       {/* Insufficient Balance / Shortfall Modal */}
       {shortfallAmount !== null && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-slate-100 space-y-4">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-slate-100 space-y-4 text-left">
             <div className="text-center space-y-2">
               <span className="text-4xl">💰</span>
               <h3 className="text-base font-black text-slate-900">Insufficient Balance</h3>
-              <p className="text-xs text-slate-500 leading-relaxed">
+              <p className="text-xs text-slate-500 leading-relaxed text-center">
                 You need an additional <span className="font-mono font-bold text-red-500">₦{shortfallAmount.toLocaleString()}</span> to complete this order.
               </p>
             </div>
@@ -1207,7 +1180,7 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
                 <span className="font-mono">₦{shortfallAmount.toLocaleString()}</span>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2.5 pt-2">
+            <div className="grid grid-cols-2 gap-2.5 pt-2 text-center">
               <button
                 onClick={() => setShortfallAmount(null)}
                 className="py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold rounded-2xl text-xs cursor-pointer text-center"
