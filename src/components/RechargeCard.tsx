@@ -38,6 +38,15 @@ const NETWORK_META: Record<string, { logo: string; color: string; bg: string }> 
   '9MOBILE': { logo: '9mobile', color: 'bg-purple-600 text-white border-purple-700', bg: 'bg-purple-100 text-purple-700 border-purple-200' }
 };
 
+// Shorten any long reference/UUID to a readable short code (e.g. first 8 chars, uppercased)
+function shortenReference(ref: string): string {
+  if (!ref) return '';
+  // If it looks like a UUID (has dashes and is long), take only the first segment
+  const cleaned = ref.replace(/^RC-/, '');
+  const short = cleaned.split('-')[0];
+  return short.slice(0, 8).toUpperCase();
+}
+
 // Simple visual PinInput helper component
 function LocalPinInput({ value, onChange }: { value: string; onChange: (val: string) => void }) {
   const pinDigits = value.split('').concat(Array(4).fill('')).slice(0, 4);
@@ -419,8 +428,9 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
   const handleCopyAll = (order: RechargeOrder) => {
     if (!order.cards || order.cards.length === 0) return;
 
+    const shortRef = shortenReference(order.id);
     const text = order.cards.map((card) =>
-      `${order.brandName || 'GigUp'}${order.id ? `; ${order.id}` : ''}\n` +
+      `${order.brandName || 'GigUp'}${shortRef ? `; ${shortRef}` : ''}\n` +
       `S/N: ${card.serial}\n` +
       `${card.pin.replace(/(.{4})/g, '$1-').replace(/-$/, '')}\n` +
       `Dial *311*${card.pin}#\n` +
@@ -437,6 +447,7 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
     
     const doc = new jsPDF();
     let y = 20;
+    const shortRef = shortenReference(order.id);
 
     order.cards.forEach((card) => {
       if (y > 260) {
@@ -444,10 +455,24 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
         y = 20;
       }
 
+      // Brand + shortened reference
       doc.setFontSize(10);
       doc.setFont('times', 'bold');
-      doc.text(`${order.brandName || 'GigUp'}${order.id ? `; ${order.id}` : ''}`, 15, y);
-      doc.text(`N${order.denomination}`, 170, y);
+      doc.text(`${order.brandName || 'GigUp'}${shortRef ? `; ${shortRef}` : ''}`, 15, y);
+
+      // Face value
+      doc.text(`N${order.denomination}`, 155, y);
+
+      // Black network badge rectangle with network name in white
+      const badgeWidth = order.network.length > 5 ? 22 : 17;
+      const badgeX = 195 - badgeWidth;
+      doc.setFillColor(0, 0, 0);
+      doc.rect(badgeX, y - 4.5, badgeWidth, 6, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'bold');
+      doc.text(order.network, badgeX + 1.5, y);
+      doc.setTextColor(0, 0, 0); // reset text color for rest of card
 
       doc.setFont('times', 'normal');
       doc.setFontSize(9);
@@ -471,7 +496,7 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
       y += 42;
     });
 
-    doc.save(`GigUp-RechargeCards-${order.id}.pdf`);
+    doc.save(`GigUp-RechargeCards-${shortRef || order.id}.pdf`);
     showToast('PDF exported successfully! 📄', 'success');
   };
 
