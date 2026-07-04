@@ -364,12 +364,20 @@ export async function getUserFlags(token: string): Promise<UserFlags | null> {
 
 export async function dismissFlag(token: string, action: 'dismiss_welcome' | 'dismiss_bonus' | 'dismiss_referral' | 'activate_double_cashback'): Promise<void> {
   try {
-    await fetch(`${BASE_URL}/user-flags`, {
+    const res = await fetch(`${BASE_URL}/user-flags`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ action }),
     });
-  } catch { /* silent */ }
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      console.error(`dismissFlag error: POST /user-flags returned status ${res.status}. Response: ${errText}`);
+      throw new Error(`Failed to dismiss flag ${action} on server: status ${res.status}`);
+    }
+  } catch (error) {
+    console.error(`Network or API failure in dismissFlag for action '${action}':`, error);
+    throw error;
+  }
 }
 
 export async function getMonthlyReport(token: string): Promise<MonthlyReport | null> {

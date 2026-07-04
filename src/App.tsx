@@ -648,9 +648,16 @@ export default function App() {
             userFlags={userFlags}
             doubleCashbackActive={doubleCashbackActive}
             doubleCashbackExpires={doubleCashbackExpires}
-            onDismissFlag={(action) => {
+            onDismissFlag={async (action) => {
               const token = localStorage.getItem('gigup_token');
-              if (token && action !== 'dismiss_welcome') dismissFlag(token, action);
+              if (token) {
+                try {
+                  await dismissFlag(token, action);
+                } catch (err) {
+                  console.error(`Failed to dismiss flag ${action}:`, err);
+                  showToast(`Could not persist dismissal of ${action} to server, using local fallback.`, 'error');
+                }
+              }
               setUserFlags(prev => prev ? { ...prev,
                 welcome_popup_dismissed: action === 'dismiss_welcome' ? true : prev.welcome_popup_dismissed,
                 bonus_dropoff_popup_dismissed: action === 'dismiss_bonus' ? true : prev.bonus_dropoff_popup_dismissed,
