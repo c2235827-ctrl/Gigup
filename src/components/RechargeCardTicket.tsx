@@ -45,8 +45,8 @@ export const RechargeCardTicket: React.FC<RechargeCardTicketProps> = ({ brandNam
         <div className="flex items-center gap-1.5 -mt-1 shrink-0">
           <span className="text-xl font-black text-slate-800">₦{faceValue}</span>
           {/* Black badge logo, matching real physical card style */}
-          <div className={`${logo.bg} px-2 py-1 rounded flex items-center justify-center shrink-0`}>
-            <span className={`${logo.text} text-[9px] font-black leading-none whitespace-nowrap`}>{logo.label}</span>
+          <div className={`${logo.bg} px-1.5 py-0.5 rounded inline-flex items-center justify-center shrink-0`}>
+            <span className={`${logo.text} text-[8px] font-black leading-none whitespace-nowrap`}>{logo.label}</span>
           </div>
         </div>
       </div>

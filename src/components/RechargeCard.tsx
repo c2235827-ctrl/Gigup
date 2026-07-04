@@ -463,15 +463,19 @@ export default function RechargeCard({ user, onNavigate, showToast, onRefreshDat
       // Face value
       doc.text(`N${order.denomination}`, 155, y);
 
-      // Black network badge rectangle with network name in white
-      const badgeWidth = order.network.length > 5 ? 22 : 17;
-      const badgeX = 195 - badgeWidth;
-      doc.setFillColor(0, 0, 0);
-      doc.rect(badgeX, y - 4.5, badgeWidth, 6, 'F');
-      doc.setTextColor(255, 255, 255);
+      // Black network badge, sized to fit the actual text width (no oversized empty box)
       doc.setFontSize(7);
       doc.setFont('helvetica', 'bold');
-      doc.text(order.network, badgeX + 1.5, y);
+      const networkTextWidth = doc.getTextWidth(order.network);
+      const badgeWidth = networkTextWidth + 4;
+      const badgeHeight = 5;
+      const badgeX = 195 - badgeWidth;
+      const badgeY = y - 4;
+
+      doc.setFillColor(0, 0, 0);
+      doc.rect(badgeX, badgeY, badgeWidth, badgeHeight, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.text(order.network, badgeX + 2, badgeY + 3.7);
       doc.setTextColor(0, 0, 0); // reset text color for rest of card
 
       doc.setFont('times', 'normal');
