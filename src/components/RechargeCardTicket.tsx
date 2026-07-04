@@ -10,12 +10,22 @@ interface RechargeCardTicketProps {
   createdAt: string;
 }
 
-const NETWORK_STYLES: Record<string, { bg: string; logoColor: string; logoText: string }> = {
-  MTN: { bg: 'bg-yellow-50', logoColor: 'bg-yellow-400', logoText: 'MTN' },
-  GLO: { bg: 'bg-green-50', logoColor: 'bg-green-500', logoText: 'glo' },
-  AIRTEL: { bg: 'bg-red-50', logoColor: 'bg-red-500', logoText: 'airtel' },
-  '9MOBILE': { bg: 'bg-purple-50', logoColor: 'bg-emerald-600', logoText: '9' },
+// Black/dark badge style matching real physical recharge cards (MTN card reference)
+const NETWORK_LOGOS: Record<string, { bg: string; text: string; label: string }> = {
+  MTN: { bg: 'bg-black', text: 'text-yellow-400', label: 'MTN' },
+  GLO: { bg: 'bg-black', text: 'text-green-500', label: 'glo' },
+  AIRTEL: { bg: 'bg-black', text: 'text-red-500', label: 'airtel' },
+  '9MOBILE': { bg: 'bg-black', text: 'text-white', label: '9mobile' },
 };
+
+// Shorten any long reference/UUID to a readable short code (e.g. first 8 chars, uppercased)
+function shortenReference(ref: string): string {
+  if (!ref) return '';
+  // If it looks like a UUID (has dashes and is long), take only the first segment
+  const cleaned = ref.replace(/^RC-/, '');
+  const short = cleaned.split('-')[0];
+  return short.slice(0, 8).toUpperCase();
+}
 
 export const RechargeCardTicket: React.FC<RechargeCardTicketProps> = ({ brandName, network, faceValue, serial, pin, reference, createdAt }) => {
   const formattedPin = pin.replace(/(.{4})/g, '$1-').replace(/-$/, '');
@@ -23,24 +33,23 @@ export const RechargeCardTicket: React.FC<RechargeCardTicketProps> = ({ brandNam
   const formattedDate = new Date(createdAt).toLocaleString('en-NG', {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   });
-  const style = NETWORK_STYLES[network] ?? NETWORK_STYLES.MTN;
+  const logo = NETWORK_LOGOS[network] ?? NETWORK_LOGOS.MTN;
+  const shortRef = shortenReference(reference);
 
   return (
-    <div className={`${style.bg} rounded-md px-4 py-3 font-serif border border-slate-200 shadow-sm text-left`}>
-      {/* Brand + Ref combined on one line (matches real card format) + price/logo top right */}
+    <div className="bg-slate-50 rounded-md px-4 py-3 font-serif border border-slate-200 shadow-sm text-left">
       <div className="flex justify-between items-start">
         <p className="text-sm font-bold text-slate-800">
-          {brandName}{reference ? `; ${reference}` : ''}
+          {brandName}{shortRef ? `; ${shortRef}` : ''}
         </p>
         <div className="flex items-center gap-1.5 -mt-1 shrink-0">
           <span className="text-xl font-black text-slate-800">₦{faceValue}</span>
-          <div className={`${style.logoColor} w-7 h-7 rounded-full flex items-center justify-center shrink-0 shadow-xs`}>
-            <span className="text-white text-[9px] font-black lowercase leading-none">{style.logoText}</span>
+          {/* Black badge logo, matching real physical card style */}
+          <div className={`${logo.bg} px-2 py-1 rounded flex items-center justify-center shrink-0`}>
+            <span className={`${logo.text} text-[9px] font-black leading-none whitespace-nowrap`}>{logo.label}</span>
           </div>
         </div>
       </div>
-
-      {/* S/N, PIN, Dial, Date - stacked exactly like the physical strip */}
       <div className="mt-1.5 space-y-0.5 text-[13px] text-slate-700 leading-snug">
         <p>S/N: {serial}</p>
         <p className="text-lg font-black text-slate-900 tracking-wide py-0.5">{formattedPin}</p>
