@@ -162,6 +162,132 @@ export const ApiService = {
     return { success: true, message: data.message };
   },
 
+  async getRechargeCardSubscriptionStatus(): Promise<{
+    success: boolean;
+    eligible: boolean;
+    subscription_id?: string;
+    plan_type?: 'weekly' | 'monthly';
+    batches_used_today?: number;
+    daily_batch_limit?: number;
+    batches_remaining_today?: number;
+    max_cards_per_batch?: number;
+    expires_at?: string;
+    reason?: string;
+    message?: string;
+  }> {
+    return await request('recharge-card-subscription', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'status' }),
+    });
+  },
+
+  async subscribeToRechargeCardPlan(planType: 'weekly' | 'monthly'): Promise<{
+    success: boolean;
+    subscription_id: string;
+    plan_type: 'weekly' | 'monthly';
+    price_paid: number;
+    daily_batch_limit: number;
+    expires_at: string;
+  }> {
+    return await request('recharge-card-subscription', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'subscribe', plan_type: planType }),
+    });
+  },
+
+  async getRechargeCardOptions(): Promise<{
+    success: boolean;
+    networks: {
+      network: string;
+      network_label: string;
+      denominations: {
+        face_value: number;
+        price_per_card: number;
+      }[];
+    }[];
+    limits: {
+      max_quantity_per_order: number;
+    };
+  }> {
+    return await request('recharge-card-purchase', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'options' }),
+    });
+  },
+
+  async getRechargeCardQuote(network: string, amount: number, quantity: number): Promise<{
+    success: boolean;
+    peyflex_cost_per_card: number;
+    markup_per_card: number;
+    price_per_card: number;
+    quantity: number;
+    total_cost: number;
+    gigup_profit_per_card: number;
+    gigup_total_profit: number;
+  }> {
+    return await request('recharge-card-purchase', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'quote', network, amount, quantity }),
+    });
+  },
+
+  async purchaseRechargeCards(payload: {
+    network: string;
+    amount: number;
+    quantity: number;
+    brand_name?: string;
+    transaction_pin: string;
+  }): Promise<{
+    success: boolean;
+    status: string;
+    order_id: string;
+    reference: string;
+    quantity_delivered: number;
+    cards: { pin: string; serial: string }[];
+    total_charged: number;
+    batches_remaining_today: number;
+  }> {
+    return await request('recharge-card-purchase', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'purchase',
+        ...payload
+      }),
+    });
+  },
+
+  async getRechargeCardHistory(): Promise<{
+    success: boolean;
+    orders: {
+      id: string;
+      network: string;
+      face_value: number;
+      quantity_ordered: number;
+      quantity_delivered: number;
+      total_charged: number;
+      gigup_profit: number;
+      status: 'processing' | 'success' | 'partial' | 'failed' | 'pending_review';
+      brand_name?: string;
+      created_at: string;
+    }[];
+  }> {
+    return await request('recharge-card-purchase', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'history' }),
+    });
+  },
+
+  async getRechargeCardBatchDetail(orderId: string): Promise<{
+    success: boolean;
+    order: any;
+    cards: { id: string; pin: string; serial: string; revealed: boolean }[];
+  }> {
+    return await request('recharge-card-purchase', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'batch_detail', order_id: orderId }),
+    });
+  },
+
   logout() {
     localStorage.removeItem('gigup_token');
     localStorage.removeItem('gigup_user');

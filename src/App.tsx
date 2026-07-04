@@ -695,6 +695,7 @@ export default function App() {
             user={user} 
             onNavigate={handleOnscreenNavigation} 
             showToast={showToast} 
+            onRefreshData={refreshUserData}
           />
         ) : null;
       case 'checkin':
