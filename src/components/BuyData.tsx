@@ -569,9 +569,9 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
               <span className="text-xs font-medium">Fetching real-time plans...</span>
             </div>
           ) : (
-            <div className="grid grid-cols-4 gap-x-2 gap-y-4">
+            <div className="grid grid-cols-3 gap-x-2 gap-y-4">
               {filteredPlans.length === 0 ? (
-                <div className="col-span-4 py-10 text-center bg-white rounded-3xl border border-gray-150 p-6">
+                <div className="col-span-3 py-10 text-center bg-white rounded-3xl border border-gray-150 p-6">
                   <p className="text-sm font-semibold text-text-muted">
                     {activeTab === 'hot' && `No hot deals available for ${activeNetwork} right now — check back soon.`}
                     {activeTab === 'daily' && `No daily plans available for ${activeNetwork} right now — check back soon.`}
@@ -593,7 +593,7 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
                     <button
                       key={plan.id}
                       onClick={() => setSelectedPlan(plan)}
-                      className={`bg-white rounded-xl p-2.5 flex flex-col items-center justify-between text-center gap-1 shadow-sm border active:scale-[0.96] transition-all cursor-pointer relative ${
+                      className={`bg-white rounded-2xl p-3.5 flex flex-col items-center justify-between text-center gap-1 shadow-sm border active:scale-[0.97] transition-all cursor-pointer relative min-h-[145px] ${
                         isSelected
                           ? 'border-primary-blue ring-2 ring-primary-blue/10 bg-primary-blue/[0.02]'
                           : 'border-slate-150 hover:border-slate-300'
@@ -601,31 +601,37 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
                     >
                       {/* Night Only Indicator */}
                       {isNightOnly && (
-                        <span className="absolute top-1 right-1 text-[8px] bg-slate-800 text-white px-1 py-0.5 rounded-full font-bold shadow-sm leading-none" title="Night Only">
-                          🌙
-                        </span>
+                        <div className="absolute top-1.5 right-1.5 bg-slate-800 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-sm">
+                          <span>🌙</span>
+                          <span>NIGHT PLAN</span>
+                        </div>
                       )}
 
                       {/* Best Value Star Indicator */}
                       {isBestValue && (
-                        <span className="absolute top-1 left-1 text-[8px] bg-amber-500 text-white px-1 py-0.5 rounded-full font-bold shadow-sm leading-none" title="Best Value">
-                          ⭐
-                        </span>
+                        <div className="absolute top-1.5 left-1.5 bg-amber-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-sm">
+                          <span>⭐</span>
+                          <span>BEST VALUE</span>
+                        </div>
                       )}
 
-                      <div className="w-full flex flex-col items-center gap-0.5 mt-2">
-                        <p className={`text-xs font-black tracking-tight ${isSelected ? 'text-primary-blue' : 'text-slate-900'}`}>
+                      <div className="w-full flex flex-col items-center gap-0.5 mt-4">
+                        <p className={`text-base font-black tracking-tight ${isSelected ? 'text-primary-blue' : 'text-slate-900'}`}>
                           {plan.size_label}
                         </p>
-                        <p className="text-xs font-bold text-primary-blue font-mono">
+                        <p className="text-sm font-bold text-primary-blue font-mono">
                           ₦{plan.price.toLocaleString('en-US')}
                         </p>
-                        <p className="text-[9px] font-bold text-emerald-600 leading-none">
-                          🎁 +₦{cashbackVal} back
+                        <p className="text-[10px] text-text-muted uppercase font-semibold flex items-center justify-center gap-0.5 mt-0.5">
+                          <span>🎁</span>
+                          <span>Cashback</span>
+                        </p>
+                        <p className="text-xs font-bold text-emerald-600 leading-none">
+                          +₦{cashbackVal.toLocaleString('en-US')}
                         </p>
                       </div>
 
-                      <span className="text-[8px] font-bold text-text-muted bg-slate-50 border border-slate-100/50 px-1 py-0.5 rounded-md uppercase tracking-wider w-full truncate leading-none mt-1.5">
+                      <span className="text-[10px] font-bold text-text-muted bg-slate-50 border border-slate-100/50 px-2 py-1 rounded-md uppercase tracking-wider w-full truncate leading-none mt-1">
                         {plan.validity}
                       </span>
                     </button>

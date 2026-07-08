@@ -41,6 +41,19 @@ const saveReadNotificationIds = (ids: string[]) => {
 };
 
 export default function App() {
+  // Theme state
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    return (localStorage.getItem('gigup_theme') as 'light' | 'dark') || 'light';
+  });
+
+  const handleToggleTheme = () => {
+    setTheme(prev => {
+      const nextTheme = prev === 'light' ? 'dark' : 'light';
+      localStorage.setItem('gigup_theme', nextTheme);
+      return nextTheme;
+    });
+  };
+
   // Session states
   const [user, setUser] = useState<User | null>(null);
   const sessionIdRef = useRef<string | null>(null);
@@ -730,6 +743,8 @@ export default function App() {
             isStandalone={isStandalone}
             initialScrollTo={extraNavigationParams?.scrollTo}
             onOpenRating={() => setShowRatingModal(true)}
+            theme={theme}
+            onToggleTheme={handleToggleTheme}
           />
         ) : null;
 
@@ -797,7 +812,7 @@ export default function App() {
 
   return (
     <div className="app-container">
-      <div id="phone-simulation-frame" className="phone-frame select-none">
+      <div id="phone-simulation-frame" className="phone-frame select-none" data-theme={theme}>
         {/* Core dynamic screen viewport container */}
         <div className="flex-1 min-h-0 w-full overflow-hidden relative">
           <AnimatePresence mode="wait">

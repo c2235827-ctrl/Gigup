@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShieldAlert, Copy, Check, Share2, HelpCircle, LogOut, Trash2, Bell, History, KeyRound, ChevronRight, CheckCircle, Mail, MessageSquare, Sparkles, ArrowDownLeft, ArrowUpRight, Smartphone, Download } from 'lucide-react';
+import { ShieldAlert, Copy, Check, Share2, HelpCircle, LogOut, Trash2, Bell, History, KeyRound, ChevronRight, CheckCircle, Mail, MessageSquare, Sparkles, ArrowDownLeft, ArrowUpRight, Smartphone, Download, Moon, Sun } from 'lucide-react';
 import { ApiService, BASE_URL } from '../api';
 import { User, WalletTransaction } from '../types';
 import PullToRefresh from './PullToRefresh';
@@ -24,9 +24,11 @@ interface AccountProps {
   isStandalone?: boolean;
   initialScrollTo?: string;
   onOpenRating: () => void;
+  theme?: 'light' | 'dark';
+  onToggleTheme?: () => void;
 }
 
-export default function Account({ user, transactions = [], onNavigate, onLogout, showToast, onRefreshData, onTriggerInstall, isStandalone = false, initialScrollTo, onOpenRating }: AccountProps) {
+export default function Account({ user, transactions = [], onNavigate, onLogout, showToast, onRefreshData, onTriggerInstall, isStandalone = false, initialScrollTo, onOpenRating, theme = 'light', onToggleTheme }: AccountProps) {
   const [copiedCode, setCopiedCode] = useState(false);
   
   const [pushEnabled, setPushEnabled] = useState(false);
@@ -431,6 +433,31 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
           </div>
           <ChevronRight className="w-4 h-4 text-text-muted shrink-0" />
         </button>
+
+        {/* Row 3.2: Theme Mode Toggle */}
+        <div className="w-full bg-white rounded-2xl p-4 border border-gray-100 flex items-center justify-between text-left shadow-sm transition">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-text-muted shrink-0">
+              {theme === 'dark' ? <Moon className="w-4 h-4 text-emerald-500" /> : <Sun className="w-4 h-4 text-amber-500" />}
+            </div>
+            <div>
+              <span className="text-xs font-bold text-primary-dark block leading-none">True Dark Mode</span>
+              <span className="text-[10px] text-text-muted mt-1 block">Toggle between brand colors and deep slate theme</span>
+            </div>
+          </div>
+          <button
+            onClick={onToggleTheme}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 cursor-pointer shrink-0 border-none ${
+              theme === 'dark' ? 'bg-emerald-500' : 'bg-slate-300'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-200 ${
+                theme === 'dark' ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
 
         {/* Row 3.5: Install App (PWA option) */}
         {!isStandalone && onTriggerInstall && (
