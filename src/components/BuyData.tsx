@@ -41,6 +41,61 @@ function detectNetwork(phoneNumber: string): 'MTN' | 'GLO' | 'AIRTEL' | null {
   return null;
 }
 
+// Static Helper Functions for Provider-Separated Plan Display
+function cleanPlanName(name: string): string {
+  if (!name) return '';
+  return name
+    .replace(/smedata/gi, '')
+    .replace(/peyflex/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isDaily(validity: string): boolean {
+  const v = (validity || '').trim().toLowerCase();
+  return ['1 day', '2 days', '3 days'].includes(v);
+}
+
+function isWeekly(validity: string): boolean {
+  const v = (validity || '').trim().toLowerCase();
+  return ['7 days', '14 days', '14 days (night)'].includes(v);
+}
+
+function isMonthly(validity: string): boolean {
+  const v = (validity || '').trim().toLowerCase();
+  return v === '30 days';
+}
+
+function isExclusive(validity: string): boolean {
+  const v = (validity || '').trim().toLowerCase();
+  return ['2 months', '1 year'].includes(v);
+}
+
+function checkIsNightOnly(plan: DataPlan): boolean {
+  const name = (plan.plan_name || '').toUpperCase();
+  const val = (plan.validity || '').toUpperCase();
+  return name.includes('NIGHT ONLY') || name.includes('NIGHT PLAN') || val.includes('(NIGHT)');
+}
+
+function parseSizeInGB(sizeLabel: string): number {
+  const clean = (sizeLabel || '').toUpperCase().trim();
+  const numMatch = clean.match(/^([\d.]+)\s*(GB|MB|TB)/);
+  if (!numMatch) {
+    const num = parseFloat(clean);
+    if (!isNaN(num)) return num;
+    return 1;
+  }
+  const value = parseFloat(numMatch[1]);
+  const unit = numMatch[2];
+  if (unit === 'MB') {
+    return value / 1024;
+  }
+  if (unit === 'TB') {
+    return value * 1024;
+  }
+  return value; // GB
+}
+
 export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRefreshData, showToast }: BuyDataProps) {
   const [activeNetwork, setActiveNetwork] = useState<'MTN' | 'GLO' | 'AIRTEL'>(initialNetwork);
   const [recipient, setRecipient] = useState('');
@@ -49,6 +104,10 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
   const [selectedPlan, setSelectedPlan] = useState<DataPlan | null>(null);
   const [loadingPlans, setLoadingPlans] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Category Tab State (Hot is the default tab)
+  const [activeTab, setActiveTab] = useState<'hot' | 'daily' | 'weekly' | 'monthly' | 'exclusive'>('hot');
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   
   // Success Modal State
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -57,6 +116,114 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
   // Failure Modal State
   const [showFailureModal, setShowFailureModal] = useState(false);
   const [lastFailureInfo, setLastFailureInfo] = useState<{ plan: DataPlan; recipient: string; reason: string; orderId: string; receiptId: string; date: string } | null>(null);
+
+  // Find best value plan (lowest price-per-GB) among all active plans for current network
+  const bestValuePlanId = React.useMemo(() => {
+    if (plans.length === 0) return null;
+    
+    let bestId: string | null = null;
+    let minPricePerGB = Infinity;
+    
+    plans.forEach((plan) => {
+      const sizeGB = parseSizeInGB(plan.size_label || plan.plan_name);
+      if (sizeGB > 0) {
+        const pricePerGB = plan.price / sizeGB;
+        if (pricePerGB < minPricePerGB) {
+          minPricePerGB = pricePerGB;
+          bestId = plan.id;
+        }
+      }
+    });
+    
+    return bestId;
+  }, [plans]);
+
+  // Derive available tabs based on current plans
+  const availableTabs = React.useMemo(() => {
+    if (plans.length === 0) return ['hot'];
+    
+    const tabs: ('hot' | 'daily' | 'weekly' | 'monthly' | 'exclusive')[] = ['hot'];
+    
+    if (plans.some(p => isDaily(p.validity))) tabs.push('daily');
+    if (plans.some(p => isWeekly(p.validity))) tabs.push('weekly');
+    if (plans.some(p => isMonthly(p.validity))) tabs.push('monthly');
+    if (plans.some(p => isExclusive(p.validity))) tabs.push('exclusive');
+    
+    return tabs;
+  }, [plans]);
+
+  // Auto-switch to first available tab if activeTab is not available
+  useEffect(() => {
+    if (plans.length > 0 && !availableTabs.includes(activeTab)) {
+      setActiveTab(availableTabs[0] ?? 'hot');
+    }
+  }, [plans, availableTabs, activeTab]);
+
+  // Derive filtered and sorted plans based on activeTab
+  const filteredPlans = React.useMemo(() => {
+    if (plans.length === 0) return [];
+
+    if (activeTab === 'hot') {
+      // 1. Calculate price threshold for cheapest 30%
+      const sortedByPrice = [...plans].sort((a, b) => a.price - b.price);
+      const priceThresholdIndex = Math.max(0, Math.floor(sortedByPrice.length * 0.3) - 1);
+      const priceThreshold = sortedByPrice[priceThresholdIndex]?.price || Infinity;
+
+      // 2. Calculate price-per-GB threshold for cheapest 30%
+      const plansWithPricePerGB = plans.map(p => {
+        const sizeGB = parseSizeInGB(p.size_label || p.plan_name);
+        const pricePerGB = sizeGB > 0 ? p.price / sizeGB : Infinity;
+        return { plan: p, pricePerGB };
+      });
+      const sortedByPricePerGB = [...plansWithPricePerGB].sort((a, b) => a.pricePerGB - b.pricePerGB);
+      const pricePerGBThresholdIndex = Math.max(0, Math.floor(sortedByPricePerGB.length * 0.3) - 1);
+      const pricePerGBThreshold = sortedByPricePerGB[pricePerGBThresholdIndex]?.pricePerGB || Infinity;
+
+      const hotPlans = plans.filter(p => {
+        // Condition 1: cheapest 30% by absolute price
+        if (p.price <= priceThreshold) return true;
+
+        // Condition 2: price-per-GB is in cheapest 30%
+        const sizeGB = parseSizeInGB(p.size_label || p.plan_name);
+        const pricePerGB = sizeGB > 0 ? p.price / sizeGB : Infinity;
+        if (pricePerGB <= pricePerGBThreshold) return true;
+
+        // Condition 3: NIGHT ONLY plan under ₦2,000
+        const isNight = checkIsNightOnly(p);
+        if (isNight && p.price < 2000) return true;
+
+        // Condition 4: short-validity (1-3 days) plan under ₦1,000
+        const isShortVal = isDaily(p.validity);
+        if (isShortVal && p.price < 1000) return true;
+
+        return false;
+      });
+
+      // Sort Hot tab by price ascending
+      return [...hotPlans].sort((a, b) => a.price - b.price);
+    } else if (activeTab === 'daily') {
+      return plans.filter(p => isDaily(p.validity)).sort((a, b) => a.price - b.price);
+    } else if (activeTab === 'weekly') {
+      return plans.filter(p => isWeekly(p.validity)).sort((a, b) => a.price - b.price);
+    } else if (activeTab === 'monthly') {
+      return plans.filter(p => isMonthly(p.validity)).sort((a, b) => a.price - b.price);
+    } else if (activeTab === 'exclusive') {
+      return plans.filter(p => isExclusive(p.validity)).sort((a, b) => a.price - b.price);
+    }
+    return [];
+  }, [plans, activeTab]);
+
+  // Auto-select the first filtered plan whenever current network or filter options change
+  useEffect(() => {
+    if (filteredPlans.length > 0) {
+      const stillVisible = filteredPlans.some(p => p.id === selectedPlan?.id);
+      if (!stillVisible) {
+        setSelectedPlan(filteredPlans[0]);
+      }
+    } else {
+      setSelectedPlan(null);
+    }
+  }, [filteredPlans, selectedPlan]);
 
   // Auto-detect mobile network from recipient number
   useEffect(() => {
@@ -85,10 +252,6 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
         const plans = await ApiService.getDataPlans(activeNetwork);
         if (active && plans) {
           setPlans(plans);
-          // Auto select first plan as default
-          if (plans.length > 0) {
-            setSelectedPlan(plans[0]);
-          }
         }
       } catch (err: any) {
         showToast(err.message || 'Error occurred loading plans', 'error');
@@ -199,6 +362,18 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
         throw new Error(res.message || 'Transaction was rejected or declined by the payment/VTU gateway.');
       }
     } catch (err: any) {
+      const errMsg = err.message || '';
+      if (
+        errMsg.toLowerCase().includes('currently unavailable') || 
+        errMsg.toLowerCase().includes('disabled') || 
+        errMsg.toLowerCase().includes('unavailable')
+      ) {
+        playFailureSound();
+        showToast(errMsg || 'This plan is currently unavailable. Please choose another plan.', 'error');
+        setSubmitting(false);
+        return; // Do not navigate to receipt page!
+      }
+
       playFailureSound();
       const errData = err.data || {};
       const generatedOrderId = errData.order_id || errData.id || 'DA' + Math.random().toString(16).substring(2, 10).toUpperCase();
@@ -273,23 +448,52 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
         </div>
       )}
 
-      {/* Network Select Tabs */}
-      <div className="bg-primary-dark pt-5 pb-5 px-5 text-white shrink-0">
-        <h4 className="text-xs font-bold text-white/50 uppercase tracking-widest mb-3 pl-1">Network Selector</h4>
-        <div className="grid grid-cols-3 gap-2 bg-white/5 p-1 rounded-full border border-white/5">
-          {(['MTN', 'GLO', 'AIRTEL'] as const).map((net) => (
-            <button
-              key={net}
-              onClick={() => setActiveNetwork(net)}
-              className={`py-2 rounded-full font-bold text-xs cursor-pointer transition-all ${
-                activeNetwork === net 
-                  ? 'bg-white text-primary-dark shadow font-extrabold' 
-                  : 'text-white/70 hover:text-white'
-              }`}
-            >
-              {net} Bundle
-            </button>
-          ))}
+      {/* Network & Plan Category Tabs */}
+      <div className="bg-primary-dark pt-4 pb-4 px-5 text-white shrink-0 space-y-3.5 shadow-md">
+        <div>
+          <h4 className="text-[10px] font-bold text-white/50 uppercase tracking-widest mb-2 pl-1">Network Selector</h4>
+          <div className="grid grid-cols-3 gap-1.5 bg-white/5 p-1 rounded-full border border-white/5">
+            {(['MTN', 'GLO', 'AIRTEL'] as const).map((net) => (
+              <button
+                key={net}
+                onClick={() => setActiveNetwork(net)}
+                className={`py-1.5 rounded-full font-bold text-xs cursor-pointer transition-all ${
+                  activeNetwork === net 
+                    ? 'bg-white text-primary-dark shadow font-extrabold' 
+                    : 'text-white/70 hover:text-white'
+                }`}
+              >
+                {net} Bundle
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <h4 className="text-[10px] font-bold text-white/50 uppercase tracking-widest mb-2 pl-1">Data Category</h4>
+          <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1 -mx-2 px-2">
+            {([
+              { id: 'hot', label: 'Hot 🔥' },
+              { id: 'daily', label: 'Daily' },
+              { id: 'weekly', label: 'Weekly' },
+              { id: 'monthly', label: 'Monthly' },
+              { id: 'exclusive', label: 'Exclusive' }
+            ] as const)
+              .filter(tab => availableTabs.includes(tab.id))
+              .map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`py-1.5 px-4 rounded-full font-bold text-xs cursor-pointer transition-all whitespace-nowrap border ${
+                    activeTab === tab.id 
+                      ? 'bg-white text-primary-dark border-white shadow font-extrabold' 
+                      : 'text-white/70 border-white/10 bg-white/5 hover:text-white'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+          </div>
         </div>
       </div>
 
@@ -297,7 +501,7 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
       <div className="p-5 flex-grow overflow-y-auto space-y-5 pb-[140px]">
         
         {/* Recipient Card */}
-        <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-4">
+        <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-150 space-y-4">
           <div className="flex justify-between items-center px-1">
             <h5 className="text-xs font-bold text-primary-dark uppercase">Recipient Numbers</h5>
             <div className="flex items-center gap-1.5 cursor-pointer">
@@ -365,48 +569,69 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
               <span className="text-xs font-medium">Fetching real-time plans...</span>
             </div>
           ) : (
-            <div className="space-y-2.5">
-              {plans.map((plan) => {
-                const isSelected = selectedPlan?.id === plan.id;
-                const cashbackMultiplier = user.double_cashback_active ? 0.20 : 0.10;
-                const cashbackVal = Math.round(plan.price * cashbackMultiplier);
-                return (
-                  <div
-                    key={plan.id}
-                    onClick={() => setSelectedPlan(plan)}
-                    className={`bg-white rounded-2xl p-4 border transition-all cursor-pointer shadow-sm relative flex justify-between items-center ${
-                      isSelected 
-                        ? 'border-primary-blue ring-2 ring-primary-blue/10 bg-primary-blue/[0.01]' 
-                        : 'border-gray-150 hover:border-gray-300'
-                    }`}
-                  >
-                    {/* Selected Badge accent */}
-                    {isSelected && (
-                      <span className="absolute -top-1.5 -left-1.5 flex h-3 w-3">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-blue opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-3 w-3 bg-primary-blue"></span>
-                      </span>
-                    )}
+            <div className="grid grid-cols-4 gap-x-2 gap-y-4">
+              {filteredPlans.length === 0 ? (
+                <div className="col-span-4 py-10 text-center bg-white rounded-3xl border border-gray-150 p-6">
+                  <p className="text-sm font-semibold text-text-muted">
+                    {activeTab === 'hot' && `No hot deals available for ${activeNetwork} right now — check back soon.`}
+                    {activeTab === 'daily' && `No daily plans available for ${activeNetwork} right now — check back soon.`}
+                    {activeTab === 'weekly' && `No weekly plans available for ${activeNetwork} right now — check back soon.`}
+                    {activeTab === 'monthly' && `No monthly plans available for ${activeNetwork} right now — check back soon.`}
+                    {activeTab === 'exclusive' && `No exclusive plans available for ${activeNetwork} right now — check back soon.`}
+                  </p>
+                  <p className="text-xs text-text-muted/70 mt-1">Try switching categories or networks.</p>
+                </div>
+              ) : (
+                filteredPlans.map((plan) => {
+                  const isSelected = selectedPlan?.id === plan.id;
+                  const isNightOnly = checkIsNightOnly(plan);
+                  const isBestValue = plan.id === bestValuePlanId;
+                  const cashbackMultiplier = user.double_cashback_active ? 0.20 : 0.10;
+                  const cashbackVal = Math.round(plan.price * cashbackMultiplier);
 
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-base font-extrabold text-primary-dark">{plan.size_label}</span>
-                        <span className="text-[9px] bg-brand-cashback/15 text-brand-cashback font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider">
-                          🎁 ₦{cashbackVal} cashback
+                  return (
+                    <button
+                      key={plan.id}
+                      onClick={() => setSelectedPlan(plan)}
+                      className={`bg-white rounded-xl p-2.5 flex flex-col items-center justify-between text-center gap-1 shadow-sm border active:scale-[0.96] transition-all cursor-pointer relative ${
+                        isSelected
+                          ? 'border-primary-blue ring-2 ring-primary-blue/10 bg-primary-blue/[0.02]'
+                          : 'border-slate-150 hover:border-slate-300'
+                      }`}
+                    >
+                      {/* Night Only Indicator */}
+                      {isNightOnly && (
+                        <span className="absolute top-1 right-1 text-[8px] bg-slate-800 text-white px-1 py-0.5 rounded-full font-bold shadow-sm leading-none" title="Night Only">
+                          🌙
                         </span>
-                      </div>
-                      <h6 className="text-[11px] font-bold text-text-muted">{plan.plan_name} • {plan.validity}</h6>
-                    </div>
+                      )}
 
-                    <div className="text-right">
-                      <span className="text-sm font-extrabold text-primary-blue font-mono">
-                        ₦{(plan.price || 0).toLocaleString('en-US')}
+                      {/* Best Value Star Indicator */}
+                      {isBestValue && (
+                        <span className="absolute top-1 left-1 text-[8px] bg-amber-500 text-white px-1 py-0.5 rounded-full font-bold shadow-sm leading-none" title="Best Value">
+                          ⭐
+                        </span>
+                      )}
+
+                      <div className="w-full flex flex-col items-center gap-0.5 mt-2">
+                        <p className={`text-xs font-black tracking-tight ${isSelected ? 'text-primary-blue' : 'text-slate-900'}`}>
+                          {plan.size_label}
+                        </p>
+                        <p className="text-xs font-bold text-primary-blue font-mono">
+                          ₦{plan.price.toLocaleString('en-US')}
+                        </p>
+                        <p className="text-[9px] font-bold text-emerald-600 leading-none">
+                          +₦{cashbackVal} back
+                        </p>
+                      </div>
+
+                      <span className="text-[8px] font-bold text-text-muted bg-slate-50 border border-slate-100/50 px-1 py-0.5 rounded-md uppercase tracking-wider w-full truncate leading-none mt-1.5">
+                        {plan.validity}
                       </span>
-                      <span className="text-[9px] text-text-muted block">Duration: {plan.validity}</span>
-                    </div>
-                  </div>
-                );
-              })}
+                    </button>
+                  );
+                })
+              )}
             </div>
           )}
         </div>
@@ -427,7 +652,13 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
         {selectedPlan ? (
           <button
             id="order-buy-now-btn"
-            onClick={handleBuyData}
+            onClick={() => {
+              if (hasBalance) {
+                setShowConfirmModal(true);
+              } else {
+                handleBuyData();
+              }
+            }}
             disabled={submitting || recipient.length !== 11}
             className={`px-5 py-3 text-xs font-bold rounded-full shadow-lg active:scale-98 transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap min-w-0 ${
               hasBalance 
@@ -461,6 +692,83 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
           </button>
         )}
       </div>
+
+      {/* Confirmation Modal */}
+      <AnimatePresence>
+        {showConfirmModal && selectedPlan && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end justify-center">
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="bg-white rounded-t-3xl w-full max-w-md p-6 space-y-5 shadow-2xl relative border-t border-gray-150"
+            >
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-slate-100 transition"
+              >
+                <X className="w-5 h-5 text-text-muted" />
+              </button>
+
+              <div className="text-center space-y-1">
+                <h3 className="text-base font-black text-primary-dark">Confirm Data Purchase</h3>
+                <p className="text-xs text-text-muted font-medium">Please review the details below before confirming</p>
+              </div>
+
+              <div className="bg-bg-light rounded-2xl p-4.5 space-y-3.5 border border-gray-100">
+                <div className="flex justify-between text-xs">
+                  <span className="text-text-muted font-semibold">Network</span>
+                  <span className="font-extrabold text-primary-dark uppercase tracking-wider">{selectedPlan.network} Bundle</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-text-muted font-semibold">Plan Size</span>
+                  <span className="font-extrabold text-primary-dark">{selectedPlan.size_label}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-text-muted font-semibold">Recipient Line</span>
+                  <span className="font-mono font-bold text-primary-dark">{recipient}</span>
+                </div>
+                <div className="border-t border-gray-200/60 my-2.5"></div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-text-muted font-bold">Total Cost</span>
+                  <span className="font-black text-primary-blue font-mono">₦{selectedPlan.price.toLocaleString('en-US')}</span>
+                </div>
+              </div>
+
+              {/* Night Only Alert inside Confirmation */}
+              {checkIsNightOnly(selectedPlan) && (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3.5 flex gap-2.5 text-amber-900 shadow-sm">
+                  <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5 text-left">
+                    <p className="text-xs font-bold">Night Plan Warning</p>
+                    <p className="text-[11px] text-amber-700 font-semibold leading-relaxed">This plan works at night hours only.</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <button
+                  onClick={() => setShowConfirmModal(false)}
+                  className="py-3 px-4 bg-gray-100 hover:bg-gray-200 text-slate-700 font-bold text-xs rounded-full transition-all cursor-pointer text-center"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowConfirmModal(false);
+                    handleBuyData();
+                  }}
+                  disabled={submitting}
+                  className="py-3 px-4 bg-primary-blue hover:bg-primary-blue/90 text-white font-extrabold text-xs rounded-full transition-all shadow-md shadow-primary-blue/10 cursor-pointer text-center"
+                >
+                  {submitting ? 'Processing...' : 'Confirm Purchase'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

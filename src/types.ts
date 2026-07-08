@@ -36,6 +36,8 @@ export interface DataPlan {
   size_label: string;
   price: number;
   validity: string;
+  primary_provider?: string;
+  active?: boolean;
 }
 
 export interface WalletTransaction {
