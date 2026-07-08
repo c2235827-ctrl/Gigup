@@ -621,7 +621,7 @@ export default function BuyData({ user, initialNetwork = 'MTN', onNavigate, onRe
                           ₦{plan.price.toLocaleString('en-US')}
                         </p>
                         <p className="text-[9px] font-bold text-emerald-600 leading-none">
-                          +₦{cashbackVal} back
+                          🎁 +₦{cashbackVal} back
                         </p>
                       </div>
 
