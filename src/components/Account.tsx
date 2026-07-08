@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShieldAlert, Copy, Check, Share2, HelpCircle, LogOut, Trash2, Bell, History, KeyRound, ChevronRight, CheckCircle, Mail, MessageSquare, Sparkles, ArrowDownLeft, ArrowUpRight, Smartphone, Download, Moon, Sun } from 'lucide-react';
+import { ShieldAlert, Copy, Check, Share2, HelpCircle, LogOut, Trash2, Bell, History, KeyRound, ChevronRight, CheckCircle, Mail, MessageSquare, Sparkles, ArrowDownLeft, ArrowUpRight, Smartphone, Download, Moon, Sun, FileText, Lock } from 'lucide-react';
 import { ApiService, BASE_URL } from '../api';
 import { User, WalletTransaction } from '../types';
 import PullToRefresh from './PullToRefresh';
@@ -523,7 +523,10 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
 
         {/* Row 4: Support center */}
         <button
-          onClick={() => setShowSupportModal(true)}
+          onClick={() => {
+            setActiveSupportTab('contact');
+            setShowSupportModal(true);
+          }}
           className="w-full bg-white rounded-2xl p-4 border border-gray-100 flex items-center justify-between text-left shadow-sm active:bg-gray-50 transition cursor-pointer"
         >
           <div className="flex items-center gap-3">
@@ -532,7 +535,7 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
             </div>
             <div>
               <span className="text-xs font-bold text-primary-dark block leading-none">Contact Support Care</span>
-              <span className="text-[10px] text-text-muted mt-1 block font-normal text-glow">24/7 client dispatch, whatsapp and email channels</span>
+              <span className="text-[10px] text-text-muted mt-1 block font-normal text-glow">24/7 client dispatch, WhatsApp and email channels</span>
             </div>
           </div>
           <ChevronRight className="w-4 h-4 text-text-muted shrink-0" />
@@ -722,7 +725,7 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
               {activeSupportTab === 'contact' && (
                 <div className="space-y-4 text-center animate-fade-in">
                   <span className="text-4xl block my-1">📞</span>
-                  <h6 className="font-extrabold text-base text-primary-dark leading-tight">How can we help you today, {user?.full_name?.split(' ')[0]}?</h6>
+                  <h6 className="font-extrabold text-base text-slate-900 leading-tight">How can we help you today, {user?.full_name?.split(' ')[0]}?</h6>
                   <p className="text-xs text-text-muted leading-relaxed px-2">
                     Our support agents are active 24/7. Instantly escalate failed topups, wallet queries, accounts, or card settings.
                   </p>
@@ -731,7 +734,7 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
                     <a
                       href="mailto:hello@gigupnigeria.com"
                       onClick={() => { showToast('Email dispatch opened ✉️', 'info'); }}
-                      className="flex items-center gap-3 bg-bg-light border border-gray-200 hover:border-gray-300 rounded-2xl p-4 text-left transition text-xs font-bold text-primary-dark"
+                      className="flex items-center gap-3 bg-slate-50 border border-gray-200 hover:border-gray-300 rounded-2xl p-4 text-left transition text-xs font-bold text-slate-900"
                     >
                       <Mail className="w-5 h-5 text-primary-blue shrink-0" />
                       <div>
@@ -745,7 +748,7 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
                       target="_blank"
                       rel="noreferrer"
                       onClick={() => { showToast('WhatsApp router opened 💬', 'info'); }}
-                      className="flex items-center gap-3 bg-bg-light border border-gray-200 hover:border-gray-300 rounded-2xl p-4 text-left transition text-xs font-bold text-primary-dark"
+                      className="flex items-center gap-3 bg-slate-50 border border-gray-200 hover:border-gray-300 rounded-2xl p-4 text-left transition text-xs font-bold text-slate-900"
                     >
                       <MessageSquare className="w-5 h-5 text-green-500 shrink-0" />
                       <div>
@@ -756,8 +759,8 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
                   </div>
 
                   <div className="bg-blue-50/70 border border-blue-100 rounded-2xl p-3.5 mt-4 text-left">
-                    <h6 className="text-[11px] font-extrabold text-[#1E3A8A] uppercase tracking-wide">💡 Average Resolution Time</h6>
-                    <p className="text-[10px] text-blue-700/80 mt-1 leading-relaxed">
+                    <h6 className="text-[11px] font-extrabold text-primary-blue uppercase tracking-wide">💡 Average Resolution Time</h6>
+                    <p className="text-[10px] text-text-muted mt-1 leading-relaxed">
                       94% of our client disputes are completely resolved within 5 minutes. Feel free to ping us!
                     </p>
                   </div>
@@ -773,12 +776,12 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
                       placeholder="Search frequently asked questions..."
                       value={faqSearchQuery}
                       onChange={(e) => setFaqSearchQuery(e.target.value)}
-                      className="w-full bg-bg-light border border-gray-200 text-xs font-bold rounded-2xl pl-4 pr-10 py-2.5 placeholder-gray-400 focus:bg-white focus:border-primary-blue focus:outline-none transition-all"
+                      className="w-full bg-slate-50 border border-gray-200 text-xs font-bold rounded-2xl pl-4 pr-10 py-2.5 placeholder-gray-400 focus:bg-white focus:border-primary-blue focus:outline-none transition-all"
                     />
                     {faqSearchQuery && (
                       <button
                         onClick={() => setFaqSearchQuery('')}
-                        className="absolute right-3.5 top-2.5 text-[11px] text-text-muted hover:text-primary-dark font-extrabold"
+                        className="absolute right-3.5 top-2.5 text-[11px] text-text-muted hover:text-slate-900 font-extrabold"
                       >
                         ✕
                       </button>
@@ -812,7 +815,7 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
                                 return (
                                   <div
                                     key={item.question}
-                                    className="bg-bg-light border border-gray-200/50 rounded-2xl overflow-hidden transition-all duration-200"
+                                    className="bg-slate-50 border border-gray-200/50 rounded-2xl overflow-hidden transition-all duration-200"
                                   >
                                     <button
                                       onClick={() =>
@@ -820,7 +823,7 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
                                       }
                                       className="w-full px-4 py-3 text-left flex justify-between items-center gap-2 border-none bg-transparent"
                                     >
-                                      <span className="text-[11px] font-bold text-primary-dark leading-snug">
+                                      <span className="text-[11px] font-bold text-slate-900 leading-snug">
                                         {item.question}
                                       </span>
                                       <span className={`text-[11px] font-extrabold shrink-0 text-primary-blue transform transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}>
@@ -844,7 +847,7 @@ export default function Account({ user, transactions = [], onNavigate, onLogout,
                         return (
                           <div className="text-center py-8">
                             <span className="text-3xl">🔍</span>
-                            <h6 className="text-xs font-bold text-primary-dark uppercase mt-2">No Matching Answers</h6>
+                            <h6 className="text-xs font-bold text-slate-900 uppercase mt-2">No Matching Answers</h6>
                             <p className="text-[10px] text-text-muted max-w-[200px] mx-auto mt-1 leading-relaxed">
                               Try searching for general topics such as "cashback", "wallet", "MTN", or "accounts".
                             </p>
