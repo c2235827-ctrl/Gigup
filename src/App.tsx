@@ -19,6 +19,9 @@ import TopupCallback from './components/TopupCallback';
 import ReceiptView from './components/ReceiptView';
 import CheckinScreen from './components/CheckinScreen';
 import RechargeCard from './components/RechargeCard';
+import Airtime from './components/Airtime';
+import CableTv from './components/CableTv';
+import Electricity from './components/Electricity';
 
 interface ToastState {
   message: string;
@@ -709,6 +712,33 @@ export default function App() {
             showToast={showToast} 
           />
         ) : null;
+      case 'airtime':
+        return user ? (
+          <Airtime
+            user={user}
+            onNavigate={handleOnscreenNavigation}
+            onRefreshData={refreshUserData}
+            showToast={showToast}
+          />
+        ) : null;
+      case 'cable':
+        return user ? (
+          <CableTv
+            user={user}
+            onNavigate={handleOnscreenNavigation}
+            onRefreshData={refreshUserData}
+            showToast={showToast}
+          />
+        ) : null;
+      case 'electricity':
+        return user ? (
+          <Electricity
+            user={user}
+            onNavigate={handleOnscreenNavigation}
+            onRefreshData={refreshUserData}
+            showToast={showToast}
+          />
+        ) : null;
       case 'recharge_card':
         return user ? (
           <RechargeCard 
@@ -808,7 +838,7 @@ export default function App() {
   // Determine if we should show the bottom phone navigation bar
   const shouldShowBottomNavigation = 
     !!user && 
-    ['home', 'buy_data', 'recharge_card', 'checkin', 'wallet', 'account', 'wallet_history'].includes(currentScreen);
+    ['home', 'buy_data', 'recharge_card', 'checkin', 'wallet', 'account', 'wallet_history', 'airtime', 'cable', 'electricity'].includes(currentScreen);
 
   return (
     <div className="app-container">

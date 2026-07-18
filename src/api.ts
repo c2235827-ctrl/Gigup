@@ -105,6 +105,95 @@ export const ApiService = {
     return data;
   },
 
+  async buyAirtime(network: string, amount: number, recipientPhone: string): Promise<{
+    success: boolean;
+    status: string;
+    face_value?: number;
+    amount_charged?: number;
+    wallet_balance?: number;
+    cashback_balance?: number;
+    message: string;
+  }> {
+    const data = await request('buy-airtime', {
+      method: 'POST',
+      body: JSON.stringify({ network, amount, recipient_phone: recipientPhone }),
+    });
+    const cachedUser = localStorage.getItem('gigup_user');
+    if (cachedUser) {
+      const user = JSON.parse(cachedUser);
+      user.wallet_balance = data.wallet_balance ?? user.wallet_balance;
+      user.cashback_balance = data.cashback_balance ?? user.cashback_balance;
+      localStorage.setItem('gigup_user', JSON.stringify(user));
+    }
+    return data;
+  },
+
+  async getCableProviders(): Promise<{ success: boolean; providers: { identifier: string; name: string }[] }> {
+    return await request('get-cable-plans?action=providers', { method: 'GET' });
+  },
+
+  async getCablePlans(identifier: string): Promise<{ success: boolean; plans: { plan_code: string; display: string; description: string; face_value: number; price: number }[] }> {
+    return await request(`get-cable-plans?action=plans&identifier=${identifier}`, { method: 'GET' });
+  },
+
+  async verifyCableIuc(iuc: string, identifier: string): Promise<{ success: boolean; customer_name?: string; error?: string }> {
+    return await request('get-cable-plans?action=verify', {
+      method: 'POST',
+      body: JSON.stringify({ iuc, identifier }),
+    });
+  },
+
+  async buyCable(identifier: string, planCode: string, iuc: string, phone: string): Promise<{
+    success: boolean;
+    status: string;
+    face_value?: number;
+    amount_charged?: number;
+    wallet_balance?: number;
+    message: string;
+  }> {
+    const data = await request('buy-cable', {
+      method: 'POST',
+      body: JSON.stringify({ identifier, plan_code: planCode, iuc, phone }),
+    });
+    const cachedUser = localStorage.getItem('gigup_user');
+    if (cachedUser) {
+      const user = JSON.parse(cachedUser);
+      user.wallet_balance = data.wallet_balance ?? user.wallet_balance;
+      localStorage.setItem('gigup_user', JSON.stringify(user));
+    }
+    return data;
+  },
+
+  async getElectricityDiscos(): Promise<{ success: boolean; discos: { plan_id: string; plan_code: string; plan_name: string; min_amount: number; max_amount: number }[] }> {
+    return await request('get-electricity-discos?action=discos', { method: 'GET' });
+  },
+
+  async verifyElectricityMeter(meter: string, plan: string, type: string): Promise<{ success: boolean; customer_name?: string; error?: string }> {
+    return await request(`get-electricity-discos?action=verify&meter=${meter}&plan=${plan}&type=${type}`, { method: 'GET' });
+  },
+
+  async buyElectricity(disco: string, meter: string, meterType: string, amount: number, phone: string): Promise<{
+    success: boolean;
+    status: string;
+    face_value?: number;
+    amount_charged?: number;
+    token?: string;
+    wallet_balance?: number;
+    message: string;
+  }> {
+    const data = await request('buy-electricity', {
+      method: 'POST',
+      body: JSON.stringify({ disco, meter, meter_type: meterType, amount, phone }),
+    });
+    const cachedUser = localStorage.getItem('gigup_user');
+    if (cachedUser) {
+      const user = JSON.parse(cachedUser);
+      user.wallet_balance = data.wallet_balance ?? user.wallet_balance;
+      localStorage.setItem('gigup_user', JSON.stringify(user));
+    }
+    return data;
+  },
+
   async initiateTopup(amount: number): Promise<{ success: boolean; payment_link: string; tx_ref: string }> {
     const data = await request('initiate-topup', {
       method: 'POST',

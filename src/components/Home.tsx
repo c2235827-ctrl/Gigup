@@ -364,42 +364,39 @@ export default function Home({
         </div>
       )}
 
-      {/* 4. Quick Network Action Icons Grid (MTN, GLO, Airtel, Referral) */}
+      {/* 4. Quick Action Icons Grid (Airtime, Cable TV, Electricity, Print Card) */}
 
       <div className="px-5 mt-6 shrink-0">
-        <h4 className="text-xs font-bold text-text-dark/40 uppercase tracking-widest mb-3 pl-1">Buy Cheap Data</h4>
+        <h4 className="text-xs font-bold text-text-dark/40 uppercase tracking-widest mb-3 pl-1">Quick Actions</h4>
         <div className="grid grid-cols-4 gap-3">
-          {/* MTN */}
           <button
-            onClick={() => onNavigate('buy_data', { network: 'MTN' })}
-            className="bg-white rounded-2xl p-3 border border-gray-100 flex flex-col items-center justify-center shadow-sm cursor-pointer hover:border-yellow-200 transition text-center"
+            onClick={() => onNavigate('airtime')}
+            className="bg-white rounded-2xl p-3 border border-gray-100 flex flex-col items-center justify-center shadow-sm cursor-pointer hover:border-blue-200 transition text-center"
           >
-            <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center mb-1.5">
-              <Signal className="w-5 h-5 text-yellow-600 font-bold" />
+            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mb-1.5">
+              <Phone className="w-5 h-5 text-blue-600 font-bold" />
             </div>
-            <span className="text-[10px] font-bold text-gray-700">MTN Data</span>
+            <span className="text-[10px] font-bold text-gray-700">Airtime</span>
           </button>
 
-          {/* GLO */}
           <button
-            onClick={() => onNavigate('buy_data', { network: 'GLO' })}
-            className="bg-white rounded-2xl p-3 border border-gray-100 flex flex-col items-center justify-center shadow-sm cursor-pointer hover:border-green-200 transition text-center"
+            onClick={() => onNavigate('cable')}
+            className="bg-white rounded-2xl p-3 border border-gray-100 flex flex-col items-center justify-center shadow-sm cursor-pointer hover:border-purple-200 transition text-center"
           >
-            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mb-1.5">
-              <Signal className="w-5 h-5 text-green-600 font-bold" />
+            <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mb-1.5">
+              <Signal className="w-5 h-5 text-purple-600 font-bold" />
             </div>
-            <span className="text-[10px] font-bold text-gray-700">GLO Data</span>
+            <span className="text-[10px] font-bold text-gray-700">Cable TV</span>
           </button>
 
-          {/* Airtel */}
           <button
-            onClick={() => onNavigate('buy_data', { network: 'AIRTEL' })}
-            className="bg-white rounded-2xl p-3 border border-gray-100 flex flex-col items-center justify-center shadow-sm cursor-pointer hover:border-red-200 transition text-center"
+            onClick={() => onNavigate('electricity')}
+            className="bg-white rounded-2xl p-3 border border-gray-100 flex flex-col items-center justify-center shadow-sm cursor-pointer hover:border-amber-200 transition text-center"
           >
-            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mb-1.5">
-              <Signal className="w-5 h-5 text-red-500 font-bold" />
+            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center mb-1.5">
+              <Sparkles className="w-5 h-5 text-amber-600 font-bold" />
             </div>
-            <span className="text-[10px] font-bold text-gray-700">Airtel Data</span>
+            <span className="text-[10px] font-bold text-gray-700">Electricity</span>
           </button>
 
           {/* Print Card Option */}
