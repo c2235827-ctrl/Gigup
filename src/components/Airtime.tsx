@@ -201,6 +201,21 @@ export default function Airtime({ user, onNavigate, onRefreshData, showToast }: 
       }
     } catch (err: any) {
       playFailureSound();
+
+      const isNetworkError = err instanceof TypeError ||
+        (err.message && (
+          err.message.toLowerCase().includes('failed to fetch') ||
+          err.message.toLowerCase().includes('network') ||
+          err.message.toLowerCase().includes('load failed')
+        ));
+
+      if (isNetworkError) {
+        showToast('Connection issue — your order may have still gone through. Refreshing...', 'info');
+        await onRefreshData().catch(() => {});
+        setSubmitting(false);
+        return;
+      }
+
       showToast(err.message || 'Airtime purchase failed', 'error');
 
       const orderId = 'AT' + Math.random().toString(16).substring(2, 10).toUpperCase();
@@ -268,11 +283,11 @@ export default function Airtime({ user, onNavigate, onRefreshData, showToast }: 
       </div>
 
       {/* Main Form Fields */}
-      <form onSubmit={handleSubmit} className="p-5 flex-grow overflow-y-auto space-y-5 pb-[140px]">
+      <form onSubmit={handleSubmit} className="p-5 flex-grow overflow-y-auto space-y-6 pb-[140px]">
         {/* Recipient Input */}
-        <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-150 space-y-4">
+        <div className="space-y-4">
           <div className="flex justify-between items-center px-1">
-            <h5 className="text-xs font-bold text-primary-dark uppercase">Recipient Number</h5>
+            <h5 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Recipient Number</h5>
             <div className="flex items-center gap-1.5 cursor-pointer">
               <input
                 id="airtime-self-toggle"
@@ -299,7 +314,7 @@ export default function Airtime({ user, onNavigate, onRefreshData, showToast }: 
               onChange={handleRecipientChange}
               disabled={sendToSelf}
               required
-              className="w-full bg-slate-50 border border-gray-200 text-primary-dark font-bold rounded-2xl pl-11 pr-24 py-3 text-base placeholder-gray-400 focus:bg-white focus:border-primary-blue focus:outline-none transition-all disabled:bg-gray-100 disabled:text-gray-400"
+              className="w-full bg-white border border-gray-200 text-primary-dark font-bold rounded-2xl pl-11 pr-24 py-3 text-base placeholder-gray-400 focus:bg-white focus:border-primary-blue focus:outline-none transition-all disabled:bg-gray-100 disabled:text-gray-400"
             />
             {recipient.length >= 4 && (
               <div className="absolute right-3 flex items-center pointer-events-none">
@@ -323,10 +338,13 @@ export default function Airtime({ user, onNavigate, onRefreshData, showToast }: 
           </p>
         </div>
 
+        {/* Divider */}
+        <div className="h-px bg-gray-200/80 mx-1" />
+
         {/* Amount Input */}
-        <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-150 space-y-4">
+        <div className="space-y-4">
           <div className="flex justify-between items-center px-1">
-            <h5 className="text-xs font-bold text-primary-dark uppercase">Recharge Amount</h5>
+            <h5 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Recharge Amount</h5>
           </div>
 
           <div className="relative flex items-center">
@@ -340,7 +358,7 @@ export default function Airtime({ user, onNavigate, onRefreshData, showToast }: 
               value={amount}
               onChange={handleAmountChange}
               required
-              className="w-full bg-slate-50 border border-gray-200 text-primary-dark font-black rounded-2xl pl-9 pr-4 py-3.5 text-xl placeholder-gray-350 focus:bg-white focus:border-primary-blue focus:outline-none transition-all"
+              className="w-full bg-white border border-gray-200 text-primary-dark font-black rounded-2xl pl-9 pr-4 py-3.5 text-xl placeholder-gray-350 focus:bg-white focus:border-primary-blue focus:outline-none transition-all"
             />
           </div>
 
@@ -351,7 +369,7 @@ export default function Airtime({ user, onNavigate, onRefreshData, showToast }: 
                 key={val}
                 type="button"
                 onClick={() => selectQuickAmount(val)}
-                className="bg-slate-50 hover:bg-slate-100 text-primary-dark border border-gray-150 rounded-2xl py-2.5 text-xs font-bold transition-all active:scale-[0.97]"
+                className="bg-white hover:bg-slate-50 text-primary-dark border border-gray-200 rounded-2xl py-2.5 text-xs font-bold transition-all active:scale-[0.97]"
               >
                 ₦{val.toLocaleString()}
               </button>

@@ -221,6 +221,21 @@ export default function CableTv({ user, onNavigate, onRefreshData, showToast }: 
       }
     } catch (err: any) {
       playFailureSound();
+
+      const isNetworkError = err instanceof TypeError ||
+        (err.message && (
+          err.message.toLowerCase().includes('failed to fetch') ||
+          err.message.toLowerCase().includes('network') ||
+          err.message.toLowerCase().includes('load failed')
+        ));
+
+      if (isNetworkError) {
+        showToast('Connection issue — your order may have still gone through. Refreshing...', 'info');
+        await onRefreshData().catch(() => {});
+        setSubmitting(false);
+        return;
+      }
+
       showToast(err.message || 'Cable purchase failed', 'error');
 
       const orderId = 'CB' + Math.random().toString(16).substring(2, 10).toUpperCase();
@@ -293,10 +308,10 @@ export default function CableTv({ user, onNavigate, onRefreshData, showToast }: 
       </div>
 
       {/* Form Area */}
-      <form onSubmit={handleSubmit} className="p-5 flex-grow overflow-y-auto space-y-5 pb-[140px]">
+      <form onSubmit={handleSubmit} className="p-5 flex-grow overflow-y-auto space-y-6 pb-[140px]">
         {/* IUC Input & Verification */}
-        <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-150 space-y-4">
-          <h5 className="text-xs font-bold text-primary-dark uppercase px-1">IUC / SmartCard Number</h5>
+        <div className="space-y-4">
+          <h5 className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">IUC / SmartCard Number</h5>
           <div className="flex gap-2">
             <div className="relative flex-1 flex items-center">
               <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-text-muted">
@@ -309,7 +324,7 @@ export default function CableTv({ user, onNavigate, onRefreshData, showToast }: 
                 value={iucNumber}
                 onChange={(e) => setIucNumber(e.target.value.replace(/\D/g, ''))}
                 required
-                className="w-full bg-slate-50 border border-gray-200 text-primary-dark font-bold rounded-2xl pl-11 pr-3 py-3 text-sm placeholder-gray-400 focus:bg-white focus:border-primary-blue focus:outline-none transition-all"
+                className="w-full bg-white border border-gray-200 text-primary-dark font-bold rounded-2xl pl-11 pr-3 py-3 text-sm placeholder-gray-400 focus:bg-white focus:border-primary-blue focus:outline-none transition-all"
               />
             </div>
             <button
@@ -335,42 +350,59 @@ export default function CableTv({ user, onNavigate, onRefreshData, showToast }: 
           )}
         </div>
 
-        {/* Cable Plans Dropdown List */}
-        <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-150 space-y-4">
-          <h5 className="text-xs font-bold text-primary-dark uppercase px-1">Choose Package</h5>
+        {/* Divider */}
+        <div className="h-px bg-gray-200/80 mx-1" />
+
+        {/* Cable Plans Grid */}
+        <div className="space-y-4">
+          <h5 className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">Choose Package</h5>
           
           {loadingPlans ? (
-            <div className="py-6 flex flex-col justify-center items-center text-primary-blue gap-1 bg-slate-50 rounded-2xl border border-dashed border-gray-200">
+            <div className="py-6 flex flex-col justify-center items-center text-primary-blue gap-1 bg-white rounded-2xl border border-dashed border-gray-200">
               <RefreshCw className="w-5 h-5 animate-spin" />
               <span className="text-[11px] font-medium">Fetching packages...</span>
             </div>
           ) : (
-            <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1 no-scrollbar">
+            <div className="grid grid-cols-3 gap-2">
               {plans.length === 0 ? (
-                <p className="text-xs text-text-muted text-center py-4">No packages found for this provider.</p>
+                <div className="col-span-3 py-10 text-center bg-white rounded-3xl border border-gray-150 p-6">
+                  <p className="text-sm font-semibold text-text-muted">No packages found for this provider.</p>
+                </div>
               ) : (
                 plans.map((plan) => {
                   const isSelected = selectedPlan?.plan_code === plan.plan_code;
+                  const hasDiscount = plan.face_value && plan.face_value > plan.price;
                   return (
                     <button
                       key={plan.plan_code}
                       type="button"
                       onClick={() => setSelectedPlan(plan)}
-                      className={`w-full text-left bg-slate-50 rounded-2xl p-3.5 border transition-all flex items-center justify-between cursor-pointer ${
+                      className={`bg-white rounded-2xl p-3 flex flex-col items-center justify-between text-center gap-1 shadow-sm border active:scale-[0.97] transition-all cursor-pointer relative min-h-[125px] ${
                         isSelected 
                           ? 'border-primary-blue bg-primary-blue/[0.02] ring-2 ring-primary-blue/10'
-                          : 'border-gray-150 hover:border-gray-300'
+                          : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
-                      <div className="flex-1 min-w-0 pr-2">
-                        <span className="font-extrabold text-xs block text-slate-800 leading-tight">{plan.display}</span>
+                      {hasDiscount && (
+                        <div className="absolute top-1.5 right-1.5 bg-emerald-500 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-full shadow-sm scale-90 origin-top-right">
+                          SAVE
+                        </div>
+                      )}
+
+                      <div className="w-full flex flex-col items-center gap-1 mt-2 flex-grow justify-center">
+                        <span className={`text-[11px] font-black tracking-tight leading-tight ${isSelected ? 'text-primary-blue' : 'text-slate-800'}`}>
+                          {plan.display}
+                        </span>
                         {plan.description && (
-                          <span className="text-[10px] text-slate-500 block mt-1 leading-normal font-medium">{plan.description}</span>
+                          <span className="text-[9px] text-slate-400 leading-tight line-clamp-2 font-medium">
+                            {plan.description}
+                          </span>
                         )}
                       </div>
-                      <div className="flex flex-col items-end shrink-0 pl-2">
-                        {plan.face_value && plan.face_value > plan.price && (
-                          <span className="text-[10px] text-gray-400 line-through font-mono leading-none mb-0.5">
+
+                      <div className="w-full flex flex-col items-center gap-0.5 mt-1 pt-1 border-t border-gray-50">
+                        {hasDiscount && (
+                          <span className="text-[9px] text-gray-400 line-through font-mono leading-none">
                             ₦{plan.face_value.toLocaleString()}
                           </span>
                         )}
@@ -386,9 +418,12 @@ export default function CableTv({ user, onNavigate, onRefreshData, showToast }: 
           )}
         </div>
 
+        {/* Divider */}
+        <div className="h-px bg-gray-200/80 mx-1" />
+
         {/* Notification Phone Field */}
-        <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-150 space-y-4">
-          <h5 className="text-xs font-bold text-primary-dark uppercase px-1">Notification Line</h5>
+        <div className="space-y-4">
+          <h5 className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">Notification Line</h5>
           <div className="relative flex items-center">
             <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-text-muted">
               <Smartphone className="w-5 h-5" />
@@ -400,7 +435,7 @@ export default function CableTv({ user, onNavigate, onRefreshData, showToast }: 
               value={recipientPhone}
               onChange={handlePhoneChange}
               required
-              className="w-full bg-slate-50 border border-gray-200 text-primary-dark font-bold rounded-2xl pl-11 pr-3 py-3 text-sm placeholder-gray-400 focus:bg-white focus:border-primary-blue focus:outline-none transition-all"
+              className="w-full bg-white border border-gray-200 text-primary-dark font-bold rounded-2xl pl-11 pr-3 py-3 text-sm placeholder-gray-400 focus:bg-white focus:border-primary-blue focus:outline-none transition-all"
             />
           </div>
           
