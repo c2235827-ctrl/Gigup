@@ -368,9 +368,16 @@ export default function CableTv({ user, onNavigate, onRefreshData, showToast }: 
                           <span className="text-[10px] text-slate-500 block mt-1 leading-normal font-medium">{plan.description}</span>
                         )}
                       </div>
-                      <span className="font-mono font-black text-xs text-primary-blue shrink-0">
-                        ₦{plan.price.toLocaleString()}
-                      </span>
+                      <div className="flex flex-col items-end shrink-0 pl-2">
+                        {plan.face_value && plan.face_value > plan.price && (
+                          <span className="text-[10px] text-gray-400 line-through font-mono leading-none mb-0.5">
+                            ₦{plan.face_value.toLocaleString()}
+                          </span>
+                        )}
+                        <span className="font-mono font-black text-xs text-emerald-600 leading-none">
+                          ₦{plan.price.toLocaleString()}
+                        </span>
+                      </div>
                     </button>
                   );
                 })

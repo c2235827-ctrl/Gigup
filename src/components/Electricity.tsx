@@ -35,6 +35,9 @@ export default function Electricity({ user, onNavigate, onRefreshData, showToast
   const [recipientPhone, setRecipientPhone] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const [priceReveal, setPriceReveal] = useState<{ estimated_price: number; estimated_savings: number } | null>(null);
+  const [loadingPrice, setLoadingPrice] = useState(false);
+
   const totalAvailable = (user.wallet_balance || 0) + (user.bonus_balance || 0);
 
   // Fetch Discos on Mount
@@ -64,6 +67,36 @@ export default function Electricity({ user, onNavigate, onRefreshData, showToast
   useEffect(() => {
     setVerifiedCustomer(null);
   }, [meterNumber, selectedDisco, meterType]);
+
+  const revealRealPrice = async (selectedAmount: number) => {
+    if (!selectedAmount || !selectedDisco || selectedAmount < (selectedDisco.min_amount || 100)) {
+      setPriceReveal(null);
+      return;
+    }
+    setLoadingPrice(true);
+    try {
+      const res = await ApiService.getPriceEstimate('electricity', null, selectedAmount);
+      if (res.success) {
+        setPriceReveal({ estimated_price: res.estimated_price, estimated_savings: res.estimated_savings });
+      } else {
+        setPriceReveal(null);
+      }
+    } catch {
+      setPriceReveal(null);
+    } finally {
+      setLoadingPrice(false);
+    }
+  };
+
+  // Re-fetch price estimate if selectedDisco changes
+  useEffect(() => {
+    const num = parseFloat(amount);
+    if (num && selectedDisco && num >= (selectedDisco.min_amount || 100)) {
+      revealRealPrice(num);
+    } else {
+      setPriceReveal(null);
+    }
+  }, [selectedDisco]);
 
   const handleVerifyMeter = async () => {
     if (!meterNumber) {
@@ -105,10 +138,17 @@ export default function Electricity({ user, onNavigate, onRefreshData, showToast
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, '');
     setAmount(value);
+    const num = parseFloat(value);
+    if (selectedDisco && num >= (selectedDisco.min_amount || 100)) {
+      revealRealPrice(num);
+    } else {
+      setPriceReveal(null);
+    }
   };
 
   const selectQuickAmount = (val: number) => {
     setAmount(String(val));
+    revealRealPrice(val);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -137,7 +177,9 @@ export default function Electricity({ user, onNavigate, onRefreshData, showToast
       return;
     }
 
-    if (numericAmount > totalAvailable) {
+    const amountToCharge = priceReveal ? priceReveal.estimated_price : numericAmount;
+
+    if (amountToCharge > totalAvailable) {
       playFailureSound();
       const generatedOrderId = 'EL' + Math.random().toString(16).substring(2, 10).toUpperCase();
       const generatedReceiptId = 'REC' + Math.random().toString(16).substring(2, 10).toUpperCase();
@@ -148,7 +190,7 @@ export default function Electricity({ user, onNavigate, onRefreshData, showToast
         network: selectedDisco.plan_name,
         plan_name: `Electricity Token (${meterType.toUpperCase()})`,
         recipient_phone: meterNumber,
-        amount: numericAmount,
+        amount: amountToCharge,
         id: generatedOrderId,
         receiptId: generatedReceiptId,
         date: new Date().toLocaleDateString('en-US', {
@@ -187,6 +229,7 @@ export default function Electricity({ user, onNavigate, onRefreshData, showToast
 
         const orderId = (res as any).order_id || (res as any).id || 'EL' + Math.random().toString(16).substring(2, 10).toUpperCase();
         const receiptId = (res as any).receipt_id || 'REC' + Math.random().toString(16).substring(2, 10).toUpperCase();
+        const finalAmountCharged = (res as any).amount_charged || amountToCharge;
 
         // If prepaid token is generated, display it prominently on the receipt page's plan name area
         const displayPlanName = res.token 
@@ -198,7 +241,7 @@ export default function Electricity({ user, onNavigate, onRefreshData, showToast
           network: selectedDisco.plan_name,
           plan_name: displayPlanName,
           recipient_phone: meterNumber,
-          amount: numericAmount,
+          amount: finalAmountCharged,
           id: orderId,
           receiptId: receiptId,
           date: new Date().toLocaleDateString('en-US', {
@@ -217,6 +260,7 @@ export default function Electricity({ user, onNavigate, onRefreshData, showToast
         setVerifiedCustomer(null);
         setAmount('');
         setRecipientPhone('');
+        setPriceReveal(null);
       } else {
         throw new Error(res.message || 'Dispersion rejected by VTU electricity provider.');
       }
@@ -232,7 +276,7 @@ export default function Electricity({ user, onNavigate, onRefreshData, showToast
         network: selectedDisco.plan_name,
         plan_name: `Electricity Token (${meterType.toUpperCase()})`,
         recipient_phone: meterNumber,
-        amount: numericAmount,
+        amount: amountToCharge,
         id: orderId,
         receiptId: receiptId,
         date: new Date().toLocaleDateString('en-US', {
@@ -408,6 +452,16 @@ export default function Electricity({ user, onNavigate, onRefreshData, showToast
               </button>
             ))}
           </div>
+
+          {loadingPrice && <p className="text-xs text-gray-400 mt-2 pl-1 animate-pulse">Checking real price...</p>}
+          {priceReveal && (
+            <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-3.5 mt-2 animate-fade-in">
+              <p className="text-xs font-bold text-emerald-800">
+                You'll actually pay: <span className="font-black text-sm">₦{priceReveal.estimated_price.toLocaleString()}</span>
+              </p>
+              <p className="text-[10px] text-emerald-600 mt-0.5">You save ₦{priceReveal.estimated_savings.toLocaleString()} — no markup, ever.</p>
+            </div>
+          )}
         </div>
 
         {/* Notification Phone */}

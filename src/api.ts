@@ -377,6 +377,17 @@ export const ApiService = {
     });
   },
 
+  async getPriceEstimate(type: 'airtime' | 'electricity', provider: string | null, amount: number): Promise<{
+    success: boolean;
+    estimated_price: number;
+    estimated_savings: number;
+  }> {
+    return await request('get-price-estimate', {
+      method: 'POST',
+      body: JSON.stringify({ type, provider, amount }),
+    });
+  },
+
   logout() {
     localStorage.removeItem('gigup_token');
     localStorage.removeItem('gigup_user');
