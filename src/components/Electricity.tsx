@@ -210,6 +210,7 @@ export default function Electricity({ user, onNavigate, onRefreshData, showToast
       return;
     }
 
+    const requestStartTime = new Date().toISOString();
     setSubmitting(true);
     try {
       // API expects: disco (plan_code), meter, meterType, amount, phone
@@ -275,9 +276,77 @@ export default function Electricity({ user, onNavigate, onRefreshData, showToast
         ));
 
       if (isNetworkError) {
-        showToast('Connection issue — your order may have still gone through. Refreshing...', 'info');
-        await onRefreshData().catch(() => {});
-        setSubmitting(false);
+        showToast('Connection issue — checking your order status...', 'info');
+        try {
+          const checkRes = await ApiService.checkRecentOrder('electricity', requestStartTime);
+          await onRefreshData().catch(() => {});
+          setSubmitting(false);
+
+          if (checkRes.found && checkRes.status === 'success') {
+            playSuccessSound();
+            showToast('Good news — your electricity went through! 🎉', 'success');
+
+            const displayPlanName = checkRes.order?.token 
+              ? `TOKEN: ${checkRes.order.token} (${meterType.toUpperCase()})`
+              : `Electricity Token (${meterType.toUpperCase()})`;
+
+            onNavigate('receipt', {
+              status: 'success',
+              network: selectedDisco.plan_name,
+              plan_name: displayPlanName,
+              recipient_phone: meterNumber,
+              amount: checkRes.order?.amount ?? amountToCharge,
+              id: checkRes.order?.id ?? 'EL' + Math.random().toString(16).substring(2, 10).toUpperCase(),
+              receiptId: 'REC' + Math.random().toString(16).substring(2, 10).toUpperCase(),
+              date: new Date().toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              }),
+              cashback: 0,
+              bonus_used: 0
+            });
+            // Reset
+            setMeterNumber('');
+            setVerifiedCustomer(null);
+            setAmount('');
+            setRecipientPhone('');
+            setPriceReveal(null);
+            return;
+          }
+
+          if (checkRes.found && checkRes.status === 'pending') {
+            showToast('Your order is still processing — check back shortly.', 'info');
+            return;
+          }
+
+          if (checkRes.found && checkRes.status === 'failed') {
+            onNavigate('receipt', {
+              status: 'failed',
+              network: selectedDisco.plan_name,
+              plan_name: `Electricity Token (${meterType.toUpperCase()})`,
+              recipient_phone: meterNumber,
+              amount: amountToCharge,
+              id: checkRes.order?.id ?? 'EL' + Math.random().toString(16).substring(2, 10).toUpperCase(),
+              receiptId: 'REC' + Math.random().toString(16).substring(2, 10).toUpperCase(),
+              date: new Date().toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              }),
+              reason: checkRes.order?.failure_reason || 'Transaction failed.'
+            });
+            return;
+          }
+
+          showToast('Your order was not received. Please try again.', 'error');
+        } catch (checkErr) {
+          showToast('Could not confirm order status. Please check your order history.', 'error');
+        }
         return;
       }
 

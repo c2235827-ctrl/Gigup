@@ -181,6 +181,7 @@ export default function CableTv({ user, onNavigate, onRefreshData, showToast }: 
       return;
     }
 
+    const requestStartTime = new Date().toISOString();
     setSubmitting(true);
     try {
       const res = await ApiService.buyCable(selectedProvider.identifier, selectedPlan.plan_code, iucNumber, recipientPhone);
@@ -230,9 +231,70 @@ export default function CableTv({ user, onNavigate, onRefreshData, showToast }: 
         ));
 
       if (isNetworkError) {
-        showToast('Connection issue — your order may have still gone through. Refreshing...', 'info');
-        await onRefreshData().catch(() => {});
-        setSubmitting(false);
+        showToast('Connection issue — checking your order status...', 'info');
+        try {
+          const checkRes = await ApiService.checkRecentOrder('cable', requestStartTime);
+          await onRefreshData().catch(() => {});
+          setSubmitting(false);
+
+          if (checkRes.found && checkRes.status === 'success') {
+            playSuccessSound();
+            showToast('Good news — your cable TV subscription went through! 🎉', 'success');
+            onNavigate('receipt', {
+              status: 'success',
+              network: selectedProvider.name,
+              plan_name: selectedPlan.display,
+              recipient_phone: iucNumber,
+              amount: checkRes.order?.amount ?? price,
+              id: checkRes.order?.id ?? 'CB' + Math.random().toString(16).substring(2, 10).toUpperCase(),
+              receiptId: 'REC' + Math.random().toString(16).substring(2, 10).toUpperCase(),
+              date: new Date().toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              }),
+              cashback: 0,
+              bonus_used: 0
+            });
+            // Reset
+            setIucNumber('');
+            setVerifiedCustomer(null);
+            setRecipientPhone('');
+            return;
+          }
+
+          if (checkRes.found && checkRes.status === 'pending') {
+            showToast('Your order is still processing — check back shortly.', 'info');
+            return;
+          }
+
+          if (checkRes.found && checkRes.status === 'failed') {
+            onNavigate('receipt', {
+              status: 'failed',
+              network: selectedProvider.name,
+              plan_name: selectedPlan.display,
+              recipient_phone: iucNumber,
+              amount: price,
+              id: checkRes.order?.id ?? 'CB' + Math.random().toString(16).substring(2, 10).toUpperCase(),
+              receiptId: 'REC' + Math.random().toString(16).substring(2, 10).toUpperCase(),
+              date: new Date().toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              }),
+              reason: checkRes.order?.failure_reason || 'Transaction failed.'
+            });
+            return;
+          }
+
+          showToast('Your order was not received. Please try again.', 'error');
+        } catch (checkErr) {
+          showToast('Could not confirm order status. Please check your order history.', 'error');
+        }
         return;
       }
 

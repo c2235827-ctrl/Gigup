@@ -388,6 +388,15 @@ export const ApiService = {
     });
   },
 
+  async checkRecentOrder(service: 'airtime' | 'cable' | 'electricity', since: string): Promise<{
+    success: boolean;
+    found: boolean;
+    status: string;
+    order?: any;
+  }> {
+    return await request(`check-recent-order?service=${service}&since=${encodeURIComponent(since)}`, { method: 'GET' });
+  },
+
   logout() {
     localStorage.removeItem('gigup_token');
     localStorage.removeItem('gigup_user');

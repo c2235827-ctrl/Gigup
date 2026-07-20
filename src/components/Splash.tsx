@@ -10,14 +10,13 @@ export default function Splash({ onComplete }: SplashProps) {
       id="splash-screen"
       className="flex flex-col items-center justify-end h-full w-full bg-primary-dark text-white select-none relative overflow-hidden"
     >
-      {/* Background Video */}
+      {/* Background Image */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden bg-black flex justify-center items-center">
-        <iframe
-          src="https://www.youtube.com/embed/NvsNQR1OOOI?autoplay=1&mute=1&loop=1&playlist=NvsNQR1OOOI&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&vq=hd1080&end=41"
-          title="Splash Video"
-          allow="autoplay; encrypted-media"
-          className="absolute inset-0 w-[300%] h-[300%] sm:w-[200%] sm:h-[200%] md:w-[150%] md:h-[150%] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-          style={{ border: 'none' }}
+        <img
+          src="https://images.unsplash.com/photo-1642165835095-528b68f00663?q=80&w=770&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8WFyYW5kc3B=ftufbW9y=="
+          alt="Splash Background"
+          className="absolute inset-0 w-full h-full object-cover"
+          referrerPolicy="no-referrer"
         />
       </div>
 
@@ -53,7 +52,7 @@ export default function Splash({ onComplete }: SplashProps) {
         onClick={onComplete}
         className="z-10 text-[11px] font-bold text-white/70 hover:text-white uppercase tracking-widest bg-white/10 hover:bg-white/20 px-5 py-2 rounded-full border border-white/20 backdrop-blur-xs transition cursor-pointer select-none mb-4"
       >
-        SKIP VIDEO →
+        CONTINUE →
       </button>
 
       {/* Credit */}
