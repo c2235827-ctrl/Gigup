@@ -22,6 +22,7 @@ import RechargeCard from './components/RechargeCard';
 import Airtime from './components/Airtime';
 import CableTv from './components/CableTv';
 import Electricity from './components/Electricity';
+import MaintenanceModal from './components/MaintenanceModal';
 
 interface ToastState {
   message: string;
@@ -61,6 +62,23 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const sessionIdRef = useRef<string | null>(null);
   const sessionStartRef = useRef<number | null>(null);
+
+  const [maintenanceInfo, setMaintenanceInfo] = useState<{ active: boolean; title: string; message: string } | null>(null);
+
+  // Maintenance mode checker
+  useEffect(() => {
+    if (user) {
+      ApiService.checkMaintenanceMode()
+        .then((info) => {
+          if (info.active) {
+            setMaintenanceInfo(info);
+          }
+        })
+        .catch((err) => {
+          console.warn('Unable to retrieve maintenance mode status:', err);
+        });
+    }
+  }, [user?.id]);
 
   const [userFlags, setUserFlags] = useState<UserFlags | null>(null);
   const [userStreak, setUserStreak] = useState<number>(0);
@@ -1047,6 +1065,15 @@ export default function App() {
               </button>
             </div>
           </div>
+        )}
+
+        {/* Maintenance mode modal overlay */}
+        {maintenanceInfo?.active && (
+          <MaintenanceModal
+            title={maintenanceInfo.title}
+            message={maintenanceInfo.message}
+            onClose={() => setMaintenanceInfo(null)}
+          />
         )}
 
         {/* Global Toast Alerts at bottom */}

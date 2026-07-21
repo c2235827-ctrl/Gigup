@@ -397,6 +397,11 @@ export const ApiService = {
     return await request(`check-recent-order?service=${service}&since=${encodeURIComponent(since)}`, { method: 'GET' });
   },
 
+  async checkMaintenanceMode(): Promise<{ active: boolean; title: string; message: string; started_at: string | null }> {
+    const data = await request('check-maintenance-mode', { method: 'GET' });
+    return { active: data.active, title: data.title, message: data.message, started_at: data.started_at };
+  },
+
   logout() {
     localStorage.removeItem('gigup_token');
     localStorage.removeItem('gigup_user');
