@@ -397,9 +397,9 @@ export const ApiService = {
     return await request(`check-recent-order?service=${service}&since=${encodeURIComponent(since)}`, { method: 'GET' });
   },
 
-  async checkMaintenanceMode(): Promise<{ active: boolean; title: string; message: string; started_at: string | null }> {
-    const data = await request('check-maintenance-mode', { method: 'GET' });
-    return { active: data.active, title: data.title, message: data.message, started_at: data.started_at };
+  async checkMaintenanceMode(): Promise<{ any_active: boolean; services: Record<string, any> }> {
+    const data = await request('check-service-maintenance', { method: 'GET' });
+    return { any_active: data.any_active, services: data.services || {} };
   },
 
   logout() {

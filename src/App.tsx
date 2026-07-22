@@ -70,8 +70,16 @@ export default function App() {
     if (user) {
       ApiService.checkMaintenanceMode()
         .then((info) => {
-          if (info.active) {
-            setMaintenanceInfo(info);
+          if (info.any_active && info.services) {
+            const activeServiceEntry = Object.entries(info.services).find(([_, s]: any) => s.active);
+            if (activeServiceEntry) {
+              const [_, serviceInfo] = activeServiceEntry as [string, any];
+              setMaintenanceInfo({
+                active: true,
+                title: serviceInfo.title || 'Service Maintenance',
+                message: serviceInfo.message || 'This service is currently undergoing scheduled maintenance.',
+              });
+            }
           }
         })
         .catch((err) => {
