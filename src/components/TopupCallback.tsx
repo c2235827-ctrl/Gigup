@@ -215,9 +215,6 @@ export default function TopupCallback({ txRef, amount, onProcessed, showToast }:
           <span>GO TO HOME WALLET</span>
           <ChevronRight className="w-4 h-4" />
         </button>
-        <p className="text-[10px] text-white/20 text-center font-normal">
-          LICENSED VTU PROVIDER ID: #FLW-HOK-721
-        </p>
       </div>
 
     </div>

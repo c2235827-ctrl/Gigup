@@ -44,8 +44,11 @@ export default function ReceiptView({ onClose, params, showToast, onNavigate }: 
     }),
     reason = '',
     cashback = 0,
+    cashback_earned = 0,
     bonus_used = 0,
   } = params;
+
+  const earnedCashback = Number(cashback || cashback_earned || 0);
 
   const handleCopy = (text: string, type: 'order' | 'receipt') => {
     navigator.clipboard.writeText(text);
@@ -206,14 +209,14 @@ export default function ReceiptView({ onClose, params, showToast, onNavigate }: 
               )}
 
               {/* Earned Cashback if Success */}
-              {status === 'success' && cashback > 0 && (
+              {status === 'success' && earnedCashback > 0 && (
                 <div className="flex justify-between items-center p-2 bg-[#FEF3C7] border border-amber-200 rounded-xl">
                   <span className="text-amber-800 font-extrabold flex items-center gap-1 select-none">
                     <Sparkles className="w-3.5 h-3.5 text-amber-600 fill-amber-300" />
                     Instant Cashback
                   </span>
                   <span className="font-black text-[#D97706] font-mono text-sm">
-                    +₦{cashback.toLocaleString('en-US')}
+                    +₦{earnedCashback.toLocaleString('en-US')}
                   </span>
                 </div>
               )}

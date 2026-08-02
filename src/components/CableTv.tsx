@@ -209,7 +209,8 @@ export default function CableTv({ user, onNavigate, onRefreshData, showToast }: 
             hour: '2-digit',
             minute: '2-digit'
           }),
-          cashback: 0,
+          cashback: (res as any).cashback_earned || (res as any).cashback || 0,
+          cashback_earned: (res as any).cashback_earned || (res as any).cashback || 0,
           bonus_used: 0
         });
 
@@ -255,7 +256,8 @@ export default function CableTv({ user, onNavigate, onRefreshData, showToast }: 
                 hour: '2-digit',
                 minute: '2-digit'
               }),
-              cashback: 0,
+              cashback: checkRes.order?.cashback_earned || checkRes.order?.cashback || 0,
+              cashback_earned: checkRes.order?.cashback_earned || checkRes.order?.cashback || 0,
               bonus_used: 0
             });
             // Reset

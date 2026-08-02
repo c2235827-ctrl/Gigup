@@ -359,9 +359,6 @@ export default function RegisterStep2({ phone, code, onRegisterSuccess, onPrevSt
             >
               Enter Home Wallet <Heart className="w-4 h-4 fill-white" />
             </button>
-            <p className="text-[10px] text-white/30">
-              SECURE SEC BANK VTU LICENSE NO: 74-2900
-            </p>
           </div>
         </div>
       )}
